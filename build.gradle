@@ -13,7 +13,7 @@ project.ext.externalDependency = [
   'zookeeper':'org.apache.zookeeper:zookeeper:3.3.0',
   'protobuf':'com.google.protobuf:protobuf-java:2.4.0a',
   'log4j':'log4j:log4j:1.2.16',
-  'netty':'org.jboss.netty:netty:3.2.3.Final',
+  'netty':'io.netty:netty:3.5.11.Final',
   'slf4jApi':'org.slf4j:slf4j-api:1.5.6',
   'slf4jLog4j':'org.slf4j:slf4j-log4j12:1.5.6',
   'specs':'org.scala-tools.testing:specs_2.8.1:1.6.8',
