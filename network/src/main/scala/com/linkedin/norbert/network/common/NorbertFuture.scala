@@ -444,36 +444,45 @@ class SelectiveRetryIterator[PartitionedId, RequestMsg, ResponseMsg](
                 throw new TimeoutException("Timedout waiting for final %d partitions to return, retryInfo:%s ".format(setRequests.size, retryMessage))
             }
           }
+          
+          try {
+            if(conditionsRetryMet) {
+              retryMessage = "Retry initiated at %d".format(System.currentTimeMillis) 
+              //If for a particular partition id only if 10/10 of the replicas are in trouble then quit
+              val nodes = calculateNodesFromIds(ids, failedNodes, 10)
 
-          if(conditionsRetryMet) {
-            retryMessage = "Retry initiated at %d".format(System.currentTimeMillis) 
-            //If for a particular partition id only if 10/10 of the replicas are in trouble then quit
-            val nodes = calculateNodesFromIds(ids, failedNodes, 10)
+              if(duplicatesOk != true) {
+                //only the responses from these new requests count
+                log.debug("Adjust responseIterator to: %d".format(nodes.keySet.size))
+                distinctResponsesLeft=nodes.keySet.size
+                //reset the outstanding requests map
+                setRequests = Map.empty[PartitionedId, Node]
+              }
 
-            if(duplicatesOk != true) {
-              //only the responses from these new requests count
-              log.debug("Adjust responseIterator to: %d".format(nodes.keySet.size))
-              distinctResponsesLeft=nodes.keySet.size
-              //reset the outstanding requests map
-              setRequests = Map.empty[PartitionedId, Node]
-            }
-
-            nodes.foreach {
-              case (node, idsForNode) => {
-                def callback(a:Either[Throwable, ResponseMsg]):Unit = {
-                  a match {
-                    case Left(t) => queue += Left(t)
-                    case Right(r) => queue += Right(Tuple3(node, idsForNode, r))
+              nodes.foreach {
+                case (node, idsForNode) => {
+                  def callback(a:Either[Throwable, ResponseMsg]):Unit = {
+                    a match {
+                      case Left(t) => queue += Left(t)
+                      case Right(r) => queue += Right(Tuple3(node, idsForNode, r))
+                    }
                   }
-                }
 
-                val request1 = PartitionedRequest(requestBuilder(node, idsForNode), node, idsForNode, requestBuilder, is, os, Some((a: Either[Throwable, ResponseMsg]) => {callback(a)}), 0, Some(this))
-               idsForNode.foreach {
-                 case id => setRequests = setRequests + (id -> node)
-               }
-               sendRequestFunctor(request1)
+                  val request1 = PartitionedRequest(requestBuilder(node, idsForNode), node, idsForNode, requestBuilder, is, os, Some((a: Either[Throwable, ResponseMsg]) => {callback(a)}), 0, Some(this))
+                  idsForNode.foreach {
+                    case id => setRequests = setRequests + (id -> node)
+                  }
+                  sendRequestFunctor(request1)
+                }
               }
             }
+          } catch {
+            case e:NoNodesAvailableException => {
+              //reset state built about the failure of queries 
+              conditionsRetryMet = false
+              retryMessage = ""
+              failedNodes = Set.empty[Node]  
+            }  
           }
         }
 
