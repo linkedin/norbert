@@ -181,6 +181,10 @@ class ThreadPoolMessageExecutor(clientName: Option[String],
     def getTotalNumRejected: Int
 
     def getMedianTime: Double
+    
+    def getCurrentPoolSize: Int
+    
+    def getActivePoolSize: Int
   }
 
   class RequestProcessorMBeanImpl(clientName: Option[String], serviceName: String, val stats: CachedNetworkStatistics[Int, Int], queue: ArrayBlockingQueue[Runnable], threadPool: ThreadPoolExecutor)

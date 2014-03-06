@@ -2,7 +2,7 @@ apply plugin: 'java'
 apply plugin: 'scala'
 
 dependencies {
-  compile project(':cluster')
+  compile project(":cluster$scalaSuffix")
   compile externalDependency.scalaLibrary
 }
 

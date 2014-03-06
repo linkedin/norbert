@@ -6,6 +6,9 @@ dependencies {
   compile externalDependency.zookeeper
   compile externalDependency.protobuf
   compile externalDependency.log4j
+  if (scalaVersion.startsWith('2.10')) {
+    compile externalDependency.scalaActors
+  }
 
   testCompile externalDependency.specs
   testCompile externalDependency.mockitoAll

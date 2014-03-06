@@ -2,11 +2,14 @@ apply plugin: 'java'
 apply plugin: 'scala'
 
 dependencies {
-  compile project(':cluster')
+  compile project(":cluster$scalaSuffix")
   compile externalDependency.scalaLibrary
   compile externalDependency.netty
   compile externalDependency.slf4jApi
   compile externalDependency.slf4jLog4j
+  if (scalaVersion.startsWith('2.10')) {
+    compile externalDependency.scalaActors
+  }
 
   testCompile externalDependency.specs
   testCompile externalDependency.mockitoAll

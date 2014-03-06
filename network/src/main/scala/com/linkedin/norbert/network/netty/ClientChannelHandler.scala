@@ -94,7 +94,7 @@ class ClientChannelHandler(clientName: Option[String],
 
   val strategy = CompositeCanServeRequestStrategy(clientStatsStrategy, serverErrorStrategy)
 
-  private val statsJMX = JMX.register(new NetworkClientStatisticsMBeanImpl(clientName, serviceName, stats))
+  private val statsJMX = JMX.register(new NetworkClientStatisticsMBeanImpl(clientName, serviceName, stats, clientStatsStrategy))
 
   override def writeRequested(ctx: ChannelHandlerContext, e: MessageEvent) = {
     val request = e.getMessage.asInstanceOf[Request[_, _]]
@@ -189,7 +189,8 @@ class ClientStatisticsRequestStrategy(val stats: CachedNetworkStatistics[Node, U
   extends CanServeRequestStrategy with Logging with HealthScoreCalculator {
   // Must be more than outlierMultiplier * average + outlierConstant ms the others by default
 
-  val totalNodesMarkedDown = new AtomicInteger(0)
+  val totalNodesMarkedDown = new AtomicLong(0)
+  val totalNumReroutes = new AtomicLong(0)
 
   val canServeRequests = CacheMaintainer(clock, 200L, () => {
     val s = stats.getStatistics(0.5)
@@ -203,7 +204,7 @@ class ClientStatisticsRequestStrategy(val stats: CachedNetworkStatistics[Node, U
       val nodeMedian = doCalculation(Map(0 -> nodeP),Map(0 -> nodeN))
       val available = nodeMedian <= clusterMedian * outlierMultiplier + outlierConstant
 
-      if(!available) {
+      if (!available) {
         log.warn("Node %s has a median response time of %f. The cluster response time is %f. Routing requests away temporarily.".format(n, nodeMedian, clusterMedian))
         totalNodesMarkedDown.incrementAndGet
       }
@@ -213,7 +214,11 @@ class ClientStatisticsRequestStrategy(val stats: CachedNetworkStatistics[Node, U
 
   def canServeRequest(node: Node) = {
     val map = canServeRequests.get
-    map.flatMap(_.get(node)).getOrElse(true)
+    val canServe = map.flatMap(_.get(node)).getOrElse(true)
+    if (!canServe) {
+      totalNumReroutes.incrementAndGet
+    }
+    canServe
   }
 }
 
@@ -224,7 +229,7 @@ trait ClientStatisticsRequestStrategyMBean extends CanServeRequestStrategyMBean 
   def setOutlierMultiplier(m: Double)
   def setOutlierConstant(c: Double)
 
-  def getTotalNodesMarkedDown: Int
+  def getTotalNodesMarkedDown: Long
 }
 
 class ClientStatisticsRequestStrategyMBeanImpl(clientName: Option[String], serviceName: String, strategy: ClientStatisticsRequestStrategy)

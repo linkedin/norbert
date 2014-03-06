@@ -10,6 +10,7 @@ import cluster.Node
 import java.util.{UUID, Map => JMap}
 import netty.HealthScoreCalculator
 import jmx.{JMX, RequestTimeTracker}
+import netty.ClientStatisticsRequestStrategy
 
 object CachedNetworkStatistics {
   def apply[GroupIdType, RequestIdType](clock: Clock, timeWindow: Long, refreshInterval: Long): CachedNetworkStatistics[GroupIdType, RequestIdType] = {
@@ -191,16 +192,18 @@ trait NetworkClientStatisticsMBean {
   def getAverageRequestProcessingTime = getClusterAverageTime
 
   def getQueueSize: Int
+
+  def getNodesMarkedDown: Long
+  def getNumReroutedRequests: Long
 }
 
-class NetworkClientStatisticsMBeanImpl(clientName: Option[String], serviceName: String, val stats: CachedNetworkStatistics[Node, UUID])
+class NetworkClientStatisticsMBeanImpl(clientName: Option[String], serviceName: String, val stats: CachedNetworkStatistics[Node, UUID], strategy: ClientStatisticsRequestStrategy)
   extends MBean(classOf[NetworkClientStatisticsMBean], JMX.name(clientName, serviceName)) with HealthScoreCalculator
   with NetworkClientStatisticsMBean {
 
   private def getPendingStats(p: Double) = stats.getStatistics(p).map(_.pending).getOrElse(Map.empty)
   private def getFinishedStats(p: Double) = stats.getStatistics(p).map(_.finished).getOrElse(Map.empty)
   private def toMillis(statsMetric: Double):Double = statsMetric/1000
-
   def getNumPendingRequests = toJMap(getPendingStats(0.5).map(kv => (kv._1.id, kv._2.size)))
 
   def getMedianTimes =
@@ -267,6 +270,10 @@ class NetworkClientStatisticsMBeanImpl(clientName: Option[String], serviceName: 
   def getClusterHealthScoreTiming = toMillis(doCalculation(getPendingStats(0.5), getFinishedStats(0.5)))
 
   def getQueueSize = stats.getStatistics(0.5).map(_.requestQueueSize().values.sum) getOrElse(0)
+
+  def getNodesMarkedDown = strategy.canServeRequests.get.getOrElse(Map.empty).count({ case (node, up) => up == false })
+
+  def getNumReroutedRequests = strategy.totalNumReroutes.get
 
   def reset = stats.reset
 }

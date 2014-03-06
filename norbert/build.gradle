@@ -7,10 +7,10 @@ configurations {
 }
 
 dependencies {
-  compile project(':cluster')
-  compile project(':network')
-  compile project(':java-cluster')
-  compile project(':java-network')
+  compile project(":cluster$scalaSuffix")
+  compile project(":network$scalaSuffix")
+  compile project(":java-cluster$scalaSuffix")
+  compile project(":java-network$scalaSuffix")
 }
 
 jar {

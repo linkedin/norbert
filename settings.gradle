@@ -1,6 +1,28 @@
-include "cluster"
-include "network"
-include "java-cluster"
-include "java-network"
-include "norbert"
-include "examples"
+def modules = ['cluster', 'network', 'java-cluster', 'java-network', 'norbert', 'examples']
+def modulesToCrossBuild = ['cluster', 'network', 'java-cluster', 'java-network', 'norbert']
+
+def getScalaSuffix(scalaVersion) {
+  return scalaVersion.startsWith('2.10') ? '_2.10' : '_' + scalaVersion
+}
+
+modules.each {
+  if (modulesToCrossBuild.contains(it)) {
+    if (properties.crossBuild.toBoolean()) {
+      properties.targetScalaVersions.split(',').each { v -> include it + getScalaSuffix(v) }
+    }
+    else {
+      include it + getScalaSuffix(properties.defaultScalaVersion)
+    }
+  }
+  else {
+    include it
+  }
+}
+
+// each cross-built scala modules needs to be suffixed with the scala version
+rootProject.children.each {
+  def scalaPattern = it.name =~ /(.+)_2(\.[0-9]{1,2}){1,2}/
+  if (scalaPattern.matches() && modulesToCrossBuild.contains(scalaPattern.group(1))) {
+    it.projectDir = new File(settingsDir, scalaPattern.group(1))
+  }
+}
