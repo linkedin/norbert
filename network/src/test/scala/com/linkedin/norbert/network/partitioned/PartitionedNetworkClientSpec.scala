@@ -17,10 +17,12 @@ package com.linkedin.norbert
 package network
 package partitioned
 
-import common.{ClusterIoClientComponent, BaseNetworkClientSpecification}
-import loadbalancer.{PartitionedLoadBalancerFactory, PartitionedLoadBalancer, PartitionedLoadBalancerFactoryComponent}
+import common.{Endpoint, ClusterIoClientComponent, BaseNetworkClientSpecification}
+import loadbalancer._
 import java.util.concurrent.ExecutionException
 import cluster.{Node, InvalidClusterException, ClusterDisconnectedException, ClusterClientComponent}
+import scala.Left
+import scala.Some
 
 class PartitionedNetworkClientSpec extends BaseNetworkClientSpecification {
   val networkClient = new PartitionedNetworkClient[Int] with ClusterClientComponent with ClusterIoClientComponent
@@ -479,6 +481,10 @@ class PartitionedNetworkClientSpec extends BaseNetworkClientSpecification {
         networkClient.sendMessage(Set(1, 2, 3), messageCustomizer _) must throwA[NoNodesAvailableException]
 
         there were two(networkClient.lb).nextNode(1, None, None)
+
+        // Test cases for fanout calls.
+        networkClient.sendRequest(Set(1, 2, 3), 0, messageCustomizer _) must throwA[NoNodesAvailableException]
+        networkClient.sendRequest(Set(1, 2, 3), 1, messageCustomizer _) must throwA[NoNodesAvailableException]
 //      clusterIoClient.sendRequest(node, message, null) wasnt called
       }
     }
@@ -541,6 +547,12 @@ class PartitionedNetworkClientSpec extends BaseNetworkClientSpecification {
         val ri = networkClient.sendRequest(Set(1, 2), mc _, MAX_RETRY)
         ri.hasNext must beTrue
         ri.next must throwA[ExecutionException]
+
+        networkClient.sendRequest(Set(1, 2), 0, mc _, MAX_RETRY).hasNext must beTrue
+        networkClient.sendRequest(Set(1, 2), 0, mc _, MAX_RETRY).next must throwA[ExecutionException]
+
+        networkClient.sendRequest(Set(1, 2), 1, mc _, MAX_RETRY).hasNext must beTrue
+        networkClient.sendRequest(Set(1, 2), 1, mc _, MAX_RETRY).next must throwA[ExecutionException]
       }
 
       "throw InvalidClusterException if there is no load balancer instance when sendRequest is called" in {
@@ -551,6 +563,9 @@ class PartitionedNetworkClientSpec extends BaseNetworkClientSpecification {
 
         networkClient.start
         networkClient.sendRequest(Set(1, 2, 3), messageCustomizer _, MAX_RETRY)  must throwA[InvalidClusterException]
+
+        networkClient.sendRequest(Set(1, 2, 3), 0, messageCustomizer _, MAX_RETRY)  must throwA[InvalidClusterException]
+        networkClient.sendRequest(Set(1, 2, 3), 1, messageCustomizer _, MAX_RETRY)  must throwA[InvalidClusterException]
       }
 
       "throw NoSuchNodeException if load balancer returns None when sendRequest is called" in {
@@ -564,6 +579,9 @@ class PartitionedNetworkClientSpec extends BaseNetworkClientSpecification {
         networkClient.sendRequest(Set(1, 2, 3), messageCustomizer _, MAX_RETRY) must throwA[NoNodesAvailableException]
 
         there was one(networkClient.lb).nextNode(1, None, None)
+
+        networkClient.sendRequest(Set(1, 2, 3), 0, messageCustomizer _) must throwA[NoNodesAvailableException]
+        networkClient.sendRequest(Set(1, 2, 3), 1, messageCustomizer _) must throwA[NoNodesAvailableException]
       }
     }
 
@@ -713,6 +731,11 @@ class PartitionedNetworkClientSpec extends BaseNetworkClientSpecification {
         while (resIter.hasNext) {
           resIter.next must throwAnException[Exception]
         }
+        val resIter2 = nc2.sendRequest(Set(1,2,3), 1, messageCustomizer _, MAX_RETRY)
+        nc2.clusterIoClient.invocationCount mustEqual (MAX_RETRY * 8)
+        while (resIter2.hasNext) {
+          resIter2.next must throwAnException[Exception]
+        }
       }
 
     }
@@ -806,6 +829,14 @@ class PartitionedNetworkClientSpec extends BaseNetworkClientSpecification {
       while (resIter.hasNext) {
         num += 1
         resIter.next mustNot throwAnException
+      }
+      num mustEq 2
+
+      val resIter2 = nc2.sendRequest[Ping, Ping](Set(0,1), messageCustomizer _, MAX_RETRY)
+      num = 0
+      while (resIter2.hasNext) {
+        num += 1
+        resIter2.next mustNot throwAnException
       }
       num mustEq 2
     }
@@ -930,6 +961,14 @@ class PartitionedNetworkClientSpec extends BaseNetworkClientSpecification {
         networkClient.sendRequest(Set(1, 2), (node: Node, ids: Set[Int]) => request, ag _) must be_==(123454321)
 
         callCount must be_==(1)
+
+        networkClient.sendRequest(Set(1, 2), 0, (node: Node, ids: Set[Int]) => request, ag _) must be_==(123454321)
+
+        callCount must be_==(2)
+
+        networkClient.sendRequest(Set(1, 2), 1, (node: Node, ids: Set[Int]) => request, ag _) must be_==(123454321)
+
+        callCount must be_==(3)
       }
 
       "it rethrows exceptions thrown by the response aggregator" in {
@@ -945,6 +984,9 @@ class PartitionedNetworkClientSpec extends BaseNetworkClientSpecification {
 
         networkClient.start
         networkClient.sendRequest(Set(1, 2), (node: Node, ids: Set[Int]) => request, ag _) must throwA[Exception]
+
+        networkClient.sendRequest(Set(1, 2), 0, (node: Node, ids: Set[Int]) => request, ag _) must throwA[Exception]
+        networkClient.sendRequest(Set(1, 2), 1, (node: Node, ids: Set[Int]) => request, ag _) must throwA[Exception]
       }
 
       "Automatically fix partitioned requests " in {

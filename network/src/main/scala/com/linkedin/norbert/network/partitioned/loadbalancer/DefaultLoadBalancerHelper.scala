@@ -106,7 +106,7 @@ trait DefaultLoadBalancerHelper extends LoadBalancerHelpers with Logging {
     }
   }
 
-  private def compensateCounter(idx: Int, count:Int, counter:AtomicInteger) {
+  def compensateCounter(idx: Int, count:Int, counter:AtomicInteger) {
     if (idx + 1 + count <= 0) {
       // Integer overflow
       counter.set(idx + 1 - java.lang.Integer.MAX_VALUE + count)
