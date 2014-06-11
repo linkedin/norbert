@@ -316,6 +316,10 @@ class SelectiveRetryIterator[PartitionedId, RequestMsg, ResponseMsg](
                               var retryStrategy: Option[RetryStrategy], var duplicatesOk: Boolean = false)
                                 extends ResponseIterator[ResponseMsg] with ResponseHelper{
   /**
+   * The last exception which we encountered before trying selective retry
+   */
+  var lastExceptionSeen : Throwable = null
+  /**
    * Set of nodes which have failed in sending a response back in time for this larger request
    */
   var failedNodes : Set[Node] = Set.empty[Node]
@@ -438,10 +442,15 @@ class SelectiveRetryIterator[PartitionedId, RequestMsg, ResponseMsg](
               timeoutCutoff = timeStartedPass + timeoutForRetry 
             }
             case None => {
-              if (!duplicatesOk)
-                throw new TimeoutException("Timedout waiting for final %d nodes, retryInfo:%s ".format(distinctResponsesLeft, retryMessage))
-              else
-                throw new TimeoutException("Timedout waiting for final %d partitions to return, retryInfo:%s ".format(setRequests.size, retryMessage))
+              val exception = {
+                if (!duplicatesOk) 
+                  new TimeoutException("Timedout waiting for final %d nodes, retryInfo:%s ".format(distinctResponsesLeft, retryMessage))
+                else
+                  new TimeoutException("Timedout waiting for final %d partitions to return, retryInfo:%s ".format(setRequests.size, retryMessage))    
+              }
+              if(lastExceptionSeen != null)
+                exception.initCause(lastExceptionSeen)
+              throw exception
             }
           }
           
@@ -499,7 +508,9 @@ class SelectiveRetryIterator[PartitionedId, RequestMsg, ResponseMsg](
                 }
               }
               case Left(exception) => {
-                throw exception
+                //log this let selective retry kick in and retry this request
+                log.warn(exception.getStackTrace().mkString("\n"))
+                lastExceptionSeen = exception
               }
             }
         }

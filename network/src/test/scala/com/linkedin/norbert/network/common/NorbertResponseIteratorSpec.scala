@@ -163,7 +163,7 @@ class NorbertResponseIteratorSpec extends Specification with Mockito with Sample
       }
       timeoutExceptionFlag mustBe true
     }
-
+   
     "if timeout occurs we try to find the next node multiple times" in {
       var invocationCount = 1
       def calculateNodeFunctor(setPIds: Set[Int],setNodes: Set[Node],requestMsg: Int):Map[Node, Set[Int]] = {
@@ -271,6 +271,60 @@ class NorbertResponseIteratorSpec extends Specification with Mockito with Sample
       iterator.hasNext mustBe true
       iterator.next mustEqual 5000
     }
+
+    "in case of exception we will try to retry now" in {
+      val node1 = Node(1, "node1", true)
+      def calculateNodeFunctor(setPIds: Set[Int],setNodes: Set[Node],requestMsg: Int):Map[Node, Set[Int]] = {
+        return Map.empty[Node, Set[Int]] + (Node(3,"node3",true) -> (Set.empty[Int] + 1))
+      }
+      def requestBuilderFunctor(node: Node, setPIds: Set[Int]):Int = 1
+      val queue = new ResponseQueue[Tuple3[Node, Set[Int], Int]]
+      def callback(pRequest: PartitionedRequest[Int,Int,Int]) = {
+        val insertQueueLate = new Thread(new Runnable {
+          def run() {Thread.sleep(10L); queue += Right(Tuple3(Node(3, "endpoint", true), Set.empty[Int] + 1, 3000)) }
+        })
+        insertQueueLate.start()
+      }
+      val iterator =  new SelectiveRetryIterator[Int, Int, Int](2, 20L,
+        callback, Map.empty[Int, Node] + (1->node1),
+        queue,
+        calculateNodeFunctor,
+        requestBuilderFunctor,
+        new DummyInputSerializer[Int, Int],
+        new DummyOutputSerializer[Int, Int],
+        Some(new RetryStrategy(20L, 1, None)), true) 
+
+      queue.clear 
+      queue += Left(new HeavyLoadException())
+
+      iterator.hasNext mustBe true
+      iterator.next mustEqual 3000 
+
+      //test what happens if the retry is not successful
+      val iterator1 =  new SelectiveRetryIterator[Int, Int, Int](2, 20L,
+        callback, Map.empty[Int, Node] + (1->node1),
+        queue,
+        calculateNodeFunctor,
+        requestBuilderFunctor,
+        new DummyInputSerializer[Int, Int],
+        new DummyOutputSerializer[Int, Int],
+        None)
+
+      val cause = new HeavyLoadException();
+      val insertQueueLate2 = new Thread(new Runnable {
+        def run() {Thread.sleep(10L); queue += Left(cause) }
+      })
+      iterator1.hasNext mustBe true
+      val exceptionSeen : Throwable = {
+        try {
+          iterator.next
+          null
+        } catch {
+          case e => e
+        }
+      }
+      exceptionSeen.getCause.getClass.getName mustEqual "com.linkedin.norbert.network.HeavyLoadException"
+    } 
 
     "in case of duplicate outstanding requests the first one to complete wins" in {
       def calculateNodeFunctor(setPIds: Set[Int],setNodes: Set[Node],requestMsg: Int):Map[Node, Set[Int]] = {
