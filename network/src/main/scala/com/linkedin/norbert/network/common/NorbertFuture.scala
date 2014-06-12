@@ -316,9 +316,9 @@ class SelectiveRetryIterator[PartitionedId, RequestMsg, ResponseMsg](
                               var retryStrategy: Option[RetryStrategy], var duplicatesOk: Boolean = false)
                                 extends ResponseIterator[ResponseMsg] with ResponseHelper{
   /**
-   * The last exception which we encountered before trying selective retry
+   * The last exception which we encountered before failing
    */
-  var lastExceptionSeen : Throwable = null
+  var lastExceptionSeen : Option[Throwable] = None
   /**
    * Set of nodes which have failed in sending a response back in time for this larger request
    */
@@ -448,8 +448,10 @@ class SelectiveRetryIterator[PartitionedId, RequestMsg, ResponseMsg](
                 else
                   new TimeoutException("Timedout waiting for final %d partitions to return, retryInfo:%s ".format(setRequests.size, retryMessage))    
               }
-              if(lastExceptionSeen != null)
-                exception.initCause(lastExceptionSeen)
+              lastExceptionSeen match {
+                case Some(s) => exception.initCause(s)
+                case None => //do nothing
+              }
               throw exception
             }
           }
@@ -510,7 +512,7 @@ class SelectiveRetryIterator[PartitionedId, RequestMsg, ResponseMsg](
               case Left(exception) => {
                 //log this let selective retry kick in and retry this request
                 log.warn(exception.getStackTrace().mkString("\n"))
-                lastExceptionSeen = exception
+                lastExceptionSeen = Some(exception)
               }
             }
         }
