@@ -61,7 +61,7 @@ trait PartitionedLoadBalancer[PartitionedId] {
 
   /**
    * Calculates a mapping of nodes to partitions to ensure ids belong to the same partition will be scatter to the same node
-   * @param id
+   * @param ids
    * @param capability
    * @param persistentCapability
    * @return
@@ -87,6 +87,24 @@ trait PartitionedLoadBalancer[PartitionedId] {
    */
   def nodesForPartitionsIdsInNReplicas(ids: Set[PartitionedId], numberOfReplicas: Int, capability: Option[Long] = None,
                                        persistentCapability: Option[Long] = None): Map[Node, Set[PartitionedId]] =
+  {
+    // Default implementation is just select nodes from all replicas.
+    nodesForPartitionedIds(ids, capability, persistentCapability)
+  }
+
+  /**
+   * Calculates a mapping of nodes to partitions. The nodes should be selected from the given cluster.
+   * Initial implementation is delegating request to all clusters since default load balancer cannot aware cluster.
+   * Note that cluster aware load balancer should override this default implementation.
+   *
+   * @param ids set of partition ids.
+   * @param clusterId cluster id.
+   * @param capability
+   * @param persistentCapability
+   * @return a map from node to partition
+   */
+  def nodesForPartitionsIdsInOneCluster(ids: Set[PartitionedId], clusterId: Int, capability: Option[Long] = None,
+      persistentCapability: Option[Long] = None): Map[Node, Set[PartitionedId]] =
   {
     // Default implementation is just select nodes from all replicas.
     nodesForPartitionedIds(ids, capability, persistentCapability)

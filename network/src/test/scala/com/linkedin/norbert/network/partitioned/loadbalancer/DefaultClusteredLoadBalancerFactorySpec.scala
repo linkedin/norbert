@@ -179,5 +179,63 @@ class DefaultClusteredLoadBalancerFactorySpec extends SpecificationWithJUnit {
         lb.nodesForPartitionsIdsInNReplicas(set, n, None, None) mustNot throwA[NoNodesAvailableException]
       }
     }
+
+    /**
+     * Test case for sending one cluster by specifying the cluster id.
+     */
+    " returns nodes within only one clusters from nodesForPartitionsIdsInNReplicas" in {
+
+      // Prepares load balancer.
+      val lb = loadBalancerFactory.newLoadBalancer(toEndpoints(nodes))
+
+      // Prepares id sets.
+      val set = (for (id <- 2001 to 3000) yield (id)).foldLeft(Set.empty[EId]) {
+        (set, id) => set.+(EId(id))
+      }
+
+      // Prepares all cluster id set
+      val clusterSet:Set[Int] = {
+        (for (node <- nodes) yield clusterId(node)).foldLeft(Set[Int]()) {
+          case (set, key) => set + key
+        }
+      }
+
+      // Checks whether we return nodes from specified cluster.
+      for (id <- clusterSet) {
+        // Selecting nodes from the cluster specified as id.
+        val nodesInClusters = lb.nodesForPartitionsIdsInOneCluster(set, id, None, None)
+
+        // Creating a mapping cluster to nodes.
+        val selectedClusterSet = nodesInClusters.keySet.foldLeft(Set.empty[Int]) {
+          (set, node) => set.+(clusterId(node))
+        }
+
+        // Checks whether we have total one cluster
+        (selectedClusterSet.size) must be_==(1)
+
+        // Checks whether the cluster id is same as given id
+        (selectedClusterSet) must be_==(Set(id))
+      }
+    }
+
+    /**
+     * Test case for sending one cluster with invalid cluster id.
+     */
+    "nodesForPartitionsIdsInOneCluster should throw NoClusterException if there is no matching cluster id" in {
+
+      // Prepares load balancer.
+      val lb = loadBalancerFactory.newLoadBalancer(toEndpoints(nodes))
+
+      // Prepares id sets.
+      val set = (for (id <- 2001 to 3000) yield (id)).foldLeft(Set.empty[EId]) {
+        (set, id) => set.+(EId(id))
+      }
+
+      val invalidClusterId = -1
+
+     lb.nodesForPartitionsIdsInOneCluster(set, invalidClusterId, None, None) must throwA[InvalidClusterException]
+
+
+    }
   }
 }

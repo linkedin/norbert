@@ -110,6 +110,35 @@ abstract class DefaultClusteredLoadBalancerFactory[PartitionedId](numPartitions:
     }
 
     /**
+     * Calculates a mapping of nodes in a given cluster to partitions. The nodes should be selected from the given
+     * cluster.
+     * If clusterId doesn't exist, it will throw InvalidClusterException.
+     *
+     * @param ids set of partition ids.
+     * @param clusterId cluster id
+     * @param capability
+     * @param persistentCapability
+     * @return a map from node to partition
+     */
+    override def nodesForPartitionsIdsInOneCluster(ids: Set[PartitionedId], clusterId: Int,
+        capability: Option[Long] = None, persistentCapability: Option[Long] = None): Map[Node, Set[PartitionedId]] = {
+
+      // Pick up the clusters from the randomly sorted set.
+      clusterToNodeMap.get(clusterId) match {
+        case Some(nodes) => {
+          ids.foldLeft(Map[Node, Set[PartitionedId]]().withDefaultValue(Set())) {
+            (map, id) =>
+              val node = nodeForPartitionInCluster(partitionForId(id), Set(clusterId), true, capability,
+                  persistentCapability)
+              map.updated(node, map(node) + id)
+          }
+        }
+        case None => throw new InvalidClusterException("Unable to satisfy request, no cluster for id %s"
+            .format(clusterId))
+      }
+    }
+
+    /**
      * Generates the cluster to node map. This methods iterate over the node to generate the cluster unique integer
      * id. It calls the clusterId function which is provided during the instantiation. The clusterId function should
      * generate unique integer id for the cluster containing the node.
@@ -126,13 +155,16 @@ abstract class DefaultClusteredLoadBalancerFactory[PartitionedId](numPartitions:
       clusterToNodeMap
     }
 
-    private def nodeForPartitionInCluster(partitionId: Int,
-                                          cluster: Set[Int],
-                                          capability: Option[Long] = None,
-                                          persistentCapability: Option[Long] = None): Node = {
+    private def nodeForPartitionInCluster(partitionId: Int, cluster: Set[Int], capability: Option[Long] = None,
+        persistentCapability: Option[Long] = None): Node =
+      nodeForPartitionInCluster(partitionId, cluster, false, capability, persistentCapability)
+
+    private def nodeForPartitionInCluster(partitionId: Int, cluster: Set[Int], isOneCluster: Boolean,
+        capability: Option[Long], persistentCapability: Option[Long]): Node = {
       partitionToNodeMap.get(partitionId) match {
         case None =>
-          throw new NoNodesAvailableException("Unable to satisfy request, no node available for id %s".format(partitionId))
+          throw new NoNodesAvailableException("Unable to satisfy request, no node available for id %s"
+              .format(partitionId))
         case Some((endpoints, counter, states)) =>
           val es = endpoints.size
           counter.compareAndSet(java.lang.Integer.MAX_VALUE, 0)
@@ -141,8 +173,8 @@ abstract class DefaultClusteredLoadBalancerFactory[PartitionedId](numPartitions:
           var loopCount = 0
           do {
             val endpoint = endpoints(i % es)
-            if(cluster.contains(clusterId(endpoint.node)) && endpoint.canServeRequests
-              && endpoint.node.isCapableOf(capability, persistentCapability)) {
+            if(cluster.contains(clusterId(endpoint.node)) && (isOneCluster || (endpoint.canServeRequests
+                && endpoint.node.isCapableOf(capability, persistentCapability)))) {
               compensateCounter(idx, loopCount, counter);
               return endpoint.node
             }
@@ -152,6 +184,9 @@ abstract class DefaultClusteredLoadBalancerFactory[PartitionedId](numPartitions:
             loopCount = loopCount + 1
           } while (loopCount <= es)
           compensateCounter(idx, loopCount, counter);
+          if (isOneCluster)
+            throw new NoNodesAvailableException("Unable to satisfy request, no node available for id %s"
+                .format(partitionId))
           return endpoints(idx % es).node
       }
     }
