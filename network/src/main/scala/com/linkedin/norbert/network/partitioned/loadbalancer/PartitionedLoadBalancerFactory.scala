@@ -85,7 +85,7 @@ trait PartitionedLoadBalancer[PartitionedId] {
    * @param persistentCapability
    * @return a map from node to partition
    */
-  def nodesForPartitionsIdsInNReplicas(ids: Set[PartitionedId], numberOfReplicas: Int, capability: Option[Long] = None,
+  def nodesForPartitionedIdsInNReplicas(ids: Set[PartitionedId], numberOfReplicas: Int, capability: Option[Long] = None,
                                        persistentCapability: Option[Long] = None): Map[Node, Set[PartitionedId]] =
   {
     // Default implementation is just select nodes from all replicas.
@@ -103,7 +103,7 @@ trait PartitionedLoadBalancer[PartitionedId] {
    * @param persistentCapability
    * @return a map from node to partition
    */
-  def nodesForPartitionsIdsInOneCluster(ids: Set[PartitionedId], clusterId: Int, capability: Option[Long] = None,
+  def nodesForPartitionedIdsInOneCluster(ids: Set[PartitionedId], clusterId: Int, capability: Option[Long] = None,
       persistentCapability: Option[Long] = None): Map[Node, Set[PartitionedId]] =
   {
     // Default implementation is just select nodes from all replicas.

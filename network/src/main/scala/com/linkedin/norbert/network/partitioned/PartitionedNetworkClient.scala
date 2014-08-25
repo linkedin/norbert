@@ -725,14 +725,14 @@ trait PartitionedNetworkClient[PartitionedId] extends BaseNetworkClient {
     case 0 => calculateNodesFromIds(ids, capability, persistentCapability)
     case _ => {
       val lb = loadBalancer.getOrElse(throw new ClusterDisconnectedException).fold(ex => throw ex, lb => lb)
-      lb.nodesForPartitionsIdsInNReplicas(ids, numberOfReplicas, capability, persistentCapability)
+      lb.nodesForPartitionedIdsInNReplicas(ids, numberOfReplicas, capability, persistentCapability)
     }
   }
 
   private def calculateNodesFromIdsInCluster (ids: Set[PartitionedId], clusterId: Int, capability: Option[Long],
       persistentCapability: Option[Long]): Map[Node, Set[PartitionedId]] = {
     val lb = loadBalancer.getOrElse(throw new ClusterDisconnectedException).fold(ex => throw ex, lb => lb)
-    lb.nodesForPartitionsIdsInOneCluster(ids, clusterId, capability, persistentCapability)
+    lb.nodesForPartitionedIdsInOneCluster(ids, clusterId, capability, persistentCapability)
   }
 
   /**

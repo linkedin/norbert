@@ -89,10 +89,9 @@ abstract class DefaultClusteredLoadBalancerFactory[PartitionedId](numPartitions:
      * @param persistentCapability
      * @return a map from node to partition
      */
-    override def nodesForPartitionsIdsInNReplicas(ids: Set[PartitionedId],
-                                                  numberOfReplicas: Int,
-                                                  capability: Option[Long] = None,
-                                                  persistentCapability: Option[Long] = None): Map[Node, Set[PartitionedId]] = {
+    override def nodesForPartitionedIdsInNReplicas(ids: Set[PartitionedId], numberOfReplicas: Int,
+        capability: Option[Long] = None, persistentCapability: Option[Long] = None): Map[Node, Set[PartitionedId]] =
+    {
       // Randomly sorted cluster set.
       val clusterSet = Random.shuffle(clusterToNodeMap.keySet.toList)
       val numReplicas = if (numberOfReplicas > clusterSet.size || numberOfReplicas == 0) clusterSet.size
@@ -120,7 +119,7 @@ abstract class DefaultClusteredLoadBalancerFactory[PartitionedId](numPartitions:
      * @param persistentCapability
      * @return a map from node to partition
      */
-    override def nodesForPartitionsIdsInOneCluster(ids: Set[PartitionedId], clusterId: Int,
+    override def nodesForPartitionedIdsInOneCluster(ids: Set[PartitionedId], clusterId: Int,
         capability: Option[Long] = None, persistentCapability: Option[Long] = None): Map[Node, Set[PartitionedId]] = {
 
       // Pick up the clusters from the randomly sorted set.

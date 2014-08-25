@@ -135,7 +135,7 @@ class DefaultClusteredLoadBalancerFactorySpec extends SpecificationWithJUnit {
       // Checks whether return node lists are properly bounded in given number of clusters.
       for (n <- 0 to 6) {
         // Selecting nodes from N clusters.
-        val nodesInClusters = lb.nodesForPartitionsIdsInNReplicas(set, n, None, None)
+        val nodesInClusters = lb.nodesForPartitionedIdsInNReplicas(set, n, None, None)
 
         // Creating a mapping cluster to nodes.
         val selectedClusterSet = nodesInClusters.keySet.foldLeft(Set.empty[Int]) {
@@ -176,7 +176,7 @@ class DefaultClusteredLoadBalancerFactorySpec extends SpecificationWithJUnit {
 
       for (n <- 0 to 6) {
         // Returns nodes even though some partition is not available.
-        lb.nodesForPartitionsIdsInNReplicas(set, n, None, None) mustNot throwA[NoNodesAvailableException]
+        lb.nodesForPartitionedIdsInNReplicas(set, n, None, None) mustNot throwA[NoNodesAvailableException]
       }
     }
 
@@ -203,7 +203,7 @@ class DefaultClusteredLoadBalancerFactorySpec extends SpecificationWithJUnit {
       // Checks whether we return nodes from specified cluster.
       for (id <- clusterSet) {
         // Selecting nodes from the cluster specified as id.
-        val nodesInClusters = lb.nodesForPartitionsIdsInOneCluster(set, id, None, None)
+        val nodesInClusters = lb.nodesForPartitionedIdsInOneCluster(set, id, None, None)
 
         // Creating a mapping cluster to nodes.
         val selectedClusterSet = nodesInClusters.keySet.foldLeft(Set.empty[Int]) {
@@ -233,7 +233,7 @@ class DefaultClusteredLoadBalancerFactorySpec extends SpecificationWithJUnit {
 
       val invalidClusterId = -1
 
-     lb.nodesForPartitionsIdsInOneCluster(set, invalidClusterId, None, None) must throwA[InvalidClusterException]
+     lb.nodesForPartitionedIdsInOneCluster(set, invalidClusterId, None, None) must throwA[InvalidClusterException]
 
 
     }
