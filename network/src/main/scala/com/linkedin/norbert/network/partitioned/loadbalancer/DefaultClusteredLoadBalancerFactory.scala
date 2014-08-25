@@ -172,6 +172,9 @@ abstract class DefaultClusteredLoadBalancerFactory[PartitionedId](numPartitions:
           var loopCount = 0
           do {
             val endpoint = endpoints(i % es)
+            // Filter the node with the given cluster id. Then, check whether the isOneCluster flag. If this call is for
+            // only one cluster, we should not check the node status since it can cause selecting nodes from other
+            // clusters.
             if(cluster.contains(clusterId(endpoint.node)) && (isOneCluster || (endpoint.canServeRequests
                 && endpoint.node.isCapableOf(capability, persistentCapability)))) {
               compensateCounter(idx, loopCount, counter);
