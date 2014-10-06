@@ -6,7 +6,7 @@ Norbert is a library which provides easy cluster management and cluster aware cl
 Building
 ----------
 
-Norbert can be built using Maven. Testing change.
+Norbert can be built using Maven.
 
 Using Norbert for cluster management
 ------------------------------------
