@@ -120,7 +120,7 @@ public class ConsistentHashPartitionedLoadBalancer<PartitionedId> implements Par
   public Node nextNode(PartitionedId partitionedId, Long capability, Long persistentCapability)
   {
     long hash = _hashFunction.hash(partitionedId.toString());
-    long partitionId = (int)(Math.abs(hash) % _rings.size());
+    int partitionId = (int)(Math.abs(hash) % _rings.size());
     NavigableMap<Long, Endpoint> ring = _rings.get(partitionId);
     Endpoint endpoint = searchWheel(ring, hash, new Function<Endpoint, Boolean>() {
       @Override
