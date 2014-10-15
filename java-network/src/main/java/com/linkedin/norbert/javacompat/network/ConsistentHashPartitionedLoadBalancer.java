@@ -1,6 +1,5 @@
 package com.linkedin.norbert.javacompat.network;
 
-import com.linkedin.norbert.javacompat.cluster.Node;
 import java.util.AbstractMap;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -9,16 +8,18 @@ import java.util.NavigableMap;
 import java.util.Set;
 import java.util.TreeMap;
 
+import com.linkedin.norbert.javacompat.cluster.Node;
+
 
 
 public class ConsistentHashPartitionedLoadBalancer<PartitionedId> implements PartitionedLoadBalancer<PartitionedId>
 {
   private final HashFunction<String> _hashFunction;
-  private final Map<Integer, NavigableMap<Long, Endpoint>> _rings;
+  private final NavigableMap<Integer, NavigableMap<Long, Endpoint>> _rings;
   private final TreeMap<Long, Map<Endpoint, Set<Integer>>> _routingMap;
 
   public ConsistentHashPartitionedLoadBalancer(HashFunction<String> hashFunction,
-                                               Map<Integer, NavigableMap<Long, Endpoint>> rings,
+                                               NavigableMap<Integer, NavigableMap<Long, Endpoint>> rings,
                                                TreeMap<Long, Map<Endpoint, Set<Integer>>> routingMap,
                                                PartitionedLoadBalancer<PartitionedId> fallThrough) {
     this._hashFunction = hashFunction;
@@ -50,7 +51,7 @@ public class ConsistentHashPartitionedLoadBalancer<PartitionedId> implements Par
 
     // Builds individual ring for each partitions
     int maxSize = 0;
-    Map<Integer, NavigableMap<Long, Endpoint>> rings = new TreeMap<Integer, NavigableMap<Long, Endpoint>>();
+    NavigableMap<Integer, NavigableMap<Long, Endpoint>> rings = new TreeMap<Integer, NavigableMap<Long, Endpoint>>();
     for (Map.Entry<Integer, Set<Endpoint>> entry : partitionNodes.entrySet())
     {
       Integer partId = entry.getKey();
@@ -121,7 +122,8 @@ public class ConsistentHashPartitionedLoadBalancer<PartitionedId> implements Par
   {
     long hash = _hashFunction.hash(partitionedId.toString());
     int partitionId = (int)(Math.abs(hash) % _rings.size());
-    NavigableMap<Long, Endpoint> ring = _rings.get(partitionId);
+    Map.Entry<Integer, NavigableMap<Long, Endpoint>> ringEntry = lookup(_rings, partitionId);
+      NavigableMap<Long, Endpoint> ring = ringEntry.getValue();
     Endpoint endpoint = searchWheel(ring, hash, new Function<Endpoint, Boolean>() {
       @Override
       public Boolean apply(Endpoint key) {
