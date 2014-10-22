@@ -30,7 +30,7 @@ subprojects {
 
   ext.externalDependency = [
     'zookeeper':'org.apache.zookeeper:zookeeper:3.3.4',
-    'protobuf':'com.google.protobuf:protobuf-java:2.4.0a',
+    'protobuf':'com.google.protobuf:protobuf-java:2.5.0',
     'log4j':'log4j:log4j:1.2.17',
     'netty':'io.netty:netty:3.7.0.Final',
     'slf4jApi':'org.slf4j:slf4j-api:1.7.5',

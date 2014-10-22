@@ -2,7 +2,7 @@ package com.linkedin.norbert
 package network
 package util
 
-import com.google.protobuf.ByteString
+import com.google.protobuf.{ByteStringUtils, ByteString, LiteralByteString}
 import logging.Logging
 import java.lang.reflect.{Field, Constructor}
 
@@ -12,16 +12,6 @@ import java.lang.reflect.{Field, Constructor}
  * to bypass those.
  */
 object ProtoUtils extends Logging {
-  private val byteStringConstructor: Constructor[ByteString] = try {
-    val c = classOf[ByteString].getDeclaredConstructor(classOf[Array[Byte]])
-    c.setAccessible(true)
-    c
-  } catch {
-    case ex: Exception =>
-      log.warn(ex, "Cannot eliminate a copy when converting a byte[] to a ByteString")
-      null
-  }
-
   private val byteStringField: Field = try {
     val f = classOf[ByteString].getDeclaredField("bytes")
     f.setAccessible(true)
@@ -47,16 +37,7 @@ object ProtoUtils extends Logging {
   }
 
   private final def fastByteArrayToByteString(byteArray: Array[Byte]): ByteString = {
-    if(byteStringConstructor != null)
-      try {
-        byteStringConstructor.newInstance(byteArray)
-      } catch {
-        case ex: Exception =>
-          log.warn(ex, "Encountered exception invoking the private ByteString constructor, falling back to safe method")
-          slowByteArrayToByteString(byteArray)
-      }
-    else
-      slowByteArrayToByteString(byteArray)
+    ByteStringUtils.wrap(byteArray)
   }
 
   private final def slowByteArrayToByteString(byteArray: Array[Byte]): ByteString = {
