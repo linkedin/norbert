@@ -14,6 +14,9 @@ def getScalaSuffix(scalaVersion) {
 }
 
 subprojects {
+  apply plugin: 'maven'
+
+  group = 'com.linkedin.norbert'
 
   // the cross built scala modules share the same source directories so we need to make their output directories unique
   buildDir = "${rootProject.buildDir}/$name"
