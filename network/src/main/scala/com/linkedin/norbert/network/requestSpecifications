@@ -1,0 +1,25 @@
+
+
+package com.linkedin.norbert.network
+
+import java.util.UUID
+import com.linkedin.norbert.cluster.{ClusterException, Node}
+import scala.collection.mutable.Map
+import com.linkedin.norbert.logging.Logging
+import com.linkedin.norbert.network.common.CachedNetworkStatistics
+import com.linkedin.norbert.norbertutils.SystemClockComponent
+import com.linkedin.norbert.network.netty.ClientChannelHandler
+
+object RequestSpec {
+  def apply[RequestMsg, ResponseMsg, PartitionedId](message: RequestMsg,
+                                                    ids: Set[PartitionedId],
+                                                    requestBuilder: (Node, Set[PartitionedId]) => RequestMsg): RequsetSpec[RequestMsg, ResponseMsg, PartitionedId] = {
+    new RequestSpec(message, ids, requestBuilder)
+  }
+}
+
+class RequestSpec[RequestMsg, ResponseMsg, PartitionedId](val message: RequestMsg,
+                                                          val ids: Set[PartitionedId],
+                                                          val requestBuilder: (Node, Set[PartitionedId]) => RequestMsg) {
+
+}
