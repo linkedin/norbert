@@ -2,24 +2,35 @@
 
 package com.linkedin.norbert.network
 
-import java.util.UUID
-import com.linkedin.norbert.cluster.{ClusterException, Node}
-import scala.collection.mutable.Map
-import com.linkedin.norbert.logging.Logging
-import com.linkedin.norbert.network.common.CachedNetworkStatistics
-import com.linkedin.norbert.norbertutils.SystemClockComponent
-import com.linkedin.norbert.network.netty.ClientChannelHandler
-
 object RequestSpec {
-  def apply[RequestMsg, ResponseMsg, PartitionedId](message: RequestMsg,
+  def apply[RequestMsg, PartitionedId](message: RequestMsg,
                                                     ids: Set[PartitionedId],
-                                                    requestBuilder: (Node, Set[PartitionedId]) => RequestMsg): RequsetSpec[RequestMsg, ResponseMsg, PartitionedId] = {
+                                                    requestBuilder: (Node, Set[PartitionedId]) => RequestMsg): RequestSpec = {
     new RequestSpec(message, ids, requestBuilder)
+  }
+
+  def apply[RequestMsg](message: RequestMsg):RequestSpec = {
+    new RequestSpec(message, None, None)
+  }
+
+  def apply[RequestMsg, PartitionedId](message: RequestMsg,
+                                                    ids: Set[PartitionedId]):RequestSpec = {
+    new RequestSpec(message, ids, None)
+  }
+
+  def apply[PartitionedId, RequestMsg] (ids: Set[PartitionedId],
+                                                     requestBuilder: (Node, Set[PartitionedId]) => RequestMsg): RequestSpec ={
+    new RequestSpec(None, ids, requestBuilder)
   }
 }
 
-class RequestSpec[RequestMsg, ResponseMsg, PartitionedId](val message: RequestMsg,
-                                                          val ids: Set[PartitionedId],
-                                                          val requestBuilder: (Node, Set[PartitionedId]) => RequestMsg) {
-
+class RequestSpec[RequestMsg, PartitionedId](val message: Option[RequestMsg],
+                                             val ids: Option[Set[PartitionedId]],
+                                             val requestBuilder: Option[(Node, Set[PartitionedId]) => RequestMsg]) {
+  /**
+   * Necessary functions:
+   * getters for the ids
+   * getter for the message/message set that properly handle requestBuilder vs actual message
+   * Should these be extractors?
+   */
 }
