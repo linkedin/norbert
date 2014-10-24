@@ -19,9 +19,11 @@ package network
 package partitioned
 package loadbalancer
 
-import common.Endpoint
+import java.util
 import java.util.TreeMap
-import cluster.{Node, InvalidClusterException}
+
+import com.linkedin.norbert.cluster.{InvalidClusterException, Node}
+import com.linkedin.norbert.network.common.Endpoint
 
 /**
  * This load balancer is appropriate when any server could handle the request. In this case, the partitions don't really mean anything. They simply control a percentage of the requests
@@ -63,4 +65,6 @@ class SimpleConsistentHashedLoadBalancer[PartitionedId](wheel: TreeMap[Int, Endp
   def nextNode(id: PartitionedId, capability: Option[Long], persistentCapability: Option[Long]): Option[Node] = {
     PartitionUtil.searchWheel(wheel, hashFn(id), (e: Endpoint) => e.canServeRequests && e.node.isCapableOf(capability, persistentCapability)).map(_.node)
   }
+
+  override def nextNodes(id: PartitionedId, capability: Option[Long], persistentCapability: Option[Long]): util.LinkedHashSet[Node] = throw new UnsupportedOperationException
 }

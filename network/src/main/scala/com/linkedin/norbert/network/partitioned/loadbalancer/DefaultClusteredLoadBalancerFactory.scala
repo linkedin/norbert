@@ -18,10 +18,13 @@ package network
 package partitioned
 package loadbalancer
 
-import logging.Logging
-import cluster.{Node, InvalidClusterException}
-import common.Endpoint
+import java.util
 import java.util.concurrent.atomic.{AtomicBoolean, AtomicInteger}
+
+import com.linkedin.norbert.cluster.{InvalidClusterException, Node}
+import com.linkedin.norbert.logging.Logging
+import com.linkedin.norbert.network.common.Endpoint
+
 import scala.util.Random
 import scala.util.control.Breaks._
 
@@ -275,6 +278,15 @@ abstract class DefaultClusteredLoadBalancerFactory[PartitionedId](numPartitions:
         }
       }
     }
+
+    /**
+     * Returns the consistent ordered set of nodes to which messages should be routed; the order is based on the PartitionId provided.
+     *
+     * @param id the id based on which the order of the nodes will be determined
+     * @return an ordered set of nodes
+     */
+    override def nextNodes(id: PartitionedId, capability: Option[Long], persistentCapability: Option[Long]): util.LinkedHashSet[Node] =
+      nodesForPartition(partitionForId(id), capability, persistentCapability)
   }
 
   /**

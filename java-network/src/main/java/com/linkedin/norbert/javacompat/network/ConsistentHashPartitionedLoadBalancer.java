@@ -1,14 +1,8 @@
 package com.linkedin.norbert.javacompat.network;
 
-import java.util.AbstractMap;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.NavigableMap;
-import java.util.Set;
-import java.util.TreeMap;
-
 import com.linkedin.norbert.javacompat.cluster.Node;
+
+import java.util.*;
 
 
 
@@ -133,7 +127,22 @@ public class ConsistentHashPartitionedLoadBalancer<PartitionedId> implements Par
     return endpoint.getNode();
   }
 
-  @Override
+    @Override
+    public LinkedHashSet<Node> nextNodes(PartitionedId partitionedId) {
+        return null;
+    }
+
+    @Override
+    public LinkedHashSet<Node> nextNodes(PartitionedId partitionedId, Long capability) {
+        return null;
+    }
+
+    @Override
+    public LinkedHashSet<Node> nextNodes(PartitionedId partitionedId, Long capability, Long persistentCapability) {
+        return null;
+    }
+
+    @Override
   public Set<Node> nodesForPartitionedId(PartitionedId partitionedId) {
     return nodesForPartitionedId(partitionedId, 0L, 0L);
   }

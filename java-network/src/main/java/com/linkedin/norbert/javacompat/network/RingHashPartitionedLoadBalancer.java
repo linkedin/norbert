@@ -18,6 +18,7 @@ package com.linkedin.norbert.javacompat.network;
 import com.linkedin.norbert.javacompat.cluster.Node;
 import org.apache.log4j.Logger;
 
+import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
@@ -83,8 +84,23 @@ public class RingHashPartitionedLoadBalancer implements PartitionedLoadBalancer<
     log.warn("All endpoints seem unavailable! Using the default");
     return firstEndpoint.getNode();
   }
-  
-  @Override
+
+    @Override
+    public LinkedHashSet<Node> nextNodes(Integer integer) {
+        return null;
+    }
+
+    @Override
+    public LinkedHashSet<Node> nextNodes(Integer integer, Long capability) {
+        return null;
+    }
+
+    @Override
+    public LinkedHashSet<Node> nextNodes(Integer integer, Long capability, Long persistentCapability) {
+        return null;
+    }
+
+    @Override
   public Set<Node> nodesForPartitionedId(Integer partitionedId) {
     throw new UnsupportedOperationException();
   }

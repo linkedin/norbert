@@ -17,15 +17,19 @@ package com.linkedin.norbert
 package network
 package partitioned
 
-import java.util.concurrent.Future
-import common._
-import loadbalancer.{PartitionedLoadBalancer, PartitionedLoadBalancerFactoryComponent, PartitionedLoadBalancerFactory}
-import server.{MessageExecutorComponent, NetworkServer}
-import netty.NettyPartitionedNetworkClient
-import client.NetworkClientConfig
-import cluster.{Node, ClusterDisconnectedException, InvalidClusterException, ClusterClientComponent}
+import java.net.ConnectException
+import java.util.concurrent.{Future, TimeUnit}
+
+import com.linkedin.norbert.cluster.{ClusterClientComponent, ClusterDisconnectedException, InvalidClusterException, Node}
+import com.linkedin.norbert.network.NoNodesAvailableException
+import com.linkedin.norbert.network.client.NetworkClientConfig
+import com.linkedin.norbert.network.common._
+import com.linkedin.norbert.network.netty.NettyPartitionedNetworkClient
+import com.linkedin.norbert.network.partitioned.loadbalancer.{PartitionedLoadBalancer, PartitionedLoadBalancerFactory, PartitionedLoadBalancerFactoryComponent}
+import com.linkedin.norbert.network.server.{MessageExecutorComponent, NetworkServer}
+
+import scala.beans.BeanProperty
 import scala.util.Random
-import java.util
 
 object RoutingConfigs {
   val defaultRoutingConfigs = new RoutingConfigs(false, false)
@@ -72,7 +76,7 @@ trait PartitionedNetworkClient[PartitionedId] extends BaseNetworkClient {
       retryStrategy = config.retryStrategy
   }
 
-  @volatile private var loadBalancer: Option[Either[InvalidClusterException, PartitionedLoadBalancer[PartitionedId]]] = None
+  @volatile protected var loadBalancer: Option[Either[InvalidClusterException, PartitionedLoadBalancer[PartitionedId]]] = None
 
   def sendRequest[RequestMsg, ResponseMsg](id: PartitionedId, request: RequestMsg, callback: Either[Throwable, ResponseMsg] => Unit)
   (implicit is: InputSerializer[RequestMsg, ResponseMsg], os: OutputSerializer[RequestMsg, ResponseMsg]): Unit =
@@ -765,6 +769,49 @@ trait PartitionedNetworkClient[PartitionedId] extends BaseNetworkClient {
       }
     }
     map
+  }
+
+}
+
+trait PartitionedNetworkClientFailOver[PartitionedId] extends PartitionedNetworkClient[PartitionedId] {
+
+  this: ClusterClientComponent with ClusterIoClientComponent  with PartitionedLoadBalancerFactoryComponent[PartitionedId] =>
+
+  override def sendRequest[RequestMsg, ResponseMsg](id: PartitionedId, request: RequestMsg, callback: Either[Throwable, ResponseMsg] => Unit, capability: Option[Long], persistentCapability: Option[Long])
+                                          (implicit is: InputSerializer[RequestMsg, ResponseMsg], os: OutputSerializer[RequestMsg, ResponseMsg]): Unit = doIfConnected {
+    if (id == null || request == null) throw new NullPointerException
+
+    val nodes = loadBalancer.getOrElse(throw new ClusterDisconnectedException).fold(ex => throw ex,
+      lb => lb.nextNodes(id, capability, persistentCapability))
+
+    if (nodes.isEmpty) {
+      throw new NoNodesAvailableException("Unable to satisfy request, no node available for id %s".format(id))
+    } else {
+      val nodeIterator = nodes.iterator()
+      val firstNode = nodeIterator.next()
+      var failOverNode :Option[Node] = None
+      if (nodeIterator.hasNext) {
+        failOverNode = Option[Node](nodeIterator.next())
+      }
+      val failOverCallback = (e:Either[Throwable, ResponseMsg]) => {
+         if (failOverNode.isDefined) {
+           e match {
+             case Right(ex:ConnectException) => failOverRequestToNextNode(failOverNode.get, id, request, callback, capability, persistentCapability);
+             case Right(ex:Throwable) => callback.apply(e);
+             case Left(r:ResponseMsg) => callback.apply(e);
+           }
+         } else {
+           callback.apply(e)
+         }
+         () // force unit return type
+      }
+      doSendRequest(PartitionedRequest(request, firstNode, Set(id), (node: Node, ids: Set[PartitionedId]) => request, is, os, Option(failOverCallback)))
+    }
+  }
+
+  def failOverRequestToNextNode[RequestMsg, ResponseMsg]( node:Node, id: PartitionedId, request: RequestMsg, callback: Either[Throwable, ResponseMsg] => Unit, capability: Option[Long], persistentCapability: Option[Long])
+                                                   (implicit is: InputSerializer[RequestMsg, ResponseMsg], os: OutputSerializer[RequestMsg, ResponseMsg]): Unit = doIfConnected {
+    doSendRequest(PartitionedRequest(request, node, Set(id), (node: Node, ids: Set[PartitionedId]) => request, is, os, Option(callback)))
   }
 
 }

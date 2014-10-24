@@ -1,11 +1,11 @@
 package com.linkedin.norbert.network.partitioned.loadbalancer
 
-import com.linkedin.norbert.network.common.Endpoint
+import java.util
 import java.util.TreeMap
-import com.linkedin.norbert.cluster.{Node, InvalidClusterException}
-import com.linkedin.norbert.logging.Logging
-import com.linkedin.norbert.network.client.loadbalancer.LoadBalancerHelpers
 import java.util.concurrent.atomic.{AtomicBoolean, AtomicInteger}
+
+import com.linkedin.norbert.cluster.{InvalidClusterException, Node}
+import com.linkedin.norbert.network.common.Endpoint
 
 /*
 * Copyright 2009-2010 LinkedIn, Inc
@@ -141,11 +141,36 @@ class PartitionedConsistentHashedLoadBalancer[PartitionedId](numPartitions: Int,
         throw new InvalidClusterException("Partition %s is unavailable, cannot serve requests.".format(partition))
     }
   }
-  
+
+  override def nextNodes(id: PartitionedId, capability: Option[Long] = None, persistentCapability: Option[Long] = None): util.LinkedHashSet[Node] = {
+    val hash = hashFn(id)
+    val partitionId = hash.abs % numPartitions
+    // FIXME: wheels.get(partitionId) here may fail, we should use PartitionUtil.searchWheel to search the outer wheel as well
+    // this can happen if numPartitions is a lie, or if we have non-contiguous partitions (0, 2, 4), form
+    val innerMapOpt = wheels.get(partitionId)
+    val result = new util.LinkedHashSet[Node]()
+    if (innerMapOpt.isDefined) {
+      val innerMap = innerMapOpt.get
+      val startEntry = PartitionUtil.wheelEntry(innerMap, hash)
+      if (startEntry != null) {
+        result.add(startEntry.getValue.node)
+        var nextEntry = PartitionUtil.rotateWheel(innerMap, startEntry.getKey)
+        while (nextEntry != startEntry) {
+          result.add(nextEntry.getValue.node)
+          nextEntry = PartitionUtil.rotateWheel(innerMap, nextEntry.getKey)
+        }
+        result
+      }
+    }
+    log.warn("Failed to find mapping for %s")
+    result
+  }
 
   def nextNode(id: PartitionedId, capability: Option[Long] = None, persistentCapability: Option[Long] = None): Option[Node] = {
     val hash = hashFn(id)
     val partitionId = hash.abs % numPartitions
+
+    // FIXME: wheels.get(partitionId) here may fail, we should use PartitionUtil.searchWheel to search the outer wheel as well
     wheels.get(partitionId).flatMap { wheel =>
       PartitionUtil.searchWheel(wheel, hash, (e: Endpoint) => e.canServeRequests && e.node.isCapableOf(capability, persistentCapability) )
     }.map(_.node)

@@ -17,12 +17,12 @@ package com.linkedin.norbert
 package network
 package partitioned
 
-import common.{Endpoint, ClusterIoClientComponent, BaseNetworkClientSpecification}
-import loadbalancer._
+import java.util
 import java.util.concurrent.ExecutionException
-import cluster.{Node, InvalidClusterException, ClusterDisconnectedException, ClusterClientComponent}
-import scala.Left
-import scala.Some
+
+import com.linkedin.norbert.cluster.{ClusterClientComponent, ClusterDisconnectedException, InvalidClusterException, Node}
+import com.linkedin.norbert.network.common.{BaseNetworkClientSpecification, ClusterIoClientComponent}
+import com.linkedin.norbert.network.partitioned.loadbalancer._
 
 class PartitionedNetworkClientSpec extends BaseNetworkClientSpecification {
   val networkClient = new PartitionedNetworkClient[Int] with ClusterClientComponent with ClusterIoClientComponent
@@ -33,6 +33,7 @@ class PartitionedNetworkClientSpec extends BaseNetworkClientSpecification {
       def nodesForOneReplica(id: Int, capability: Option[Long], permanentCapability: Option[Long]) = lb.nodesForOneReplica(id, capability, permanentCapability)
       def nodesForPartitionedId(id: Int, capability: Option[Long], permanentCapability: Option[Long]) = lb.nodesForPartitionedId(id, capability, permanentCapability)
       def nodesForPartitions(id: Int, partitions: Set[Int], capability: Option[Long], permanentCapability: Option[Long]) = lb.nodesForPartitions(id, partitions, capability, permanentCapability)
+      override def nextNodes(id: Int, capability: Option[Long], persistentCapability: Option[Long]): util.LinkedHashSet[Node] = lb.nextNodes(id, capability, persistentCapability)
     }
     val loadBalancerFactory = mock[PartitionedLoadBalancerFactory[Int]]
     val clusterIoClient = mock[ClusterIoClient]
@@ -707,6 +708,7 @@ class PartitionedNetworkClientSpec extends BaseNetworkClientSpecification {
             def nodesForOneReplica(id: Int, c: Option[Long] = None, pc: Option[Long] = None) = null
             def nodesForPartitionedId(id:Int, c: Option[Long] = None, pc: Option[Long] = None) = null
             def nodesForPartitions(id: Int, partitions: Set[Int], c: Option[Long] = None, pc: Option[Long] = None) = null
+            def nextNodes(id: Int, capability: Option[Long], persistentCapability: Option[Long]): util.LinkedHashSet[Node] = null
           }
           val loadBalancerFactory = mock[PartitionedLoadBalancerFactory[Int]]
           val clusterIoClient = new ClusterIoClient {
@@ -753,6 +755,7 @@ class PartitionedNetworkClientSpec extends BaseNetworkClientSpecification {
           def nodesForOneReplica(id: Int, c: Option[Long] = None, pc: Option[Long] = None) = null
           def nodesForPartitionedId(id:Int, c: Option[Long] = None, pc: Option[Long] = None) = null
           def nodesForPartitions(id: Int, partitions: Set[Int], c: Option[Long] = None, pc: Option[Long] = None)= null
+          def nextNodes(id: Int, capability: Option[Long], persistentCapability: Option[Long]): util.LinkedHashSet[Node] = null
         }
         val loadBalancerFactory = mock[PartitionedLoadBalancerFactory[Int]]
         val clusterIoClient = new ClusterIoClient {
@@ -801,6 +804,8 @@ class PartitionedNetworkClientSpec extends BaseNetworkClientSpecification {
           def nodesForOneReplica(id: Int, c: Option[Long] = None, pc: Option[Long] = None) = null
           def nodesForPartitionedId(id:Int, c: Option[Long] = None, pc: Option[Long] = None) = null
           def nodesForPartitions(id: Int, partitions: Set[Int], c: Option[Long] = None, pc: Option[Long] = None) = null
+          def nextNodes(id: Int, capability: Option[Long], persistentCapability: Option[Long]): util.LinkedHashSet[Node] = null
+
         }
         val loadBalancerFactory = mock[PartitionedLoadBalancerFactory[Int]]
         val clusterIoClient = new ClusterIoClient {
@@ -850,6 +855,8 @@ class PartitionedNetworkClientSpec extends BaseNetworkClientSpecification {
           def nodesForOneReplica(id: Int, c: Option[Long] = None, pc: Option[Long] = None) = null
           def nodesForPartitionedId(id:Int, c: Option[Long] = None, pc: Option[Long] = None) = null
           def nodesForPartitions(id: Int, partitions: Set[Int], c: Option[Long] = None, pc: Option[Long] = None) = null
+          def nextNodes(id: Int, capability: Option[Long], persistentCapability: Option[Long]): util.LinkedHashSet[Node] = null
+
         }
         val loadBalancerFactory = mock[PartitionedLoadBalancerFactory[Int]]
         val clusterIoClient = new ClusterIoClient {
@@ -885,6 +892,7 @@ class PartitionedNetworkClientSpec extends BaseNetworkClientSpecification {
           def nodesForOneReplica(id: Int, c: Option[Long] = None, pc: Option[Long] = None) = null
           def nodesForPartitionedId(id:Int, c: Option[Long] = None, pc: Option[Long] = None) = null
           def nodesForPartitions(id: Int, partitions: Set[Int], c: Option[Long] = None, pc: Option[Long] = None) = null
+          def nextNodes(id: Int, capability: Option[Long], persistentCapability: Option[Long]): util.LinkedHashSet[Node] = null
         }
         val loadBalancerFactory = mock[PartitionedLoadBalancerFactory[Int]]
         val clusterIoClient = new ClusterIoClient {
@@ -919,6 +927,8 @@ class PartitionedNetworkClientSpec extends BaseNetworkClientSpecification {
           def nodesForOneReplica(id: Int, c: Option[Long] = None, pc: Option[Long] = None) = null
           def nodesForPartitionedId(id:Int, c: Option[Long] = None, pc: Option[Long] = None) = null
           def nodesForPartitions(id: Int, partitions: Set[Int], c: Option[Long] = None, pc: Option[Long] = None) = null
+          def nextNodes(id: Int, capability: Option[Long], persistentCapability: Option[Long]): util.LinkedHashSet[Node] = null
+
         }
         val loadBalancerFactory = mock[PartitionedLoadBalancerFactory[Int]]
         val clusterIoClient = new ClusterIoClient {

@@ -4,6 +4,9 @@ import org.specs.SpecificationWithJUnit
 import com.linkedin.norbert.network.common.Endpoint
 import com.linkedin.norbert.cluster.{InvalidClusterException, Node}
 
+import scala.collection.JavaConversions
+import scala.collection.immutable.HashSet
+
 /*
  * Copyright 2009-2010 LinkedIn, Inc
  *
@@ -21,13 +24,16 @@ import com.linkedin.norbert.cluster.{InvalidClusterException, Node}
  */
 
 class PartitionedConsistentHashedLoadBalancerSpec extends SpecificationWithJUnit {
-  class TestLBF(numPartitions: Int, csr: Boolean = true)
+  class TestLBF(numPartitions: Int, hashFunction:((Int) => Int), numReplicas:Int = 10, csr: Boolean = true)
           extends PartitionedConsistentHashedLoadBalancerFactory[Int](numPartitions,
-            10,
-            (id: Int) => HashFunctions.fnv(BigInt(id).toByteArray),
+            numReplicas,
+            hashFunction,
             (str: String) => str.hashCode(),
-            csr)
-  
+            csr) {
+    def this(numPartitions: Int, numReplicas:Int = 10, csr: Boolean = true) =
+      this(numPartitions, (id: Int) => HashFunctions.fnv(BigInt(id).toByteArray), numReplicas, csr)
+  }
+
   class TestEndpoint(val node: Node, var csr: Boolean) extends Endpoint {
     def canServeRequests = csr
     
@@ -53,7 +59,15 @@ class PartitionedConsistentHashedLoadBalancerSpec extends SpecificationWithJUnit
 //      loadBalancerFactory.partitionForId(EId(1210)) must be_==(0)
 //    }
 //  }
-  
+
+  val overlappingAtPartitionZero = Set(
+    Node(0, "localhost:31311", true, Set(0,1)),
+    Node(1, "localhost:31312", true, Set(2)),
+    Node(2, "localhost:31313", true, Set(0,3)),
+    Node(3, "localhost:31314", true, Set(0,4)),
+    Node(4, "localhost:31315", true, Set(4))
+  )
+
   val sampleNodes = Set(
     Node(0, "localhost:31313", true, Set(0, 1), Some(0x1), Some(0)),
     Node(1, "localhost:31313", true, Set(1, 2)),
@@ -79,7 +93,7 @@ class PartitionedConsistentHashedLoadBalancerSpec extends SpecificationWithJUnit
         Node(0, "localhost:31313", true, Set[Int]()),
         Node(1, "localhost:31313", true, Set[Int]()))
 
-      new TestLBF(2, false).newLoadBalancer(toEndpoints(nodes)) must throwA[InvalidClusterException]
+      new TestLBF(2,10, false).newLoadBalancer(toEndpoints(nodes)) must throwA[InvalidClusterException]
     }
 
     "throw InvalidClusterException if one partition is unavailable, and the LBF cannot serve requests in that state, " in {
@@ -87,8 +101,8 @@ class PartitionedConsistentHashedLoadBalancerSpec extends SpecificationWithJUnit
         Node(0, "localhost:31313", true, Set(1)),
         Node(1, "localhost:31313", true, Set[Int]()))
 
-      new TestLBF(2, true).newLoadBalancer(toEndpoints(nodes)) must not (throwA[InvalidClusterException])
-      new TestLBF(2, false).newLoadBalancer(toEndpoints(nodes)) must throwA[InvalidClusterException]
+      new TestLBF(2,10, true).newLoadBalancer(toEndpoints(nodes)) must not (throwA[InvalidClusterException])
+      new TestLBF(2,10, false).newLoadBalancer(toEndpoints(nodes)) must throwA[InvalidClusterException]
     }
     
     "successfully calculate broadcast nodes" in {
@@ -144,9 +158,19 @@ class PartitionedConsistentHashedLoadBalancerSpec extends SpecificationWithJUnit
       // Mark node 4 down
       markUnavailable(endpoints, 4)
 
-      val lbf = new TestLBF(5, false)
+      val lbf = new TestLBF(5, 10, false)
       var loadBalancer = lbf.newLoadBalancer(endpoints)
       loadBalancer.nodesForOneReplica(0, Some(0), Some(0)) must throwA[InvalidClusterException]
+    }
+
+    "return a complete set of nodes within partition 0" in {
+      val nodes = overlappingAtPartitionZero
+      val endpoints = toEndpoints(nodes)
+      val lbf = new TestLBF(5, (i:Int)=>i, 10, true)
+      val loadBalancer = lbf.newLoadBalancer(endpoints)
+      val lbNodes = JavaConversions.asScalaSet(loadBalancer.nextNodes(0, None, None))
+      val lbNodeIds = lbNodes.map((n:Node) => n.id)
+      lbNodeIds must be_==(Set(0, 2, 3))
     }
   }
 
