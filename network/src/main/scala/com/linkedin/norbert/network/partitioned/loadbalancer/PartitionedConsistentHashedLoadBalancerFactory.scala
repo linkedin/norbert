@@ -159,10 +159,10 @@ class PartitionedConsistentHashedLoadBalancer[PartitionedId](numPartitions: Int,
           result.add(nextEntry.getValue.node)
           nextEntry = PartitionUtil.rotateWheel(innerMap, nextEntry.getKey)
         }
-        result
+        return result
       }
     }
-    log.warn("Failed to find mapping for %s")
+    log.warn("Failed to find mapping for %s, expect routing failures".format(id))
     result
   }
 

@@ -796,9 +796,9 @@ trait PartitionedNetworkClientFailOver[PartitionedId] extends PartitionedNetwork
       val failOverCallback = (e:Either[Throwable, ResponseMsg]) => {
          if (failOverNode.isDefined) {
            e match {
-             case Right(ex:ConnectException) => failOverRequestToNextNode(failOverNode.get, id, request, callback, capability, persistentCapability);
-             case Right(ex:Throwable) => callback.apply(e);
-             case Left(r:ResponseMsg) => callback.apply(e);
+             case Left(ex:ConnectException) => failOverRequestToNextNode(firstNode, failOverNode.get, id, request, callback, capability, persistentCapability);
+             case Left(ex:Throwable) => callback.apply(e);
+             case Right(r:ResponseMsg) => callback.apply(e);
            }
          } else {
            callback.apply(e)
@@ -809,8 +809,9 @@ trait PartitionedNetworkClientFailOver[PartitionedId] extends PartitionedNetwork
     }
   }
 
-  def failOverRequestToNextNode[RequestMsg, ResponseMsg]( node:Node, id: PartitionedId, request: RequestMsg, callback: Either[Throwable, ResponseMsg] => Unit, capability: Option[Long], persistentCapability: Option[Long])
+  def failOverRequestToNextNode[RequestMsg, ResponseMsg]( failureNode:Node, node:Node, id: PartitionedId, request: RequestMsg, callback: Either[Throwable, ResponseMsg] => Unit, capability: Option[Long], persistentCapability: Option[Long])
                                                    (implicit is: InputSerializer[RequestMsg, ResponseMsg], os: OutputSerializer[RequestMsg, ResponseMsg]): Unit = doIfConnected {
+    log.warn("request to node %d failed, re-routing to node %d".format(failureNode.id, node.id))
     doSendRequest(PartitionedRequest(request, node, Set(id), (node: Node, ids: Set[PartitionedId]) => request, is, os, Option(callback)))
   }
 
