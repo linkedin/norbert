@@ -18,29 +18,32 @@ package network
 package client
 
 import java.util.concurrent.Future
-import loadbalancer.{LoadBalancerFactory, LoadBalancer, LoadBalancerFactoryComponent}
-import server.{MessageExecutorComponent, NetworkServer}
-import cluster._
-import network.common._
-import netty.NettyNetworkClient
+
+import com.linkedin.norbert.cluster._
+import com.linkedin.norbert.network.client.loadbalancer.{LoadBalancer, LoadBalancerFactory, LoadBalancerFactoryComponent}
+import com.linkedin.norbert.network.common._
+import com.linkedin.norbert.network.netty.NettyNetworkClient
+import com.linkedin.norbert.network.server.{MessageExecutorComponent, NetworkServer}
+
+import scala.beans.BeanProperty
 
 object NetworkClientConfig {
   var defaultIteratorTimeout = NetworkDefaults.DEFAULT_ITERATOR_TIMEOUT;
 }
 
 class NetworkClientConfig {
-  var clusterClient: ClusterClient = _
-  var clientName: String = _
-  var serviceName: String = _
-  var zooKeeperConnectString: String = _
-  var zooKeeperSessionTimeoutMillis = ClusterDefaults.ZOOKEEPER_SESSION_TIMEOUT_MILLIS
+  @BeanProperty var clusterClient: ClusterClient = _
+  @BeanProperty var clientName: String = _
+  @BeanProperty var serviceName: String = _
+  @BeanProperty var zooKeeperConnectString: String = _
+  @BeanProperty var zooKeeperSessionTimeoutMillis = ClusterDefaults.ZOOKEEPER_SESSION_TIMEOUT_MILLIS
 
-  var connectTimeoutMillis = NetworkDefaults.CONNECT_TIMEOUT_MILLIS
-  var writeTimeoutMillis = NetworkDefaults.WRITE_TIMEOUT_MILLIS
-  var maxConnectionsPerNode = NetworkDefaults.MAX_CONNECTIONS_PER_NODE
+  @BeanProperty var connectTimeoutMillis = NetworkDefaults.CONNECT_TIMEOUT_MILLIS
+  @BeanProperty var writeTimeoutMillis = NetworkDefaults.WRITE_TIMEOUT_MILLIS
+  @BeanProperty var maxConnectionsPerNode = NetworkDefaults.MAX_CONNECTIONS_PER_NODE
 
-  var staleRequestTimeoutMins = NetworkDefaults.STALE_REQUEST_TIMEOUT_MINS
-  var staleRequestCleanupFrequenceMins = NetworkDefaults.STALE_REQUEST_CLEANUP_FREQUENCY_MINS
+  @BeanProperty var staleRequestTimeoutMins = NetworkDefaults.STALE_REQUEST_TIMEOUT_MINS
+  @BeanProperty var staleRequestCleanupFrequenceMins = NetworkDefaults.STALE_REQUEST_CLEANUP_FREQUENCY_MINS
 
   /**
    * Represents how long a channel stays alive. There are some specifics:
@@ -48,22 +51,22 @@ class NetworkClientConfig {
    * closeChannelTimeMillis == 0: Immediately close the channel
    * closeChannelTimeMillis > 0: Close the channel after closeChannelTimeMillis
    */
-  var closeChannelTimeMillis = NetworkDefaults.CLOSE_CHANNEL_TIMEOUT_MILLIS
+  @BeanProperty var closeChannelTimeMillis = NetworkDefaults.CLOSE_CHANNEL_TIMEOUT_MILLIS
 
-  var requestStatisticsWindow = NetworkDefaults.REQUEST_STATISTICS_WINDOW
+  @BeanProperty var requestStatisticsWindow = NetworkDefaults.REQUEST_STATISTICS_WINDOW
 
-  var outlierMuliplier = NetworkDefaults.OUTLIER_MULTIPLIER
-  var outlierConstant = NetworkDefaults.OUTLIER_CONSTANT
+  @BeanProperty var outlierMuliplier = NetworkDefaults.OUTLIER_MULTIPLIER
+  @BeanProperty var outlierConstant = NetworkDefaults.OUTLIER_CONSTANT
 
-  var responseHandlerCorePoolSize = NetworkDefaults.RESPONSE_THREAD_CORE_POOL_SIZE
-  var responseHandlerMaxPoolSize = NetworkDefaults.RESPONSE_THREAD_MAX_POOL_SIZE
-  var responseHandlerKeepAliveTime = NetworkDefaults.RESPONSE_THREAD_KEEP_ALIVE_TIME_SECS
-  var responseHandlerMaxWaitingQueueSize = NetworkDefaults.RESPONSE_THREAD_POOL_QUEUE_SIZE
+  @BeanProperty var responseHandlerCorePoolSize = NetworkDefaults.RESPONSE_THREAD_CORE_POOL_SIZE
+  @BeanProperty var responseHandlerMaxPoolSize = NetworkDefaults.RESPONSE_THREAD_MAX_POOL_SIZE
+  @BeanProperty var responseHandlerKeepAliveTime = NetworkDefaults.RESPONSE_THREAD_KEEP_ALIVE_TIME_SECS
+  @BeanProperty var responseHandlerMaxWaitingQueueSize = NetworkDefaults.RESPONSE_THREAD_POOL_QUEUE_SIZE
 
-  var avoidByteStringCopy = NetworkDefaults.AVOID_BYTESTRING_COPY
-  var darkCanaryServiceName: Option[String] = None
-  var retryStrategy:Option[RetryStrategy] = None 
-  var duplicatesOk:Boolean = false
+  @BeanProperty var avoidByteStringCopy = NetworkDefaults.AVOID_BYTESTRING_COPY
+  @BeanProperty var darkCanaryServiceName: Option[String] = None
+  @BeanProperty var retryStrategy:Option[RetryStrategy] = None
+  @BeanProperty var duplicatesOk:Boolean = false
 }
 
 object NetworkClient {
