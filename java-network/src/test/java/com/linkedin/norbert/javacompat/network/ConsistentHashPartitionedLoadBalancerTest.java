@@ -1,8 +1,3 @@
-/*
- * Copyright Tidemark Systems, Inc. All rights reserved.
- * Tidemark Systems Confidential and Proprietary Information. Not for external distribution, use or sale.
- * Tidemark Systems software is exclusively licensed according to the terms of our Software License and Services Agreement.
- */
 package com.linkedin.norbert.javacompat.network;
 
 import java.util.HashSet;
