@@ -1,7 +1,6 @@
 package com.linkedin.norbert.network.partitioned.loadbalancer
 
 import java.util
-import java.util.TreeMap
 import java.util.concurrent.atomic.{AtomicBoolean, AtomicInteger}
 
 import com.linkedin.norbert.cluster.{InvalidClusterException, Node}
@@ -59,7 +58,7 @@ class PartitionedConsistentHashedLoadBalancerFactory[PartitionedId](numPartition
     }
 
     val wheels = partitions.map { case (partition, endpointsForPartition) =>
-      val wheel = new TreeMap[Int, Endpoint]
+      val wheel = new util.TreeMap[Int, Endpoint]
       endpointsForPartition.foreach { endpoint =>
         var r = 0
         while (r < numReplicas) {
@@ -107,7 +106,7 @@ class PartitionedConsistentHashedLoadBalancer[PartitionedId](numPartitions: Int,
     nodesForPartitions(id, wheels.filterKeys(partitions contains _), capability, persistentCapability)
   }
   
-  private def nodesForPartitions(id: PartitionedId, wheels: Map[Int, TreeMap[Int, Endpoint]], capability: Option[Long], persistentCapability: Option[Long]) = {
+  private def nodesForPartitions(id: PartitionedId, wheels: Map[Int, util.TreeMap[Int, Endpoint]], capability: Option[Long], persistentCapability: Option[Long]) = {
     if (id == null) {
       nodesForPartitions0(partitionToNodeMap filterKeys wheels.containsKey, capability, persistentCapability)
     } else {
@@ -139,7 +138,7 @@ class PartitionedConsistentHashedLoadBalancer[PartitionedId](numPartitions: Int,
   private def nodesForPartitions0(partitionToNodeMap: Map[Int, (IndexedSeq[Endpoint], AtomicInteger, Array[AtomicBoolean])], capability: Option[Long], persistentCapability: Option[Long] = None) = {
     partitionToNodeMap.keys.foldLeft(Map.empty[Node, Set[Int]]) { (map, partition) =>
       val nodeOption = nodeForPartition(partition, capability, persistentCapability)
-      if(nodeOption isDefined) {
+      if(nodeOption.isDefined) {
         val n = nodeOption.get
         map + (n -> (map.getOrElse(n, Set.empty[Int]) + partition))
       } else if(serveRequestsIfPartitionMissing) {
