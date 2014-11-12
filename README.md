@@ -1,12 +1,67 @@
 What is Norbert
 ===============
 
-Norbert is a library which provides easy cluster management and cluster aware client/server networking APIs.  Implemented in Scala, Norbert wraps ZooKeeper, Netty and uses Protocol Buffers for transport to make it easy to build a cluster aware application.  A Java API is provided and pluggable load balancing strategies are supported with round robin and consistent hash strategies provided out of the box.
+Norbert is a library that provides easy cluster management and cluster aware client/server networking APIs.  Implemented in Scala, Norbert wraps ZooKeeper, Netty and uses Protocol Buffers for transport to make it easy to build a cluster aware application.  A Java API is provided and pluggable load balancing strategies are supported with round robin and consistent hash strategies provided out of the box.
 
 Building
 ----------
 
-Norbert can be built using Maven.
+Prerequisites: Java 6 or 7. Norbert uses Scala 2.10, which currently has a compatibility issue with Java 8.
+
+Norbert can be built using the sbt console. Run `./sbt` to open the console.
+
+Then, select a project using the project command:
+
+`project {project name}`
+ 
+The following is a list of available projects in Norbert:
+-       norbert – covers all files in modules
+
+-       network – network related resource module
+
+-       cluster – cluster related resource module
+
+-       java_network – java version of network module
+
+-       java_cluster – cluster related resource module
+
+-       example – example module
+
+Once you select the project, you can run the following commands:
+
+-       clean: cleans up all compiled packages
+
+-       test: runs unit tests in the specified project
+
+-       compile: compiles all scala and java files
+
+-       package: build and creates jar file.
+
+The location of classes file and jar files generated from the compile and package commands would be shown in the sbt console message as follows:
+``` 
+[info] Packaging /Users/scho/workspace/github/OpenSource/norbert/network/target/scala-2.8.1.final/network_2.8.1-0.6.65.jar …
+```
+
+Example Usage of Norbert 
+------------------------
+
+Before you run the examples in Norbert, you should start the Zookeeper server locally and configure it using
+the default configuration. Guidelines for downloading and installing Zookeeper can be found here:
+http://zookeeper.apache.org/doc/r3.1.2/zookeeperStarted.html.
+
+The examples in Norbert can be run through through the terminal window. Once in your Norbert folder,
+run the following commands: `./sbt`, `project examples`, `package`. From here, there are 6 examples that you can
+run in Norbert using the command: `run-main (filename) "norbert" "localhost:2181"`. The filename choices are:
+
+ `com.linkedin.norbert.javacompat.network.RunNorbertSetup`
+ `com.linkedin.norbert.network.NorbertNetworkServerMain`
+ `com.linkedin.norbert.javacompat.network.NorbertJavaNetworkServerMain`
+ `com.linkedin.norbert.cluster.NorbertClusterClientMain`
+ `com.linkedin.norbert.network.NorbertNetworkClientMain`
+ `com.linkedin.norbert.javacompat.network.NorbertJavaNetworkClientMain`
+ 
+These examples illustrate many of the below code snippets and explanations:
+
 
 Using Norbert for cluster management
 ------------------------------------
@@ -21,13 +76,13 @@ A Node is Norbert's representation of a service which can handle requests.  A No
 
 1. A numerical id assigned by the client creating the Node. Norbert does not auto assign Node ids.
 2. The URL to use to contact the node.
-3. Optionally, one or more partition ids, representing the particular partitions the services handles.
+3. Optionally, one or more partition ids, representing the particular partitions the services handle.
 
 If an application is designed around a partitioned data set or workload then each node can be assigned partition ids.  These partition ids can be used by Norbert's networking layer's partitioned load balancer functionality.
 
 The set of member Nodes in a given cluster is reliably stored in ZooKeeper.  Additionally, a Node can advertise that it is available to process requests.  In general, a Node can be in one of three states:
 
-1. A member of the cluster, but not advertised as available.  In this state the other nodes in the cluster know the node exists, but should not attempt to send it traffic
+1. A member of the cluster, but not advertised as available.  In this state the other nodes in the cluster know the node exists, but should not attempt to send it traffic.
 2. Not a member of the cluster, but available.  In this state, the node can handle requests, but it is unknown to the other nodes in the cluster.
 3. A member of the cluster and available.  In this state the node is known in the cluster and it should be sent traffic.
 
@@ -35,13 +90,13 @@ Number 1 is most commonly the case that an administrator has specified the node 
 
 ### Defining the cluster
 
-The easiest way to define a cluster is to use the `NorbertClusterClientMain` command line program which can be found in the examples sub-directory.  At the prompt you can type
+To set up a cluster use the `addNode` and `removeNode` methods on the `Cluster` trait. These methods create Znodes in ZooKeeper which store the node's hostname/port and partition mapping metadata. Customer tools can be written using these methods in your own code.
+
+In the examples module there is a command line program for defining a cluster, `NorbertClusterClientMain`. At the prompt you can type:
 
 * nodes - lists all the nodes in the cluster
 * join nodeId hostname port partitionId1 partitionId2 ... - adds a new node to the cluster with the given id, host, port and partitions ids
 * leave nodeId - removes the node with the given id from the cluster
-
-Under the covers, the `NorbertNetworkClientMain` command line program simply uses the `addNode` and `removeNode` methods on the `Cluster` trait.  These methods create ZNodes in ZooKeeper which store the Node's hostname/port and partition mapping metadata. Custom tools can be written using those methods in your own code.
 
 ### Interacting with the cluster
 
@@ -55,7 +110,7 @@ Norbert provides two ways to interact with the cluster.
 ```scala
 object NorbertClient {
   def main(args: Array[String]) {
-    val cc = ClusterClient("norbert", "localhost:2181", 30000) (1)
+    val cc = ClusterClient("generic_name", "norbert", "localhost:2181", 30000) (1)
     cc.awaitConnectionUninterruptibly (2)
     cc.nodes (3)
     cc.addListener(new MyClusterListener) (4)
@@ -77,12 +132,12 @@ object NorbertClient {
 ```java
 public class NorbertClient {
   public static void main(String[] args) {
-    ClusterClient cc = new ZooKeeperClusterClient("norbert", "localhost:2181", 30000); (1)
-    cc.awaiteConnectionUninterruptibly(); (2)
+    ClusterClient cc = new ZooKeeperClusterClient("generic_name", "norbert", "localhost:2181", 30000); (1)
+    cc.awaitConnectionUninterruptibly(); (2)
     cc.getNodes(); (3)
     cc.addListener(new MyClusterListener()); (4)
-    cc.markNodeAvailable(1); (5).
-    cluster.shutdown(6)
+    cc.markNodeAvailable(1); (5)
+    cluster.shutdown; (6)
   }
 }
 ```
@@ -115,7 +170,7 @@ Norbert's client/server library uses message passing semantics and, specifically
 
 Norbert uses a software load balancer mechanism to route a request from a client to a server. Both partitioned and unpartitioned clusters are supported.
 
-If you are building a service which will use an unpartitioned cluster, you must provide your `NetworkClient` instance with a `LoadBalancerFactory`. The `LoadBalancerFactory` is used to create `LoadBalancer` instance that will be used to route requests.  A round robin load balancer factory is provided.
+If you are building a service which will use an unpartitioned cluster, you must provide your `NetworkClient` instance with a `LoadBalancerFactory`. The `LoadBalancerFactory` is used to create the `LoadBalancer` instance that will be used to route requests.  A round robin load balancer factory is provided.
 
 If you are building a partitioned cluster then you will want to use the `PartitionedNetworkClient` and a `PartitionedLoadBalancerFactory`. These are generic classes that have a PartitionedId type parameter. PartitionedId is the type of the id that you use to partition your cluster (e.g. a member id). A consistent hash load balancer factory is provided.
 

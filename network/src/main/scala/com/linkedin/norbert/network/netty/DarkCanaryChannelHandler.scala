@@ -114,6 +114,7 @@ class DarkCanaryChannelHandler extends Logging {
               nodes.foreach { node =>
                 mirroredHosts.put(node.id, node)
               }
+
             }
           }
         })

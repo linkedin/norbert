@@ -66,6 +66,10 @@ class CachedNetworkStatistics[GroupIdType, RequestIdType](private val stats: Net
     stats.beginNetty(groupId, requestId, queueTime)
   }
 
+  def endNetty( groupId: GroupIdType, requestId: RequestIdType) {
+    stats.endNetty(groupId, requestId)
+  }
+
   def endRequest(groupId: GroupIdType, requestId: RequestIdType) {
     stats.endRequest(groupId, requestId)
   }
@@ -135,6 +139,10 @@ private case class NetworkStatisticsTracker[GroupIdType, RequestIdType](clock: C
 
   def beginNetty(groupId: GroupIdType, requestId: RequestIdType, queueTime:Long = 0) {
     getTracker(groupId).beginNetty(requestId, queueTime)
+  }
+
+  def endNetty(groupId: GroupIdType, requestId: RequestIdType) {
+    getTracker(groupId).endNetty(requestId)
   }
 
   def endRequest(groupId: GroupIdType, requestId: RequestIdType) {
@@ -212,11 +220,11 @@ trait NetworkClientStatisticsMBean {
   def getCluster99th: Double
   def getClusterHealthScoreTiming: Double
 
-  def getClusterNettyMedianTimes: Double
+  def getClusterNettyMedianTime: Double
   def getClusterNetty75thTimes: Double
-  def getClusterNetty90thTimes: Double
-  def getClusterNetty95thTimes: Double
-  def getClusterNetty99thTimes: Double
+  def getClusterNetty90th: Double
+  def getClusterNetty95th: Double
+  def getClusterNetty99th: Double
 
   def getClusterTotalRequests: Int
 
@@ -310,15 +318,15 @@ class NetworkClientStatisticsMBeanImpl(clientName: Option[String], serviceName: 
 
   def getCluster99th = toMillis(averagePercentiles(getFinishedStats(0.99)))
 
-  def getClusterNettyMedianTimes = toMillis(averagePercentiles(getNettyFinishedStats(0.5)))
+  def getClusterNettyMedianTime = toMillis(averagePercentiles(getNettyFinishedStats(0.5)))
 
   def getClusterNetty75thTimes = toMillis(averagePercentiles(getNettyFinishedStats(0.75)))
 
-  def getClusterNetty90thTimes = toMillis(averagePercentiles(getNettyFinishedStats(0.90)))
+  def getClusterNetty90th = toMillis(averagePercentiles(getNettyFinishedStats(0.90)))
 
-  def getClusterNetty95thTimes = toMillis(averagePercentiles(getNettyFinishedStats(0.95)))
+  def getClusterNetty95th = toMillis(averagePercentiles(getNettyFinishedStats(0.95)))
 
-  def getClusterNetty99thTimes = toMillis(averagePercentiles(getNettyFinishedStats(0.99)))
+  def getClusterNetty99th = toMillis(averagePercentiles(getNettyFinishedStats(0.99)))
 
   import scala.collection.JavaConversions._
 

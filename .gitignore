@@ -6,7 +6,7 @@ project/boot/
 project/plugins/project
 out/
 build/
-.idea
+.idea/
 .gradle
 *.iml
 *.ipr

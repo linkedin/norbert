@@ -10,9 +10,9 @@ import protos.NorbertProtos.NorbertMessage.Status
 import protos.NorbertProtos
 import cluster.Node
 import java.net.{SocketAddress}
-import com.linkedin.norbert.network.common.{CachedNetworkStatistics, SampleMessage}
+import common.{CachedNetworkStatistics, SampleMessage}
 import java.util.UUID
-import com.linkedin.norbert.norbertutils.MockClock
+import norbertutils.MockClock
 
 /**
  * Test to cover association of RequestAccess with remote exception

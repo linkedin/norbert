@@ -257,17 +257,18 @@ class ChannelPool(address: InetSocketAddress, maxConnections: Int, openTimeoutMi
   private def writeRequestToChannel(request: Request[_, _], channel: Channel) {
     log.debug("Writing to %s: %s".format(channel, request))
     requestsSent.incrementAndGet
+    request.startNettyTiming(stats)
     channel.write(request).addListener(new ChannelFutureListener {
-      def operationComplete(writeFuture: ChannelFuture) = if (!writeFuture.isSuccess) {
-        // Take the node out of rotation for a bit
-        log.warn("IO exception for " + request.node + ", marking node offline")
-        errorStrategy.foreach(_.notifyFailure(request.node))
-        channel.close
-        request.onFailure(writeFuture.getCause)
-      } else {
-        request.startNettyTiming(stats)
+      def operationComplete(writeFuture: ChannelFuture) = {
+        request.endNettyTiming(stats)
+        if (!writeFuture.isSuccess) {
+          // Take the node out of rotation for a bit
+          log.warn("IO exception for " + request.node + ", marking node offline")
+          errorStrategy.foreach(_.notifyFailure(request.node))
+          channel.close
+          request.onFailure(writeFuture.getCause)
+        }
       }
-
     })
   }
 
