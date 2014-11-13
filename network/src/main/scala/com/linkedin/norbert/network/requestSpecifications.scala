@@ -18,22 +18,21 @@ class RequestSpec[RequestMsg](val message: RequestMsg) {
 object PartitionedRequestSpec{
   def apply[RequestMsg, PartitionedId](message: Option[RequestMsg] = None,
                                        rb: Option[(Node, Set[PartitionedId]) => RequestMsg] = None): PartitionedRequestSpec[RequestMsg, PartitionedId] = {
-    if (message == None && rb == None) {
-      //error if both message and requestBuilder are none
-      throw new IllegalArgumentException("need to specify either message or requestbuilder")
-    }
-
     new PartitionedRequestSpec(message, rb)
   }
 }
 
 class PartitionedRequestSpec[RequestMsg, PartitionedId](val message: Option[RequestMsg],
-                                             val requestBuilder: Option[(Node, Set[PartitionedId]) => RequestMsg]) {
+                                             val rb: Option[(Node, Set[PartitionedId]) => RequestMsg]) {
+  if (message == None && rb == None) {
+    //error if both message and requestBuilder are none
+    throw new IllegalArgumentException("need to specify either message or requestbuilder")
+  }
 
 }
 
 
-object helloworld {
+object testing {
   def main(args: Array[String]) {
     try {
       var tester = RequestSpec[String]("test");
