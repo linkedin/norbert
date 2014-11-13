@@ -1,46 +1,62 @@
+/*
+ * Partitioned and non-partitioned NodeSpecification wrapper objects for sendRequest
+ */
+
 package com.linkedin.norbert.network.client
 
+/*
+ * Non-partitioned NodeSpecifications
+ */
 
-object nodeSpecifications {
-  def apply(capability: Option[Long] = None, persistentCapability:  Option[Long] = None): nodeSpecifications = {
-    new nodeSpecifications(capability, persistentCapability)
+object NodeSpecifications {
+  def apply(capability: Option[Long] = None, persistentCapability:  Option[Long] = None): NodeSpecifications = {
+    new NodeSpecifications(capability, persistentCapability)
   }
 }
 
 
-class nodeSpecifications(val Capability: Option[Long], val PersistentCapability:  Option[Long]) {
+class NodeSpecifications(val Capability: Option[Long], val PersistentCapability:  Option[Long]) {
   if (Capability == None && PersistentCapability != None) {
-    throw new IllegalArgumentException("need to specify persistentCapability")
+    throw new IllegalArgumentException("Cannot specify PersistentCapability without Capability")
   }
 }
 
 
+/*
+ * Partitioned NodeSpecifications
+ */
 
-object partitionedNodeSpecifications{
-  def apply[PartitionedId](ids: Option[Set[PartitionedId]] = None, capability: Option[Long] = None, persistentCapability:  Option[Long] = None, numberOfReplicas:  Int = 0, clusterId:  Option[Int] = None): nodeSpecifications = {
-    new partitionedNodeSpecifications(ids, capability, persistentCapability, numberOfReplicas, clusterId)
+object PartitionedNodeSpecifications{
+  def apply[PartitionedId](ids: Set[PartitionedId], capability: Option[Long] = None, persistentCapability:  Option[Long] = None, numberOfReplicas:  Int = 0, clusterId:  Option[Int] = None): NodeSpecifications = {
+    new PartitionedNodeSpecifications(ids, capability, persistentCapability, numberOfReplicas, clusterId)
 
   }
 }
 
 
-class partitionedNodeSpecifications[PartitionedId](val ids: Option[Set[PartitionedId]], override val Capability: Option[Long], override val PersistentCapability:  Option[Long],
-                         val NumberOfReplicas:  Int, val ClusterId:  Option[Int]) extends nodeSpecifications(Capability, PersistentCapability) {
+class PartitionedNodeSpecifications[PartitionedId](val ids: Set[PartitionedId], override val Capability: Option[Long], override val PersistentCapability:  Option[Long],
+                         val NumberOfReplicas:  Int, val ClusterId:  Option[Int]) extends NodeSpecifications(Capability, PersistentCapability) {
   if (Capability == None && PersistentCapability != None) {
-    throw new IllegalArgumentException("need to specify capability")
+    throw new IllegalArgumentException("Cannot specify PersistentCapability without Capability")
   }
   if (ids == None) {
-    throw new IllegalArgumentException("need to specify PartitionedId")
+    throw new IllegalArgumentException("PartitionedId must be specified")
   }
 }
 
 
+
+/*
+ * Tests
+ */
 
 object testing {
   def main(args: Array[String]): Unit = {
     try {
-      var test = nodeSpecifications(Some(5));
-      var partitionedTest = partitionedNodeSpecifications[Int]();
+      val ids = Set{1}
+      val capability, persistentCapability, numberOfReplicas, clusterId = 1
+      var nonPartitionedTest = NodeSpecifications(Some(capability));
+      var partitionedTest = PartitionedNodeSpecifications[Int](Set{5});
     }
     catch {
       case e: Exception => println("There was an exception: " + e)
