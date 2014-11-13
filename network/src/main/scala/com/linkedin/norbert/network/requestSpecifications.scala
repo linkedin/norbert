@@ -17,12 +17,7 @@ object RequestSpec {
   def convert[RequestMsg](partitionedSpec: PartitionedRequestSpec[RequestMsg, _]): RequestSpec[RequestMsg] = {
     new RequestSpec(partitionedSpec.message.get);
   }
-  def convert[RequestMsg, PartitionedId](partitionedSpec: PartitionedRequestSpec[RequestMsg, PartitionedId], ids: Set[PartitionedId]): RequestSpec[RequestMsg] = {
-    // if there is no message, use the rb and ids to generate one
-    // not yet implemented properly
-    new RequestSpec(partitionedSpec.message.get);
-  }
-
+  
 }
 
 class RequestSpec[RequestMsg](val message: RequestMsg) {
