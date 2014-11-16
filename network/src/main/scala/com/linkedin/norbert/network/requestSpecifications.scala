@@ -17,7 +17,7 @@ object RequestSpec {
   def convert[RequestMsg](partitionedSpec: PartitionedRequestSpec[RequestMsg, _]): RequestSpec[RequestMsg] = {
     new RequestSpec(partitionedSpec.message.get);
   }
-  
+
 }
 
 class RequestSpec[RequestMsg](val message: RequestMsg) {
