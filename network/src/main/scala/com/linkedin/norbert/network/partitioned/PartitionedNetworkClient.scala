@@ -60,6 +60,10 @@ object PartitionedNetworkClient {
 /**
  * The network client interface for interacting with nodes in a partitioned cluster.
  */
+
+//TODO: add new function definition, and its implementation
+//TODO: mark all the old functions deprecated and reroute them to the new function definition
+
 trait PartitionedNetworkClient[PartitionedId] extends BaseNetworkClient {
 
   this: ClusterClientComponent with ClusterIoClientComponent  with PartitionedLoadBalancerFactoryComponent[PartitionedId] =>

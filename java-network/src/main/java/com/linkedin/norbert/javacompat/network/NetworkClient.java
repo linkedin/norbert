@@ -23,7 +23,15 @@ import com.linkedin.norbert.network.NoNodesAvailableException;
 import com.linkedin.norbert.network.Serializer;
 
 public interface NetworkClient extends BaseNetworkClient {
+
   /**
+   * TODO: comment new function
+   * TODO: mark the functions as deprecated
+   */
+
+  <RequestMsg, ResponseMsg> Future<ResponseMsg> sendRequset(RequestSpecification requestSpec, NodeSpecification nodeSpec, RetrySpecification retrySpec, Serializer<RequestMsg, ResponseMsg> serializer) throws InvalidClusterException, NoNodesAvailableException, ClusterDisconnectedException;
+
+    /**
    * Sends a request to a node in the cluster. The <code>NetworkClient</code> defers to the current
    * <code>LoadBalancer</code> to decide which <code>Node</code> the request should be sent to.
    *
