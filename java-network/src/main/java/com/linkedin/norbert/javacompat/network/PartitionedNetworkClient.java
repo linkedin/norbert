@@ -26,6 +26,14 @@ import com.linkedin.norbert.network.ResponseIterator;
 import com.linkedin.norbert.network.Serializer;
 
 public interface PartitionedNetworkClient<PartitionedId> extends BaseNetworkClient {
+
+/**
+ * TODO: comment the new function
+ * TODO: mark the old functions as deprecated
+ */
+<RequestMsg, ResponseMsg> Future<ResponseMsg> sendRequest(PartitionedRequestSpecification requestSpec, PartitionedNodeSpecification nodeSpec, PartitionedRetrySpecification retrySpec, Serializer<RequestMsg, ResponseMsg> serializer) throws InvalidClusterException, NoNodesAvailableException, ClusterDisconnectedException;
+
+
   /**
    * Sends a <code>Message</code> to the specified <code>PartitionedId</code>. The <code>PartitionedNetworkClient</code>
    * will interact with the current <code>PartitionedLoadBalancer</code> to calculate which <code>Node</code> the message

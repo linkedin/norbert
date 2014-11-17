@@ -17,14 +17,15 @@ package com.linkedin.norbert
 package javacompat
 package network
 
-import cluster.{Node, BaseClusterClient}
+import com.linkedin.norbert.EndpointConversions._
 import com.linkedin.norbert.cluster.{Node => SNode}
-import com.linkedin.norbert.network.{ResponseIterator, Serializer}
-import com.linkedin.norbert.network.client.loadbalancer.{LoadBalancerFactory => SLoadBalancerFactory, LoadBalancer => SLoadBalancer}
-import com.linkedin.norbert.network.partitioned.loadbalancer.{PartitionedLoadBalancerFactory => SPartitionedLoadBalancerFactory, PartitionedLoadBalancer => SPartitionedLoadBalancer}
+import com.linkedin.norbert.javacompat.cluster.{BaseClusterClient, Node}
+import com.linkedin.norbert.network.client.loadbalancer.{LoadBalancer => SLoadBalancer, LoadBalancerFactory => SLoadBalancerFactory}
 import com.linkedin.norbert.network.common.{Endpoint => SEndpoint}
+import com.linkedin.norbert.network.partitioned.loadbalancer.{PartitionedLoadBalancer => SPartitionedLoadBalancer, PartitionedLoadBalancerFactory => SPartitionedLoadBalancerFactory}
+import com.linkedin.norbert.network.{ResponseIterator, Serializer}
 
-import EndpointConversions._
+//TODO: add our new function definition from the interface to each class and make it call the underlying traits implementation
 
 abstract class BaseNettyNetworkClient extends BaseNetworkClient {
   val underlying: com.linkedin.norbert.network.common.BaseNetworkClient
@@ -129,7 +130,6 @@ class NettyPartitionedNetworkClient[PartitionedId](config: NetworkClientConfig, 
     underlying.sendRequest(ids: Set[PartitionedId], request)(serializer, serializer)
 
   def sendRequest[RequestMsg, ResponseMsg](ids: java.util.Set[PartitionedId], requestBuilder: RequestBuilder[PartitionedId, RequestMsg], serializer: Serializer[RequestMsg, ResponseMsg]): ResponseIterator[ResponseMsg] = {
-    import collection.JavaConversions._
     underlying.sendRequest(ids: java.util.Set[PartitionedId], (node: SNode, ids: Set[PartitionedId]) => requestBuilder(node, ids))(serializer, serializer)
   }
 
