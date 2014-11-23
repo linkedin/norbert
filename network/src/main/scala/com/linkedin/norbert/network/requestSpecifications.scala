@@ -14,7 +14,7 @@ object RequestSpecification {
     new RequestSpecification(message);
   }
 
-  def convert[RequestMsg](partitionedSpec: PartitionedRequestSpecification[RequestMsg, _]): RequestSpecification[RequestMsg] = {
+  implicit def convert[RequestMsg](partitionedSpec: PartitionedRequestSpecification[RequestMsg, _]): RequestSpecification[RequestMsg] = {
     new RequestSpecification(partitionedSpec.message.get);
   }
 
@@ -41,7 +41,7 @@ object PartitionedRequestSpecification{
                                        rb: Option[(Node, Set[PartitionedId]) => RequestMsg] = None): PartitionedRequestSpecification[RequestMsg, PartitionedId] = {
     new PartitionedRequestSpecification(message, rb)
   }
-  def convert[RequestMsg, PartitionedId](requestSpec: RequestSpecification[RequestMsg]): PartitionedRequestSpecification[RequestMsg, PartitionedId] = {
+  implicit def convert[RequestMsg, PartitionedId](requestSpec: RequestSpecification[RequestMsg]): PartitionedRequestSpecification[RequestMsg, PartitionedId] = {
     new PartitionedRequestSpecification(Some(requestSpec.message), None)
   }
 }
@@ -70,9 +70,9 @@ object testing {
   def main(args: Array[String]) {
     try {
       val tester: RequestSpecification[String] = RequestSpecification[String]("test")
-      val partitionedTester: PartitionedRequestSpecification[String, Int] = PartitionedRequestSpecification.convert[String, Int](tester)
+      val partitionedTester: PartitionedRequestSpecification[String, Int] = tester
       val partitionedTester2: PartitionedRequestSpecification[String, Int] = PartitionedRequestSpecification[String, Int](Some("partitionedTest"))
-      val tester2: RequestSpecification[String] = RequestSpecification.convert[String](partitionedTester)
+      val tester2: RequestSpecification[String] = partitionedTester
       println(tester2.message);
     }
     catch {
