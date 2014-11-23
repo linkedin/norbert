@@ -11,18 +11,24 @@ Non-Partitioned NodeSpecification
 *********************************/
 
 // Abstract builder class
-abstract class NodeSpecificationBuilder {
-  var capability: Option[Long]
-  var persistentCapability: Option[Long]
+class NodeSpecificationBuilder {
+  var capability: Option[Long] = None
+  var persistentCapability: Option[Long] = None
 
-  def withCapability(capability: Option[Long]): NodeSpecificationBuilder
-  def withPersistentCapability(persistentCapability: Option[Long]): NodeSpecificationBuilder
+  def withCapability(capability: Option[Long]): NodeSpecificationBuilder = {
+    this.capability = capability
+    this
+  }
+  def withPersistentCapability(persistentCapability: Option[Long]): NodeSpecificationBuilder = {
+    this.persistentCapability = persistentCapability
+    this
+  }
 
-  def build: Product
+  def build: Product = new NodeSpec(this)
 }
 
 // test invalid combos here
-class nodeSpec(builder: NodeSpecificationBuilder) extends Product {
+class NodeSpec(builder: NodeSpecificationBuilder) extends Product {
   val capability: Option[Long] = builder.capability
   val persistentCapability: Option[Long] = builder.persistentCapability
 
@@ -37,44 +43,15 @@ class nodeSpec(builder: NodeSpecificationBuilder) extends Product {
   }
 }
 
-// Builder subclass
-class NodeSpecification extends NodeSpecificationBuilder {
-  var capability: Option[Long] = None
-  var persistentCapability: Option[Long] = None
-
-  override def withCapability(capability: Option[Long] = None): NodeSpecificationBuilder = {
-    this.capability = capability
-    this
-  }
-
-  override def withPersistentCapability(persistentCapability: Option[Long] = None): NodeSpecificationBuilder = {
-    this.persistentCapability = persistentCapability
-    this
-  }
-
-  override def build: Product = new nodeSpec(this)
-}
 
 
 /*******************************************************
 Partitioned NodeSpecification
 ********************************************************/
 
-// Abstract Builder class
-abstract class PartitionedNodeSpecificationBuilder extends NodeSpecificationBuilder{
-
-  var numberOfReplicas:  Option[Int]
-  var clusterId:  Option[Int]
-
-  def withNumberOfReplicas(numberOfReplicas: Option[Int]): PartitionedNodeSpecificationBuilder
-  def withClusterId(clusterId: Option[Int]): PartitionedNodeSpecificationBuilder
-
-  def build: Product
-}
-
 
 // test invalid combos here
-class PartitionedNodeSpec(builder: PartitionedNodeSpecificationBuilder) extends Product {
+class PartitionedNodeSpec[PartitionedId](builder: PartitionedNodeSpecificationBuilder[PartitionedId]) extends Product {
   val capability: Option[Long] = builder.capability
   val persistentCapability: Option[Long] = builder.persistentCapability
   val numberOfReplicas:  Option[Int] = builder.numberOfReplicas
@@ -91,9 +68,7 @@ class PartitionedNodeSpec(builder: PartitionedNodeSpecificationBuilder) extends 
 }
 
 // builder subclass
-class PartitionedNodeSpecification[PartitionedId](val ids: Set[PartitionedId]) extends PartitionedNodeSpecificationBuilder {
-  var capability: Option[Long] = None
-  var persistentCapability: Option[Long] = None
+class PartitionedNodeSpecificationBuilder[PartitionedId](val ids: Set[PartitionedId]) extends NodeSpecificationBuilder {
   var numberOfReplicas:  Option[Int] = None
   var clusterId:  Option[Int] = None
 
@@ -105,22 +80,22 @@ class PartitionedNodeSpecification[PartitionedId](val ids: Set[PartitionedId]) e
   }
 
 
-  override def withCapability(capability: Option[Long] = None): PartitionedNodeSpecificationBuilder = {
+  override def withCapability(capability: Option[Long] = None): PartitionedNodeSpecificationBuilder[PartitionedId] = {
     this.capability = capability
     this
   }
 
-  override def withPersistentCapability(persistentCapability: Option[Long] = None): PartitionedNodeSpecificationBuilder = {
+  override def withPersistentCapability(persistentCapability: Option[Long] = None): PartitionedNodeSpecificationBuilder[PartitionedId] = {
     this.persistentCapability = persistentCapability
     this
   }
 
-  override def withNumberOfReplicas(numberOfReplicas: Option[Int] = None): PartitionedNodeSpecificationBuilder = {
+  def withNumberOfReplicas(numberOfReplicas: Option[Int] = None): PartitionedNodeSpecificationBuilder[PartitionedId] = {
     this.numberOfReplicas = numberOfReplicas
     this
   }
 
-  override def withClusterId(clusterId: Option[Int] = None): PartitionedNodeSpecificationBuilder = {
+  def withClusterId(clusterId: Option[Int] = None): PartitionedNodeSpecificationBuilder[PartitionedId] = {
     this.clusterId = clusterId
     this
   }
@@ -134,13 +109,13 @@ Testing
 object testing {
   def main(args: Array[String]): Unit = {
     try {
-      val nonPartitionedTest = new NodeSpecification().withCapability(Some(1)).build
+      val nonPartitionedTest = new NodeSpecificationBuilder().withCapability(Some(1)).build
       println("nonPartitioned:" + nonPartitionedTest)
-      val PartitionedTest = new PartitionedNodeSpecification(Set{5}).withCapability(Some(1)).withClusterId(Some(5)).build
+      val PartitionedTest = new PartitionedNodeSpecificationBuilder(Set{5}).withCapability(Some(1)).withClusterId(Some(5)).build
       println("Partitioned:" + PartitionedTest)
-      val failingNonPartitionedTest = new NodeSpecification().withPersistentCapability(Some(1)).build
+      val failingNonPartitionedTest = new NodeSpecificationBuilder().withPersistentCapability(Some(1)).build
       println("nonPartitioned:" + failingNonPartitionedTest)
-      val failingPartitionedTest = new PartitionedNodeSpecification(Set{5}).withPersistentCapability(Some(1)).withClusterId(Some(5)).build
+      val failingPartitionedTest = new PartitionedNodeSpecificationBuilder(Set{5}).withPersistentCapability(Some(1)).withClusterId(Some(5)).build
       println("failingPartitioned:" + PartitionedTest)
     }
     catch {
