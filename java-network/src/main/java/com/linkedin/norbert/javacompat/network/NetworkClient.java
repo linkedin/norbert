@@ -26,10 +26,10 @@ public interface NetworkClient extends BaseNetworkClient {
 
   /**
    * TODO: comment new function
-   * TODO: mark the functions as deprecated
+   * TODO: mark the functions as deprecated (do we do that here or at the implementation?)
    */
 
-  <RequestMsg, ResponseMsg> Future<ResponseMsg> sendRequset(RequestSpecification requestSpec, NodeSpecification nodeSpec, RetrySpecification retrySpec, Serializer<RequestMsg, ResponseMsg> serializer) throws InvalidClusterException, NoNodesAvailableException, ClusterDisconnectedException;
+  <RequestMsg, ResponseMsg> Future<ResponseMsg> sendRequest(RequestSpecification requestSpec, NodeSpecification nodeSpec, RetrySpecification retrySpec, Serializer<RequestMsg, ResponseMsg> serializer) throws InvalidClusterException, NoNodesAvailableException, ClusterDisconnectedException;
 
     /**
    * Sends a request to a node in the cluster. The <code>NetworkClient</code> defers to the current

@@ -29,7 +29,7 @@ public interface PartitionedNetworkClient<PartitionedId> extends BaseNetworkClie
 
 /**
  * TODO: comment the new function
- * TODO: mark the old functions as deprecated
+ * TODO: mark the old functions as deprecated (do we do that here or at the implementation?)
  */
 <RequestMsg, ResponseMsg> Future<ResponseMsg> sendRequest(PartitionedRequestSpecification requestSpec, PartitionedNodeSpecification nodeSpec, PartitionedRetrySpecification retrySpec, Serializer<RequestMsg, ResponseMsg> serializer) throws InvalidClusterException, NoNodesAvailableException, ClusterDisconnectedException;
 

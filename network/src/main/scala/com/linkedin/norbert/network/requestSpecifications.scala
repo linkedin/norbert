@@ -3,9 +3,9 @@ package com.linkedin.norbert.network
 import com.linkedin.norbert.cluster.{ClusterException, Node}
 
 /**
- * A RequestSpecification object is used to store the necessary information to specify the request message
- * For the non-partitioned version this is currently just the actual message
- * You can either create the RequestSpec directly or convert a PartitionedRequestSpec
+ * A RequestSpecification object is used to store the necessary information to specify the request message.
+ * For the non-partitioned version this is just the actual message being sent.
+ * There is a conversion from a PartitionedRequestSpec, but it will error if the PartitionedRequestSpec does not have a RequestMsg (which is possible).
  */
 
 
@@ -20,17 +20,22 @@ object RequestSpecification {
 
 }
 
+/**
+ * This is a RequestSpecification, it has a default constructor and no extra functionality. See the above companion object for more details.
+ * @param message The requestMsg to be sent to the node.
+ * @tparam RequestMsg The type of the request being sent to the node, should be the same as that used by the network client you will use to send the request.
+ */
 class RequestSpecification[RequestMsg](val message: RequestMsg) {
 
 }
 
 /**
- * This is the partitioned version of RequestSpec. It serves the same purpose.
- * In this partitioned version the request can be specified either by giving the actual method or by specifying a requestBuilder (rb)
+ * This is the partitioned version of RequestSpec. It serves the same purpose of storing the information regarding the message being sent.
+ * In this partitioned version the request can be specified either by giving the actual RequestMsg to be sent or by providing a requestBuilder (rb).
+ * A RequestBuilder is a function which, given a node and a set of PartitionedIds will return a RequestMsg.
  * which will generate a message from a set of partitionedIds. At least one of those must be specified.
- * You can also convert a RequestSpec into a ParitionedRequestSpec
+ * You can also convert a RequestSpec into a PartitionedRequestSpec, which will set the PartitionedRequestSpec's message to that of the RequestSpec and not specify a requestBuilder.
  */
-
 object PartitionedRequestSpecification{
   def apply[RequestMsg, PartitionedId](message: Option[RequestMsg] = None,
                                        rb: Option[(Node, Set[PartitionedId]) => RequestMsg] = None): PartitionedRequestSpecification[RequestMsg, PartitionedId] = {
@@ -41,6 +46,13 @@ object PartitionedRequestSpecification{
   }
 }
 
+/**
+ * See above for more information on the capabilities of a PartitionedRequestSpecification. It currently can only be constructed
+ * @param message
+ * @param rb
+ * @tparam RequestMsg
+ * @tparam PartitionedId
+ */
 class PartitionedRequestSpecification[RequestMsg, PartitionedId](val message: Option[RequestMsg],
                                              val rb: Option[(Node, Set[PartitionedId]) => RequestMsg]) {
   if (message == None && rb == None) {
@@ -51,7 +63,7 @@ class PartitionedRequestSpecification[RequestMsg, PartitionedId](val message: Op
 }
 
 /**
- * Below is a main which provides some basic testing, it will most likely go away in the end
+ * Below is a main which provides some basic testing for RequestSpecification and PartitionedRequestSpecification.
  */
 
 object testing {
