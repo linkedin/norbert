@@ -6,12 +6,26 @@ package com.linkedin.norbert.network.client
 
 abstract class Product
 
+trait PartitionedNodeTrait {
+  var numberOfReplicas:  Option[Int] = None
+  var clusterId:  Option[Int] = None
+  def withNumberOfReplicas(numberOfReplicas: Option[Int] = None): PartitionedNodeTrait = {
+    this.numberOfReplicas = numberOfReplicas
+    this
+  }
+
+  def withClusterId(clusterId: Option[Int] = None): PartitionedNodeTrait = {
+    this.clusterId = clusterId
+    this
+  }
+}
+
 /*********************************
 Non-Partitioned NodeSpecification
 *********************************/
 
 // Abstract builder class
-class NodeSpecificationBuilder {
+class NodeSpecificationBuilder{
   var capability: Option[Long] = None
   var persistentCapability: Option[Long] = None
 
@@ -51,7 +65,7 @@ Partitioned NodeSpecification
 
 
 // test invalid combos here
-class PartitionedNodeSpec[PartitionedId](builder: PartitionedNodeSpecificationBuilder[PartitionedId]) extends Product {
+class PartitionedNodeSpec(builder: PartitionedNodeSpecificationBuilder[_]) extends Product {
   val capability: Option[Long] = builder.capability
   val persistentCapability: Option[Long] = builder.persistentCapability
   val numberOfReplicas:  Option[Int] = builder.numberOfReplicas
@@ -68,9 +82,9 @@ class PartitionedNodeSpec[PartitionedId](builder: PartitionedNodeSpecificationBu
 }
 
 // builder subclass
-class PartitionedNodeSpecificationBuilder[PartitionedId](val ids: Set[PartitionedId]) extends NodeSpecificationBuilder {
-  var numberOfReplicas:  Option[Int] = None
-  var clusterId:  Option[Int] = None
+class PartitionedNodeSpecificationBuilder[PartitionedId](val ids: Set[PartitionedId]) extends NodeSpecificationBuilder with PartitionedNodeTrait {
+/*  var numberOfReplicas:  Option[Int] = None
+  var clusterId:  Option[Int] = None*/
 
   if (ids == None) {
     throw new IllegalArgumentException("PartitionedId must be specified")
@@ -80,22 +94,22 @@ class PartitionedNodeSpecificationBuilder[PartitionedId](val ids: Set[Partitione
   }
 
 
-  override def withCapability(capability: Option[Long] = None): PartitionedNodeSpecificationBuilder[PartitionedId] = {
+  override def withCapability(capability: Option[Long] = None): PartitionedNodeSpecificationBuilder[_] = {
     this.capability = capability
     this
   }
 
-  override def withPersistentCapability(persistentCapability: Option[Long] = None): PartitionedNodeSpecificationBuilder[PartitionedId] = {
+  override def withPersistentCapability(persistentCapability: Option[Long] = None): PartitionedNodeSpecificationBuilder[_] = {
     this.persistentCapability = persistentCapability
     this
   }
 
-  def withNumberOfReplicas(numberOfReplicas: Option[Int] = None): PartitionedNodeSpecificationBuilder[PartitionedId] = {
+  override def withNumberOfReplicas(numberOfReplicas: Option[Int] = None): PartitionedNodeSpecificationBuilder[_] = {
     this.numberOfReplicas = numberOfReplicas
     this
   }
 
-  def withClusterId(clusterId: Option[Int] = None): PartitionedNodeSpecificationBuilder[PartitionedId] = {
+  override def withClusterId(clusterId: Option[Int] = None): PartitionedNodeSpecificationBuilder[_] = {
     this.clusterId = clusterId
     this
   }
@@ -111,6 +125,7 @@ object testing {
     try {
       val nonPartitionedTest = new NodeSpecificationBuilder().withCapability(Some(1)).build
       println("nonPartitioned:" + nonPartitionedTest)
+     // val nonPartitionedTestGet = nonPartitionedTest
       val PartitionedTest = new PartitionedNodeSpecificationBuilder(Set{5}).withCapability(Some(1)).withClusterId(Some(5)).build
       println("Partitioned:" + PartitionedTest)
       val failingNonPartitionedTest = new NodeSpecificationBuilder().withPersistentCapability(Some(1)).build
