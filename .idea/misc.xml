@@ -7,7 +7,7 @@
     <output url="file://$PROJECT_DIR$/out" />
   </component>
   <component name="ScaladocSettings">
-    <option name="outputDir" value="$PROJECT_DIR$/../1" />
+    <option name="outputDir" value="$USER_HOME$/Documents/1" />
     <option name="additionalFlags" value="" />
     <option name="maxHeapSize" value="" />
     <option name="docTitle" value="norbert documentation" />
