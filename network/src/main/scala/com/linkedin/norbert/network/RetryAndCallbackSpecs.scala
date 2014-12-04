@@ -1,13 +1,16 @@
 package com.linkedin.norbert
 
 import _root_.com.linkedin.norbert.network.client.NetworkClientConfig
-import _root_.com.linkedin.norbert.network.common.RetryStrategy
+import _root_.com.linkedin.norbert.network.common.{FutureAdapterListener, RetryStrategy}
 import com.linkedin.norbert.cluster.ClusterDisconnectedException
 import com.linkedin.norbert.network._
 import com.linkedin.norbert.network.client.NetworkClientConfig
 import com.linkedin.norbert.network.common.RetryStrategy
 import com.linkedin.norbert.network.partitioned.RoutingConfigs
 
+/**
+ * This is the companion object for the RoutingConfigs class.
+ */
 object RoutingConfigs {
   val defaultRoutingConfigs = new RoutingConfigs(false, false)
   def getDefaultRoutingConfigs():RoutingConfigs = {
@@ -15,89 +18,102 @@ object RoutingConfigs {
   }
 }
 
+/**
+ * This class encapsulates the parameters used for request routing configurations.
+ * @param SelectiveRetry This indicates whether or not we want to use a specific retry strategy.
+ * @param DuplicatesOk This indicates whether or not we can have duplicates returned to a higher application layer.
+ */
 class RoutingConfigs(SelectiveRetry: Boolean, DuplicatesOk: Boolean ) {
   val selectiveRetry = SelectiveRetry
   val duplicatesOk = DuplicatesOk
 }
 
-//can have maxRetry without callback, but you cannot have callback without maxRetry
-object RetryAndCallbackSpecs {
+/**
+ * This is the companion object for the RetrySpecifications class.
+ */
+object RetrySpecifications {
   def apply[ResponseMsg](maxRetry: Int = 0,
-            callback: Option[Either[Throwable, ResponseMsg] => Unit] = temp,
-            routingConfigs: RoutingConfigs = new RoutingConfigs(retryStrategy != None, duplicatesOk),
-            retryStrategy: Option[RetryStrategy] = retryStrategy) = {
-    new RetryAndCallbackSpecs[ResponseMsg](maxRetry, callback, routingConfigs, retryStrategy)
-  }
-
-  var duplicatesOk:Boolean = false
-  var retryStrategy:Option[RetryStrategy] = None
-  def setConfig(config:NetworkClientConfig): Unit = {
-    duplicatesOk = config.duplicatesOk
-    if(retryStrategy != null)
-      retryStrategy = config.retryStrategy
-  }
-
-  // currently the function that callback is defaulted to; need to change this to be
-  // defaulted to the function that is commented out below
-  private def temp: Unit = {
-
-  }
-
-//  //callback defaults to this (in networkclient):
-//  private[client] def retryCallback[RequestMsg, ResponseMsg](underlying: Either[Throwable, ResponseMsg] => Unit, maxRetry: Int, capability: Option[Long], persistentCapability: Option[Long])(res: Either[Throwable, ResponseMsg])
-//                                                            (implicit is: InputSerializer[RequestMsg, ResponseMsg], os: OutputSerializer[RequestMsg, ResponseMsg]): Unit = {
-//    def propagate(t: Throwable) { underlying(Left(t)) }
-//    def handleFailure(t: Throwable) {
-//      t match {
-//        case ra: RequestAccess[Request[RequestMsg, ResponseMsg]] =>
-//          log.info("Caught exception(%s) for %s".format(t, ra.request))
-//          val request = ra.request
-//          if (request.retryAttempt < maxRetry) {
-//            try {
-//              val node = loadBalancer.getOrElse(throw new ClusterDisconnectedException).fold(ex => throw ex, lb => lb.nextNode(capability, persistentCapability).getOrElse(throw new NoNodesAvailableException("No node available that can handle the request: %s".format(request.message))))
-//              if (!node.equals(request.node)) { // simple check; partitioned version does retry here as well
-//              val request1 = Request(request.message, node, is, os, Some(retryCallback[RequestMsg, ResponseMsg](underlying, maxRetry, capability, persistentCapability) _), request.retryAttempt + 1)
-//                log.debug("Resend %s".format(request1))
-//                doSendRequest(request1)
-//              } else propagate(t)
-//            } catch {
-//              case t1: Throwable => propagate(t)  // propagate original ex (t) for now; may capture/chain t1 if useful
-//            }
-//          } else propagate(t)
-//        case _ => propagate(t)
-//      }
-//    }
-//    if (underlying == null)
-//      throw new NullPointerException
-//    if (maxRetry <= 0)
-//      res.fold(t => handleFailure(t), result => underlying(Right(result)))
-//    else
-//      res.fold(t => handleFailure(t), result => underlying(Right(result)))
-//  }
-//
-//}
-
-class RetryAndCallbackSpecs[ResponseMsg](val maxRetry: Int,
-                            val callback: Option[Either[Throwable, ResponseMsg] => Unit],
-                            val routingConfigs: RoutingConfigs,
-                            val retryStrategy: Option[RetryStrategy]) {
-
-  //Validation checks go here:
-  if (maxRetry == 0 && callback != None) {
-    throw new IllegalArgumentException("maxRetry must be greater than 0 for callback options to work")
+                         callback: Option[Either[Throwable, ResponseMsg] => Unit] = None) = {
+    new RetrySpecifications[ResponseMsg](maxRetry, callback)
   }
 
 }
 
-object Testing {
-  def main(args: Array[String]): Unit = {
+/**
+ * This class encapsulates the retry specifications for a request. This class is the non-partitioned version
+ * which only contains two parameters. The class contains a default constructor and a check for valid inputs.
+ *
+ * @param maxRetry This is the maximum number of retry attempts for the request. If not otherwise specified, the value will be 0.
+ * @param callback This is a method to be called with either a Throwable in the case of an error along
+ *                 the way or a ResponseMsg representing the result.
+ *
+ * @throws IllegalArgumentException if the value for maxRetry is less than 0 and the callback is specified.
+ */
+class RetrySpecifications[ResponseMsg](val maxRetry: Int,
+                                                  val callback: Option[Either[Throwable, ResponseMsg] => Unit]) {
+  //Validation checks go here:
+  if (maxRetry == 0 && callback != None) {
+    throw new IllegalArgumentException("maxRetry must be greater than 0 for callback options to work")
+  }
+}
+
+/**
+ * This is the companion object for the PartitionedRetrySpecifications class.
+ */
+object PartitionedRetrySpecifications {
+  //can have maxRetry without callback, but you cannot have callback without maxRetry
+  def apply[ResponseMsg](maxRetry: Int = 0,
+                         callback: Option[Either[Throwable, ResponseMsg] => Unit] = None, //new FutureAdapterListener[ResponseMsg],
+                         routingConfigs: RoutingConfigs = new RoutingConfigs(retryStrategy != None, duplicatesOk),
+                         retryStrategy: Option[RetryStrategy] = retryStrategy) = {
+    new PartitionedRetrySpecifications[ResponseMsg](maxRetry, callback, routingConfigs, retryStrategy)
+  }
+
+  var duplicatesOk: Boolean = false
+  var retryStrategy: Option[RetryStrategy] = None
+
+  def setConfig(config: NetworkClientConfig): Unit = {
+    duplicatesOk = config.duplicatesOk
+    if (retryStrategy != null)
+      retryStrategy = config.retryStrategy
+  }
+}
+
+/**
+ * This is the partitioned version of the RetrySpecifications class which encapsulates retry specifications. This class contains
+ * a default constructor and no additional functionality.
+ *
+ * @param maxRetry This is the maximum number of retry attempts for the request. If not otherwise specified, the value will be 0.
+ * @param callback This is a method to be called with either a Throwable in the case of an error along
+ *                 the way or a ResponseMsg representing the result.
+ * @param routingConfigs This contains information regarding options for a request routing strategy.
+ * @param retryStrategy This is the strategy to apply when we run into timeout situation.
+ * @tparam ResponseMsg
+ */
+class PartitionedRetrySpecifications[ResponseMsg](maxRetry: Int,
+                                         callback: Option[Either[Throwable, ResponseMsg] => Unit],
+                                         val routingConfigs: RoutingConfigs,
+                                         val retryStrategy: Option[RetryStrategy]) extends RetrySpecifications[ResponseMsg](maxRetry, callback) {
+//  Validation checks go here (possibly not needed since they are in the class that this one extends)
+//  if (maxRetry == 0 && callback != None) {
+//    throw new IllegalArgumentException("maxRetry must be greater than 0 for callback options to work")
+//  }
+}
+
+/**
+ * This provides some basic testing for both the RetrySpecifications and PartitionedRetrySpecifications classes.
+ */
+object RCBTesting {
+  def main(args: Array[String]) = {
     try {
-      var test = RetryAndCallbackSpecs();
-      //var partitionedTester = ;
-      println("no error");
+      val tester: RetrySpecifications[String] = RetrySpecifications[String](9)
+      val partitionedTester: PartitionedRetrySpecifications[String] = PartitionedRetrySpecifications[String]()
+      println(tester.callback)
+      println(tester.maxRetry)
     }
     catch {
       case e: Exception => println("There was an exception: " + e)
     }
   }
 }
+
