@@ -60,6 +60,10 @@ object PartitionedNetworkClient {
 /**
  * The network client interface for interacting with nodes in a partitioned cluster.
  */
+
+//TODO: add new function definition, and its implementation
+//TODO: mark all the old functions deprecated and reroute them to the new function definition
+
 trait PartitionedNetworkClient[PartitionedId] extends BaseNetworkClient {
 
   this: ClusterClientComponent with ClusterIoClientComponent  with PartitionedLoadBalancerFactoryComponent[PartitionedId] =>
@@ -459,6 +463,12 @@ trait PartitionedNetworkClient[PartitionedId] extends BaseNetworkClient {
     responseAggregator(sendRequest[RequestMsg, ResponseMsg](ids, numberOfReplicas, requestBuilder, capability, persistentCapability))
   }
 
+  //TODO: implement this
+  def sendRequest[RequestMsg, ResponseMsg](requestSpec: PartitionedRequestSpecification, nodeSpec: PartitionedNodeSpecification, retrySpec: PartitionedRetrySpecification)
+                                          (implicit is: InputSerializer[RequestMsg, ResponseMsg], os: OutputSerializer[RequestMsg, ResponseMsg]): ResponseIterator[ResponseMsg] =
+  {
+    //do some stuff
+  }
   /**
    * Sends a <code>RequestMessage</code> to one replica of the cluster. This is a broadcast intended for read operations on the cluster, like searching every partition for some data.
    *
