@@ -4,22 +4,29 @@
 
 package com.linkedin.norbert.network.client
 
-trait NodeTrait[X] {
-  var capability: Option[Long] = None;
-  var persistentCapability: Option[Long] = None;
-  def setCapability(cap: Option[Long]): X = {
-    capability = cap;
-    return this.asInstanceOf[X]
+trait NodeTrait[NodeType] {
+  var capability: Option[Long] = None
+  var persistentCapability: Option[Long] = None
+
+  def setCapability(cap: Option[Long]): this.type = {
+    capability = cap
+    this
   }
-  def setPersistentCapability(persistentCap: Option[Long]): X = {
-    persistentCapability = persistentCap;
-    return this.asInstanceOf[X]
+
+  def setPersistentCapability(persistentCap: Option[Long]): this.type = {
+    persistentCapability = persistentCap
+    this
   }
-  def build: X = {
-    if (capability == None && persistentCapability != None) {
-      throw new IllegalArgumentException ("Cannot specify PersistentCapability without Capability")
+
+  def build: this.type = {
+    capability match {
+      case Some(cap) => this
+      case None =>
+        persistentCapability match {
+          case Some(persCap) => throw new IllegalArgumentException("Cannot specify PersistentCapability without Capability")
+          case None => this
+        }
     }
-    return this.asInstanceOf[X]
   }
 }
 
@@ -35,9 +42,6 @@ class NodeSpec extends NodeTrait[NodeSpec]
 class PartitionedNodeSpec[PartitionedId](val ids: Set[PartitionedId]) extends NodeTrait[PartitionedNodeSpec[_]] {
   var numberOfReplicas: Option[Int] = None
   var clusterId: Option[Int] = None
-  def bar(): Unit = {
-    println("Bar.")
-  }
 
   def setNumberOfReplicas(_numberOfReplicas: Option[Int]): PartitionedNodeSpec[_] = {
     this.numberOfReplicas = _numberOfReplicas
