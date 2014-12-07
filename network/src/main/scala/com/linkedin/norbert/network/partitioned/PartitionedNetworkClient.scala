@@ -405,6 +405,7 @@ trait PartitionedNetworkClient[PartitionedId] extends BaseNetworkClient {
     }
   }
 
+  //TODO: deal with response aggregator functions - need 1 wrapper around our new function def
   /**
    * Sends a <code>Message</code> to the specified <code>PartitionedId</code>s. The <code>PartitionedNetworkClient</code>
    * will interact with the current <code>PartitionedLoadBalancer</code> to calculate which <code>Node</code>s the message
