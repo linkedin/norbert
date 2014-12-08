@@ -24,6 +24,7 @@ import cluster._
 import network.common._
 import netty.NettyNetworkClient
 
+
 object NetworkClientConfig {
   var defaultIteratorTimeout = NetworkDefaults.DEFAULT_ITERATOR_TIMEOUT;
 }
@@ -84,7 +85,6 @@ object NetworkClient {
 }
 
 
-//TODO: add new function definition, and its implementation
 //TODO: mark all the old functions deprecated and reroute them to the new function definition
 /**
  * The network client interface for interacting with nodes in a cluster.
@@ -206,14 +206,20 @@ trait NetworkClient extends BaseNetworkClient {
 
   /**
    * TODO: comment new function
-   * TODO: mark the functions as deprecated (do we do that here or at the implementation?)
    */
-  //TODO: implement this
-  def sendRequest(requestSpec: RequestSpecification, nodeSpec: NodeSpecification, retrySpec: RetrySpecification)
-  (implicit is: InputSerializer[RequestMsg, ResponseMsg], os:OutputSerializer[RequestMsg, ResponseMsg]): Future[ResponseMsg] = {
-    val future = new FutureAdapterListener[ResponseMsg]
-    //do some stuff
-    future
+  def sendRequest[RequestMsg, ResponseMsg](requestSpec: RequestSpecification, nodeSpec: nodeSpecifications, retrySpec: RetrySpecifications)
+  (implicit is: InputSerializer[RequestMsg, ResponseMsg], os:OutputSerializer[RequestMsg, ResponseMsg]) = doIfConnected {
+    if (requestSpec.message == null) throw new NullPointerException
+
+    val loadBalancerReady = loadBalancer.getOrElse(throw new ClusterDisconnectedException("Client has no node information"))
+
+    val node = loadBalancerReady.fold(ex => throw ex,
+      lb => {
+        val node: Option[Node] = lb.nextNode(nodeSpec.Capability, nodeSpec.PersistentCapability)
+        node.getOrElse(throw new NoNodesAvailableException("No node available that can handle the request: %s".format(requestSpec.message)))
+      })
+
+    doSendRequest(Request(requestSpec.message, node, is, os, if (retrySpec.maxRetry == 0) Some(retrySpec.callback) else Some(retryCallback[RequestMsg, ResponseMsg](retrySpec.callback, retrySpec.maxRetry, nodeSpec.Capability, nodeSpec.PersistentCapability)_)))
   }
 
 
