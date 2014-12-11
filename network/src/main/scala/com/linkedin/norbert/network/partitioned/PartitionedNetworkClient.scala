@@ -464,12 +464,13 @@ trait PartitionedNetworkClient[PartitionedId] extends BaseNetworkClient {
     responseAggregator(sendRequest[RequestMsg, ResponseMsg](ids, numberOfReplicas, requestBuilder, capability, persistentCapability))
   }
 
-  //TODO: implement this
+  /*TODO: implement this
   def sendRequest[RequestMsg, ResponseMsg](requestSpec: PartitionedRequestSpecification, nodeSpec: PartitionedNodeSpecification, retrySpec: PartitionedRetrySpecification)
                                           (implicit is: InputSerializer[RequestMsg, ResponseMsg], os: OutputSerializer[RequestMsg, ResponseMsg]): ResponseIterator[ResponseMsg] =
   {
     //do some stuff
   }
+  */
   /**
    * Sends a <code>RequestMessage</code> to one replica of the cluster. This is a broadcast intended for read operations on the cluster, like searching every partition for some data.
    *
