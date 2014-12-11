@@ -209,12 +209,12 @@ trait NetworkClient extends BaseNetworkClient {
    * TODO: mark the functions as deprecated (do we do that here or at the implementation?)
    */
   //TODO: implement this
-  def sendRequest(requestSpec: RequestSpecification, nodeSpec: NodeSpecification, retrySpec: RetrySpecification)
-  (implicit is: InputSerializer[RequestMsg, ResponseMsg], os:OutputSerializer[RequestMsg, ResponseMsg]): Future[ResponseMsg] = {
-    val future = new FutureAdapterListener[ResponseMsg]
-    //do some stuff
-    future
-  }
+//  def sendRequest(requestSpec: RequestSpecification, nodeSpec: NodeSpecification, retrySpec: RetrySpecification)
+//  (implicit is: InputSerializer[RequestMsg, ResponseMsg], os:OutputSerializer[RequestMsg, ResponseMsg]): Future[ResponseMsg] = {
+//    val future = new FutureAdapterListener[ResponseMsg]
+//    //do some stuff
+//    future
+//  }
 
 
   /**

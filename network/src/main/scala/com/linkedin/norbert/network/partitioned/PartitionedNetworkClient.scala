@@ -22,7 +22,7 @@ import common._
 import loadbalancer.{PartitionedLoadBalancer, PartitionedLoadBalancerFactoryComponent, PartitionedLoadBalancerFactory}
 import server.{MessageExecutorComponent, NetworkServer}
 import netty.NettyPartitionedNetworkClient
-import client.NetworkClientConfig
+import client.{PartitionedNodeSpec, NetworkClientConfig}
 import cluster.{Node, ClusterDisconnectedException, InvalidClusterException, ClusterClientComponent}
 import scala.util.Random
 import java.util
@@ -465,7 +465,7 @@ trait PartitionedNetworkClient[PartitionedId] extends BaseNetworkClient {
   }
 
   //TODO: implement this
-  def sendRequest[RequestMsg, ResponseMsg](requestSpec: PartitionedRequestSpecification, nodeSpec: PartitionedNodeSpecification, retrySpec: PartitionedRetrySpecification)
+  def sendRequest[RequestMsg, ResponseMsg](requestSpec: PartitionedRequestSpecification, nodeSpec: PartitionedNodeSpec, retrySpec: PartitionedRetrySpecifications)
                                           (implicit is: InputSerializer[RequestMsg, ResponseMsg], os: OutputSerializer[RequestMsg, ResponseMsg]): ResponseIterator[ResponseMsg] =
   {
     //do some stuff
