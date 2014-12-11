@@ -193,17 +193,11 @@ trait NetworkClient extends BaseNetworkClient {
   @deprecated
   def sendRequest[RequestMsg, ResponseMsg](request: RequestMsg, callback: Either[Throwable, ResponseMsg] => Unit, maxRetry: Int, capability: Option[Long], persistentCapability: Option[Long])
                                           (implicit is: InputSerializer[RequestMsg, ResponseMsg], os: OutputSerializer[RequestMsg, ResponseMsg]): Unit = doIfConnected {
-    if (request == null) throw new NullPointerException
-
-    val loadBalancerReady = loadBalancer.getOrElse(throw new ClusterDisconnectedException("Client has no node information"))
-
-    val node = loadBalancerReady.fold(ex => throw ex,
-      lb => {
-        val node: Option[Node] = lb.nextNode(capability, persistentCapability)
-        node.getOrElse(throw new NoNodesAvailableException("No node available that can handle the request: %s".format(request)))
-      })
-
-    doSendRequest(Request(request, node, is, os, if (maxRetry == 0) Some(callback) else Some(retryCallback[RequestMsg, ResponseMsg](callback, maxRetry, capability, persistentCapability)_)))
+    // Reroutes to new sendRequest method.
+    val requestSpec = RequestSpecification(request)
+    val nodeSpec = new NodeSpec().setCapability(capability).setPersistentCapability(persistentCapability).build
+    val retrySpec = RetrySpecifications(maxRetry, Some(callback))
+    sendRequest(requestSpec, nodeSpec, retrySpec)
   }
 
   /**
