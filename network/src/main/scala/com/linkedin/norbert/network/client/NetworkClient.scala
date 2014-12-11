@@ -207,19 +207,20 @@ trait NetworkClient extends BaseNetworkClient {
   /**
    * TODO: comment new function
    */
-  def sendRequest[RequestMsg, ResponseMsg](requestSpec: RequestSpecification, nodeSpec: nodeSpecifications, retrySpec: RetrySpecifications)
+  def sendRequest[RequestMsg, ResponseMsg](requestSpec: RequestSpecification[RequestMsg], nodeSpec: NodeSpec, retrySpec: RetrySpecifications[ResponseMsg])
   (implicit is: InputSerializer[RequestMsg, ResponseMsg], os:OutputSerializer[RequestMsg, ResponseMsg]) = doIfConnected {
     if (requestSpec.message == null) throw new NullPointerException
+    val callback = retrySpec.callback.getOrElse(throw new Exception("No callback and no default callback"));
 
     val loadBalancerReady = loadBalancer.getOrElse(throw new ClusterDisconnectedException("Client has no node information"))
 
     val node = loadBalancerReady.fold(ex => throw ex,
       lb => {
-        val node: Option[Node] = lb.nextNode(nodeSpec.Capability, nodeSpec.PersistentCapability)
+        val node: Option[Node] = lb.nextNode(nodeSpec.capability, nodeSpec.persistentCapability)
         node.getOrElse(throw new NoNodesAvailableException("No node available that can handle the request: %s".format(requestSpec.message)))
       })
 
-    doSendRequest(Request(requestSpec.message, node, is, os, if (retrySpec.maxRetry == 0) Some(retrySpec.callback) else Some(retryCallback[RequestMsg, ResponseMsg](retrySpec.callback, retrySpec.maxRetry, nodeSpec.Capability, nodeSpec.PersistentCapability)_)))
+    doSendRequest(Request(requestSpec.message, node, is, os, if (retrySpec.maxRetry == 0) Some(callback) else Some(retryCallback[RequestMsg, ResponseMsg](callback, retrySpec.maxRetry, nodeSpec.capability, nodeSpec.persistentCapability) _)))
   }
 
 

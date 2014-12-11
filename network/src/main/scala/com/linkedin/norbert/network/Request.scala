@@ -16,7 +16,7 @@
 package com.linkedin.norbert.network
 
 import java.util.UUID
-import com.linkedin.norbert.cluster.Node
+import com.linkedin.norbert.cluster.{Node, ClusterException}
 import scala.collection.mutable.Map
 import com.linkedin.norbert.logging.Logging
 import com.linkedin.norbert.network.common.CachedNetworkStatistics
