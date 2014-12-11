@@ -60,7 +60,7 @@ class PartitionedRequestSpecification[RequestMsg, PartitionedId](val message: Op
       //error if both message and requestBuilder are none
       throw new IllegalArgumentException("need to specify either message or requestbuilder")
     }
-    rb = Some((node:Node, ids:Set[PartitionedId])=> message);
+    rb = Some((node:Node, ids:Set[PartitionedId])=> message.getOrElse(throw new Exception("This should not happen")));
   }
 
 }
