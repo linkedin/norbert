@@ -15,10 +15,11 @@
  */
 package com.linkedin.norbert.javacompat.network;
 
+import com.linkedin.norbert.javacompat.cluster.Node;
+
+import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
-import java.lang.Long;
-import com.linkedin.norbert.javacompat.cluster.Node;
 
 /**
  * A <code>PartitionedLoadBalancer</code> handles calculating the next <code>Node</code> a message should be routed to
@@ -59,7 +60,39 @@ public interface PartitionedLoadBalancer<PartitionedId> {
    */
   Node nextNode(PartitionedId id, Long capability, Long persistentCapability);
 
-  /**
+
+    /**
+     * Returns the next <code>Node</code> a message should be routed to based on the PartitionId provided.
+     *
+     * @param id the id to be used to calculate partitioning information.
+     *
+     * @return the <code>Node</code> to route the next message to
+     */
+    LinkedHashSet<Node> nextNodes(PartitionedId id);
+
+    /**
+     * Returns the next <code>Node</code> a message should be routed to based on the PartitionId provided.
+     *
+     * @param id the id to be used to calculate partitioning information.
+     * @param capability the minimal capability required by client
+     *
+     * @return the <code>Node</code> to route the next message to
+     */
+    LinkedHashSet<Node> nextNodes(PartitionedId id, Long capability);
+
+    /**
+     * Returns the next <code>Node</code> a message should be routed to based on the PartitionId provided.
+     *
+     * @param id the id to be used to calculate partitioning information.
+     * @param capability the minimal capability required by client
+     * @param persistentCapability the capability of more persistent nature
+     *
+     * @return the <code>Node</code> to route the next message to
+     */
+    LinkedHashSet<Node> nextNodes(PartitionedId id, Long capability, Long persistentCapability);
+
+
+    /**
    * Returns all replica nodes for the same partitionedId
    * @return the <code>Nodes</code> to multicast the next messages to each replica
    */

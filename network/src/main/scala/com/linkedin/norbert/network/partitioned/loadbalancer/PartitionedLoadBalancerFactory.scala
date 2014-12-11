@@ -19,15 +19,27 @@ package partitioned
 package loadbalancer
 
 
+import java.util
+
+import com.linkedin.norbert.cluster.{InvalidClusterException, Node}
+import com.linkedin.norbert.network.common.Endpoint
+
 import _root_.scala.Predef._
-import cluster.{InvalidClusterException, Node}
-import common.Endpoint
 
 /**
  * A <code>PartitionedLoadBalancer</code> handles calculating the next <code>Node</code> a message should be routed to
  * based on a PartitionedId.
  */
 trait PartitionedLoadBalancer[PartitionedId] {
+
+  /**
+   * Returns the consistent ordered set of nodes to which messages should be routed; the order is based on the PartitionId provided.
+   *
+   * @param id the id based on which the order of the nodes will be determined
+   * @return an ordered set of nodes
+   */
+  def nextNodes(id: PartitionedId, capability: Option[Long] = None, persistentCapability: Option[Long] = None): util.LinkedHashSet[Node]
+
   /**
    * Returns the next <code>Node</code> a message should be routed to based on the PartitionId provided.
    *

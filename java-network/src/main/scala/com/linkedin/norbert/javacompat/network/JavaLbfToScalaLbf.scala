@@ -2,13 +2,13 @@ package com.linkedin.norbert
 package javacompat
 package network
 
-import com.linkedin.norbert.network.partitioned.loadbalancer.{PartitionedLoadBalancerFactory => SPartitionedLoadBalancerFactory, PartitionedLoadBalancer => SPartitionedLoadBalancer}
-import com.linkedin.norbert.network.client.loadbalancer.{LoadBalancerFactory => SLoadBalancerFactory, LoadBalancer => SLoadBalancer}
-
-import com.linkedin.norbert.cluster.{Node => SNode}
-import com.linkedin.norbert.network.common.{Endpoint => SEndpoint}
+import java.util
 
 import com.linkedin.norbert.EndpointConversions._
+import com.linkedin.norbert.cluster.{Node => SNode}
+import com.linkedin.norbert.javacompat.cluster.Node
+import com.linkedin.norbert.network.common.{Endpoint => SEndpoint}
+import com.linkedin.norbert.network.partitioned.loadbalancer.{PartitionedLoadBalancer => SPartitionedLoadBalancer, PartitionedLoadBalancerFactory => SPartitionedLoadBalancerFactory}
 
 class JavaLbfToScalaLbf[PartitionedId](javaLbf: PartitionedLoadBalancerFactory[PartitionedId]) extends SPartitionedLoadBalancerFactory[PartitionedId] {
   def newLoadBalancer(nodes: Set[SEndpoint]) = {
@@ -78,7 +78,25 @@ class JavaLbfToScalaLbf[PartitionedId](javaLbf: PartitionedLoadBalancerFactory[P
         }
         sMap
       }
-   }
+
+      def rewrap(nodes: util.LinkedHashSet[com.linkedin.norbert.javacompat.cluster.Node]): util.LinkedHashSet[SNode] = {
+        val result = new util.LinkedHashSet[SNode]()
+        val it = nodes.iterator()
+        while(it.hasNext) {
+          val node:Node = it.next()
+          result.add(new SNode(node.id, node.url, node.available, node.partitionIds, node.capability, node.persistentCapability))
+        }
+        result
+      }
+      override def nextNodes(id: PartitionedId, capability: Option[Long], persistentCapability: Option[Long]): util.LinkedHashSet[SNode] = {
+        (capability, persistentCapability) match {
+          case (Some(c),Some(pc)) => rewrap(lb.nextNodes(id, c.longValue, pc.longValue))
+          case (None, Some(pc)) => rewrap(lb.nextNodes(id, 0L, pc.longValue))
+          case (Some(c), None) => rewrap(lb.nextNodes(id, c.longValue, 0L))
+          case (None, None) => rewrap(lb.nextNodes(id))
+        }
+      }
+    }
 
   }
 

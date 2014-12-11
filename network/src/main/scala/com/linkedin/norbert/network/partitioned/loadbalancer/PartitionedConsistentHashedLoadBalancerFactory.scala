@@ -1,11 +1,10 @@
 package com.linkedin.norbert.network.partitioned.loadbalancer
 
-import com.linkedin.norbert.network.common.Endpoint
-import java.util.TreeMap
-import com.linkedin.norbert.cluster.{Node, InvalidClusterException}
-import com.linkedin.norbert.logging.Logging
-import com.linkedin.norbert.network.client.loadbalancer.LoadBalancerHelpers
+import java.util
 import java.util.concurrent.atomic.{AtomicBoolean, AtomicInteger}
+
+import com.linkedin.norbert.cluster.{InvalidClusterException, Node}
+import com.linkedin.norbert.network.common.Endpoint
 
 /*
 * Copyright 2009-2010 LinkedIn, Inc
@@ -59,7 +58,7 @@ class PartitionedConsistentHashedLoadBalancerFactory[PartitionedId](numPartition
     }
 
     val wheels = partitions.map { case (partition, endpointsForPartition) =>
-      val wheel = new TreeMap[Int, Endpoint]
+      val wheel = new util.TreeMap[Int, Endpoint]
       endpointsForPartition.foreach { endpoint =>
         var r = 0
         while (r < numReplicas) {
@@ -78,12 +77,15 @@ class PartitionedConsistentHashedLoadBalancerFactory[PartitionedId](numPartition
   }
 }
 
-class PartitionedConsistentHashedLoadBalancer[PartitionedId](numPartitions: Int, wheels: Map[Int, TreeMap[Int, Endpoint]], hashFn: PartitionedId => Int, serveRequestsIfPartitionMissing: Boolean = true)
+class PartitionedConsistentHashedLoadBalancer[PartitionedId](numPartitions: Int, wheels: Map[Int, util.TreeMap[Int, Endpoint]], hashFn: PartitionedId => Int, serveRequestsIfPartitionMissing: Boolean = true)
         extends PartitionedLoadBalancer[PartitionedId] with DefaultLoadBalancerHelper {
   import scala.collection.JavaConversions._
   val endpoints = wheels.values.flatMap(_.values).toSet
   val partitionToNodeMap = generatePartitionToNodeMap(endpoints, numPartitions, serveRequestsIfPartitionMissing)
   val partitionIds = wheels.keySet.toSet
+  val treeWheels = new util.TreeMap[Int, util.TreeMap[Int, Endpoint]]()
+  treeWheels.putAll(wheels)
+  val wheelSize = treeWheels.size()
 
   def nodesForOneReplica(id: PartitionedId, capability: Option[Long] = None, persistentCapability: Option[Long] = None) = {
     nodesForPartitions(id, wheels, capability, persistentCapability)
@@ -91,15 +93,20 @@ class PartitionedConsistentHashedLoadBalancer[PartitionedId](numPartitions: Int,
 
   def nodesForPartitionedId(id: PartitionedId, capability: Option[Long] = None, persistentCapability: Option[Long] = None) = {
     val hash = hashFn(id)
-    val partitionId = hash.abs % numPartitions
-    wheels.get(partitionId).flatMap { wheel => Option(wheel.foldLeft(Set.empty[Node]) { case (set, (p, e)) => if (e.node.isCapableOf(capability, persistentCapability)) set + e.node else set }) }.get
+    val partitionId = hash.abs % wheelSize
+    val entry = PartitionUtil.wheelEntry(treeWheels, partitionId)
+    if (entry == null) {
+      Set.empty[Node]
+    } else {
+      Option(entry.getValue).flatMap { wheel => Option(wheel.foldLeft(Set.empty[Node]) { case (set, (p, e)) => if (e.node.isCapableOf(capability, persistentCapability)) set + e.node else set }) }.get
+    }
   }
 
   def nodesForPartitions(id: PartitionedId, partitions: Set[Int], capability: Option[Long] = None, persistentCapability: Option[Long] = None) = {
     nodesForPartitions(id, wheels.filterKeys(partitions contains _), capability, persistentCapability)
   }
   
-  private def nodesForPartitions(id: PartitionedId, wheels: Map[Int, TreeMap[Int, Endpoint]], capability: Option[Long], persistentCapability: Option[Long]) = {
+  private def nodesForPartitions(id: PartitionedId, wheels: Map[Int, util.TreeMap[Int, Endpoint]], capability: Option[Long], persistentCapability: Option[Long]) = {
     if (id == null) {
       nodesForPartitions0(partitionToNodeMap filterKeys wheels.containsKey, capability, persistentCapability)
     } else {
@@ -131,7 +138,7 @@ class PartitionedConsistentHashedLoadBalancer[PartitionedId](numPartitions: Int,
   private def nodesForPartitions0(partitionToNodeMap: Map[Int, (IndexedSeq[Endpoint], AtomicInteger, Array[AtomicBoolean])], capability: Option[Long], persistentCapability: Option[Long] = None) = {
     partitionToNodeMap.keys.foldLeft(Map.empty[Node, Set[Int]]) { (map, partition) =>
       val nodeOption = nodeForPartition(partition, capability, persistentCapability)
-      if(nodeOption isDefined) {
+      if(nodeOption.isDefined) {
         val n = nodeOption.get
         map + (n -> (map.getOrElse(n, Set.empty[Int]) + partition))
       } else if(serveRequestsIfPartitionMissing) {
@@ -141,14 +148,45 @@ class PartitionedConsistentHashedLoadBalancer[PartitionedId](numPartitions: Int,
         throw new InvalidClusterException("Partition %s is unavailable, cannot serve requests.".format(partition))
     }
   }
-  
+
+  override def nextNodes(id: PartitionedId, capability: Option[Long] = None, persistentCapability: Option[Long] = None): util.LinkedHashSet[Node] = {
+    val result = new util.LinkedHashSet[Node]()
+    val hash = hashFn(id)
+    val partitionId = hash.abs % wheelSize
+    val innerMapEntry = PartitionUtil.wheelEntry(treeWheels, partitionId)
+    if (innerMapEntry == null) {
+      result
+    } else {
+      val innerMapOpt = Option(innerMapEntry.getValue)
+      if (innerMapOpt.isDefined) {
+        val innerMap = innerMapOpt.get
+        val startEntry = PartitionUtil.wheelEntry(innerMap, hash)
+        if (startEntry != null) {
+          result.add(startEntry.getValue.node)
+          var nextEntry = PartitionUtil.rotateWheel(innerMap, startEntry.getKey)
+          while (nextEntry != startEntry) {
+            result.add(nextEntry.getValue.node)
+            nextEntry = PartitionUtil.rotateWheel(innerMap, nextEntry.getKey)
+          }
+          return result
+        }
+      }
+      log.warn("Failed to find mapping for %s, expect routing failures".format(id))
+      result
+    }
+  }
 
   def nextNode(id: PartitionedId, capability: Option[Long] = None, persistentCapability: Option[Long] = None): Option[Node] = {
     val hash = hashFn(id)
-    val partitionId = hash.abs % numPartitions
-    wheels.get(partitionId).flatMap { wheel =>
-      PartitionUtil.searchWheel(wheel, hash, (e: Endpoint) => e.canServeRequests && e.node.isCapableOf(capability, persistentCapability) )
-    }.map(_.node)
+    val partitionId = hash.abs % wheelSize
+    val innerMapEntry = PartitionUtil.wheelEntry(treeWheels, partitionId)
+    if (innerMapEntry == null) {
+      None
+    } else {
+      Option(innerMapEntry.getValue).flatMap { wheel =>
+        PartitionUtil.searchWheel(wheel, hash, (e: Endpoint) => e.canServeRequests && e.node.isCapableOf(capability, persistentCapability) )
+      }.map(_.node)
+    }
   }
 
   def partitionForId(id: PartitionedId): Int = {

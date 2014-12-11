@@ -18,12 +18,13 @@ package network
 package partitioned
 package loadbalancer
 
-import cluster.{InvalidClusterException, Node}
-import common.Endpoint
+import java.util
 import java.util.concurrent.atomic.{AtomicBoolean, AtomicInteger}
-import annotation.tailrec
-import client.loadbalancer.LoadBalancerHelpers
-import logging.Logging
+
+import com.linkedin.norbert.cluster.{InvalidClusterException, Node}
+import com.linkedin.norbert.logging.Logging
+import com.linkedin.norbert.network.client.loadbalancer.LoadBalancerHelpers
+import com.linkedin.norbert.network.common.Endpoint
 
 /**
  * A mixin trait that provides functionality to help implement a hash based <code>Router</code>.
@@ -83,7 +84,6 @@ trait DefaultLoadBalancerHelper extends LoadBalancerHelpers with Logging {
       case None =>
         return None
       case Some((endpoints, counter, states)) =>
-        import math._
         val es = endpoints.size
         counter.compareAndSet(java.lang.Integer.MAX_VALUE, 0)
         val idx = counter.getAndIncrement
@@ -103,6 +103,32 @@ trait DefaultLoadBalancerHelper extends LoadBalancerHelpers with Logging {
 
         compensateCounter(idx, loopCount, counter);
         return Some(endpoints(idx % es).node)
+    }
+  }
+
+  protected def nodesForPartition(partitionId: Int, capability: Option[Long] = None, persistentCapability: Option[Long] = None): util.LinkedHashSet[Node] = {
+    partitionToNodeMap.get(partitionId) match {
+      case None =>
+        return new util.LinkedHashSet[Node]
+      case Some((endpoints, counter, states)) =>
+        val es = endpoints.size
+        counter.compareAndSet(java.lang.Integer.MAX_VALUE, 0)
+        val idx = counter.getAndIncrement
+        var i = idx
+        var loopCount = 0
+        val result  = new util.LinkedHashSet[Node]
+        do {
+          val endpoint = endpoints(i % es)
+          if(endpoint.canServeRequests && endpoint.node.isCapableOf(capability, persistentCapability)) {
+            result.add(endpoint.node)
+          }
+
+          i = i + 1
+          if (i < 0) i = 0
+          loopCount = loopCount + 1
+        } while (loopCount <= es)
+
+        result
     }
   }
 

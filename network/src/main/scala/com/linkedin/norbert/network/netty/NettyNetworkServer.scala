@@ -30,25 +30,27 @@ import protos.NorbertProtos
 import norbertutils.NamedPoolThreadFactory
 import org.jboss.netty.channel.{Channels, ChannelPipelineFactory}
 
+import scala.beans.BeanProperty
+
 class NetworkServerConfig {
-  var clusterClient: ClusterClient = _
-  var serviceName: String = _
-  var zooKeeperConnectString: String = _
-  var zooKeeperSessionTimeoutMillis = 30000
+  @BeanProperty var clusterClient: ClusterClient = _
+  @BeanProperty var serviceName: String = _
+  @BeanProperty var zooKeeperConnectString: String = _
+  @BeanProperty var zooKeeperSessionTimeoutMillis = 30000
 
-  var requestTimeoutMillis = NetworkDefaults.REQUEST_TIMEOUT_MILLIS
-  var responseGenerationTimeoutMillis = -1//turned off by default
+  @BeanProperty var requestTimeoutMillis = NetworkDefaults.REQUEST_TIMEOUT_MILLIS
+  @BeanProperty var responseGenerationTimeoutMillis = -1//turned off by default
 
-  var requestThreadCorePoolSize = NetworkDefaults.REQUEST_THREAD_CORE_POOL_SIZE
-  var requestThreadMaxPoolSize = NetworkDefaults.REQUEST_THREAD_MAX_POOL_SIZE
-  var requestThreadKeepAliveTimeSecs = NetworkDefaults.REQUEST_THREAD_KEEP_ALIVE_TIME_SECS
+  @BeanProperty var requestThreadCorePoolSize = NetworkDefaults.REQUEST_THREAD_CORE_POOL_SIZE
+  @BeanProperty var requestThreadMaxPoolSize = NetworkDefaults.REQUEST_THREAD_MAX_POOL_SIZE
+  @BeanProperty var requestThreadKeepAliveTimeSecs = NetworkDefaults.REQUEST_THREAD_KEEP_ALIVE_TIME_SECS
 
-  var threadPoolQueueSize = NetworkDefaults.REQUEST_THREAD_POOL_QUEUE_SIZE
+  @BeanProperty var threadPoolQueueSize = NetworkDefaults.REQUEST_THREAD_POOL_QUEUE_SIZE
 
-  var requestStatisticsWindow = NetworkDefaults.REQUEST_STATISTICS_WINDOW
-  var avoidByteStringCopy = NetworkDefaults.AVOID_BYTESTRING_COPY
+  @BeanProperty var requestStatisticsWindow = NetworkDefaults.REQUEST_STATISTICS_WINDOW
+  @BeanProperty var avoidByteStringCopy = NetworkDefaults.AVOID_BYTESTRING_COPY
 
-  var shutdownPauseMultiplier = NetworkDefaults.SHUTDOWN_PAUSE_MULTIPLIER
+  @BeanProperty var shutdownPauseMultiplier = NetworkDefaults.SHUTDOWN_PAUSE_MULTIPLIER
 }
 
 class NettyNetworkServer(serverConfig: NetworkServerConfig) extends NetworkServer with ClusterClientComponent with NettyClusterIoServerComponent
