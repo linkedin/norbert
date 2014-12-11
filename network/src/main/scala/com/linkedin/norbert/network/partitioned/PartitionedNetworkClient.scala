@@ -465,7 +465,7 @@ trait PartitionedNetworkClient[PartitionedId] extends BaseNetworkClient {
   }
 
   //TODO: implement this
-  def sendRequest[RequestMsg, ResponseMsg](requestSpec: PartitionedRequestSpecification, nodeSpec: PartitionedNodeSpec, retrySpec: PartitionedRetrySpecifications)
+  def sendRequest[RequestMsg, ResponseMsg, PartitionedId](requestSpec: PartitionedRequestSpecification[RequestMsg, PartitionedId], nodeSpec: PartitionedNodeSpec[PartitionedId], retrySpec: PartitionedRetrySpecifications[ResponseMsg])
                                           (implicit is: InputSerializer[RequestMsg, ResponseMsg], os: OutputSerializer[RequestMsg, ResponseMsg]): ResponseIterator[ResponseMsg] =
   {
     //do some stuff
