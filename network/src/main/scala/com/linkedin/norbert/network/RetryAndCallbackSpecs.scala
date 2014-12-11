@@ -64,19 +64,12 @@ object PartitionedRetrySpecifications {
   //can have maxRetry without callback, but you cannot have callback without maxRetry
   def apply[ResponseMsg](maxRetry: Int = 0,
                          callback: Option[Either[Throwable, ResponseMsg] => Unit] = None, //new FutureAdapterListener[ResponseMsg],
-                         routingConfigs: RoutingConfigs = new RoutingConfigs(retryStrategy != None, duplicatesOk),
-                         retryStrategy: Option[RetryStrategy] = retryStrategy) = {
+                         routingConfigs: RoutingConfigs,
+                         retryStrategy: Option[RetryStrategy] = None) = {
     new PartitionedRetrySpecifications[ResponseMsg](maxRetry, callback, routingConfigs, retryStrategy)
   }
 
-  var duplicatesOk: Boolean = false
-  var retryStrategy: Option[RetryStrategy] = None
 
-  def setConfig(config: NetworkClientConfig): Unit = {
-    duplicatesOk = config.duplicatesOk
-    if (retryStrategy != null)
-      retryStrategy = config.retryStrategy
-  }
 }
 
 /**
@@ -92,12 +85,16 @@ object PartitionedRetrySpecifications {
  */
 class PartitionedRetrySpecifications[ResponseMsg](maxRetry: Int,
                                          callback: Option[Either[Throwable, ResponseMsg] => Unit],
-                                         val routingConfigs: RoutingConfigs,
-                                         val retryStrategy: Option[RetryStrategy]) extends RetrySpecifications[ResponseMsg](maxRetry, callback) {
-//  Validation checks go here (possibly not needed since they are in the class that this one extends)
-//  if (maxRetry == 0 && callback != None) {
-//    throw new IllegalArgumentException("maxRetry must be greater than 0 for callback options to work")
-//  }
+                                         val routingConfigs: RoutingConfigs = new RoutingConfigs(retryStrategy != None, duplicatesOk),
+                                         var retryStrategy: Option[RetryStrategy],
+                                         var duplicatesOk: Boolean = false) extends RetrySpecifications[ResponseMsg](maxRetry, callback) {
+
+  def setConfig(config: NetworkClientConfig): Unit = {
+    duplicatesOk = config.duplicatesOk
+    if (retryStrategy != null)
+      retryStrategy = config.retryStrategy
+  }
+
 }
 
 /**
@@ -107,7 +104,7 @@ object RCBTesting {
   def main(args: Array[String]) = {
     try {
       val tester: RetrySpecifications[String] = RetrySpecifications[String](9)
-      val partitionedTester: PartitionedRetrySpecifications[String] = PartitionedRetrySpecifications[String]()
+      //val partitionedTester: PartitionedRetrySpecifications[String] = PartitionedRetrySpecifications[String]()
       println(tester.callback)
       println(tester.maxRetry)
     }
