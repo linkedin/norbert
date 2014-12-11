@@ -54,10 +54,13 @@ object PartitionedRequestSpecification{
  * @tparam PartitionedId
  */
 class PartitionedRequestSpecification[RequestMsg, PartitionedId](val message: Option[RequestMsg],
-                                             val rb: Option[(Node, Set[PartitionedId]) => RequestMsg]) {
-  if (message == None && rb == None) {
-    //error if both message and requestBuilder are none
-    throw new IllegalArgumentException("need to specify either message or requestbuilder")
+                                             var rb: Option[(Node, Set[PartitionedId]) => RequestMsg]) {
+  if (rb == None) {
+    if (message == None) {
+      //error if both message and requestBuilder are none
+      throw new IllegalArgumentException("need to specify either message or requestbuilder")
+    }
+    rb = Some((node:Node, ids:Set[PartitionedId])=> message);
   }
 
 }
