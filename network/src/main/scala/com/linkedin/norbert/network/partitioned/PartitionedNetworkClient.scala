@@ -29,6 +29,7 @@ import com.linkedin.norbert.network.partitioned.loadbalancer.{PartitionedLoadBal
 import com.linkedin.norbert.network.server.{MessageExecutorComponent, NetworkServer}
 
 import scala.beans.BeanProperty
+import scala.collection.JavaConversions
 import scala.util.Random
 
 object RoutingConfigs {
@@ -777,6 +778,8 @@ trait PartitionedNetworkClientFailOver[PartitionedId] extends PartitionedNetwork
 
   this: ClusterClientComponent with ClusterIoClientComponent  with PartitionedLoadBalancerFactoryComponent[PartitionedId] =>
 
+  val failOverAttempts:Int = 1
+
   override def sendRequest[RequestMsg, ResponseMsg](id: PartitionedId, request: RequestMsg, callback: Either[Throwable, ResponseMsg] => Unit, capability: Option[Long], persistentCapability: Option[Long])
                                           (implicit is: InputSerializer[RequestMsg, ResponseMsg], os: OutputSerializer[RequestMsg, ResponseMsg]): Unit = doIfConnected {
     if (id == null || request == null) throw new NullPointerException
@@ -787,32 +790,29 @@ trait PartitionedNetworkClientFailOver[PartitionedId] extends PartitionedNetwork
     if (nodes.isEmpty) {
       throw new NoNodesAvailableException("Unable to satisfy request, no node available for id %s".format(id))
     } else {
-      val nodeIterator = nodes.iterator()
-      val firstNode = nodeIterator.next()
-      var failOverNode :Option[Node] = None
-      if (nodeIterator.hasNext) {
-        failOverNode = Option[Node](nodeIterator.next())
-      }
-      val failOverCallback = (e:Either[Throwable, ResponseMsg]) => {
-         if (failOverNode.isDefined) {
-           e match {
-             case Left(ex:ConnectException) => failOverRequestToNextNode(firstNode, failOverNode.get, id, request, callback, capability, persistentCapability);
-             case Left(ex:Throwable) => callback.apply(e);
-             case Right(r:ResponseMsg) => callback.apply(e);
-           }
-         } else {
-           callback.apply(e)
-         }
-         () // force unit return type
-      }
-      doSendRequest(PartitionedRequest(request, firstNode, Set(id), (node: Node, ids: Set[PartitionedId]) => request, is, os, Option(failOverCallback)))
+      val nodeList:List[Node] = List() ++ JavaConversions.asScalaIterator(nodes.iterator())
+      doSendRequest(nodeList, 0, id, request, callback, capability, persistentCapability)
     }
   }
 
-  def failOverRequestToNextNode[RequestMsg, ResponseMsg]( failureNode:Node, node:Node, id: PartitionedId, request: RequestMsg, callback: Either[Throwable, ResponseMsg] => Unit, capability: Option[Long], persistentCapability: Option[Long])
-                                                   (implicit is: InputSerializer[RequestMsg, ResponseMsg], os: OutputSerializer[RequestMsg, ResponseMsg]): Unit = doIfConnected {
-    log.warn("request to node %d failed, re-routing to node %d".format(failureNode.id, node.id))
-    doSendRequest(PartitionedRequest(request, node, Set(id), (node: Node, ids: Set[PartitionedId]) => request, is, os, Option(callback)))
+  def doSendRequest[RequestMsg, ResponseMsg](nodes:List[Node], nodeIndex:Int, id: PartitionedId, request: RequestMsg, callback: Either[Throwable, ResponseMsg] => Unit, capability: Option[Long], persistentCapability: Option[Long])
+  (implicit is: InputSerializer[RequestMsg, ResponseMsg], os: OutputSerializer[RequestMsg, ResponseMsg]): Unit = {
+
+    val node:Node = nodes(nodeIndex)
+
+    val failOverCallback = (e:Either[Throwable, ResponseMsg]) => {
+      if ((nodeIndex+1 < nodes.length) && nodeIndex < failOverAttempts) {
+        e match {
+          case Left(ex:ConnectException) => doSendRequest(nodes, nodeIndex + 1, id, request, callback, capability, persistentCapability);
+          case Left(ex:Throwable) => callback.apply(e);
+          case Right(r:ResponseMsg) => callback.apply(e);
+        }
+      } else {
+        callback.apply(e)
+      }
+      () // force unit return type
+    }
+    doSendRequest(PartitionedRequest(request, node, Set(id), (node: Node, ids: Set[PartitionedId]) => request, is, os, Option(failOverCallback)))
   }
 
 }

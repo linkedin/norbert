@@ -17,12 +17,15 @@ package com.linkedin.norbert
 package network
 package partitioned
 
+import java.net.ConnectException
 import java.util
 import java.util.concurrent.ExecutionException
 
-import com.linkedin.norbert.cluster.{ClusterClientComponent, ClusterDisconnectedException, InvalidClusterException, Node}
-import com.linkedin.norbert.network.common.{BaseNetworkClientSpecification, ClusterIoClientComponent}
+import com.linkedin.norbert.cluster._
+import com.linkedin.norbert.network.common.{ClusterIoClientComponent, BaseNetworkClientSpecification}
 import com.linkedin.norbert.network.partitioned.loadbalancer._
+
+import scala.collection.JavaConversions
 
 class PartitionedNetworkClientSpec extends BaseNetworkClientSpecification {
   val networkClient = new PartitionedNetworkClient[Int] with ClusterClientComponent with ClusterIoClientComponent
@@ -1014,5 +1017,172 @@ class PartitionedNetworkClientSpec extends BaseNetworkClientSpecification {
     }
   }
 
+  "PartitionedNetworkClientFailOver" should {
+     "fail-over to next node" in {
+       val nc2 = new PartitionedNetworkClientFailOver[Int] with ClusterClientComponent with ClusterIoClientComponent with PartitionedLoadBalancerFactoryComponent[Int] {
+         val lb = new PartitionedLoadBalancer[Int] {
+           var iter = PartitionedNetworkClientSpec.this.nodes.iterator
+           def nextNode(id: Int, c: Option[Long] = None, pc : Option[Long] = None) = {
+             if (!iter.hasNext ) iter = PartitionedNetworkClientSpec.this.nodes.iterator
+             Some(iter.next)
+           }
+           def nodesForOneReplica(id: Int, c: Option[Long] = None, pc: Option[Long] = None) = null
+           def nodesForPartitionedId(id:Int, c: Option[Long] = None, pc: Option[Long] = None) = null
+           def nodesForPartitions(id: Int, partitions: Set[Int], c: Option[Long] = None, pc: Option[Long] = None) = null
+           def nextNodes(id: Int, capability: Option[Long], persistentCapability: Option[Long]): util.LinkedHashSet[Node] = {
+             val result : util.LinkedHashSet[Node] = new util.LinkedHashSet()
+             result.addAll(JavaConversions.asJavaCollection( PartitionedNetworkClientSpec.this.nodes))
+             result
+           }
+         }
+         val loadBalancerFactory = mock[PartitionedLoadBalancerFactory[Int]]
+         val clusterIoClient = new ClusterIoClient {
+           var invocationMap = Map(1 -> 0, 2 -> 0, 3 -> 0)
+           def sendMessage[RequestMsg, ResponseMsg](node: Node, requestCtx: Request[RequestMsg, ResponseMsg]) {
+             val oldVal = invocationMap(node.id)
+             invocationMap = invocationMap + (node.id -> (oldVal+1))
+             if (node.id == 1) {
+               requestCtx.onFailure(new ConnectException with RequestAccess[Request[RequestMsg, ResponseMsg]] {
+                 def request = requestCtx
+               })
+             } else {
+               requestCtx.onSuccess(requestCtx.outputSerializer.requestToBytes(requestCtx.message))
+             }
+           }
+           def nodesChanged(nodes: Set[Node]) = {PartitionedNetworkClientSpec.this.endpoints}
+           def shutdown {}
+         }
+         val clusterClient = PartitionedNetworkClientSpec.this.clusterClient
+       }
+       nc2.clusterClient.nodes returns nodeSet
+       nc2.clusterClient.isConnected returns true
+       nc2.loadBalancerFactory.newLoadBalancer(endpoints) returns nc2.lb
+       nc2.start
+
+       // check pre-test assumptions
+       nc2.clusterIoClient.invocationMap(1) must be_==(0)
+       nc2.clusterIoClient.invocationMap(2) must be_==(0)
+       nc2.clusterIoClient.invocationMap(3) must be_==(0)
+
+       nc2.sendRequest[Ping, Ping](0, request)
+
+       // check post-test values
+       nc2.clusterIoClient.invocationMap(1) must be_==(1)
+       nc2.clusterIoClient.invocationMap(2) must be_==(1)
+       nc2.clusterIoClient.invocationMap(3) must be_==(0)
+
+     }
+
+    "fail when the fail over node fails" in {
+      val nc2 = new PartitionedNetworkClientFailOver[Int] with ClusterClientComponent with ClusterIoClientComponent with PartitionedLoadBalancerFactoryComponent[Int] {
+        val lb = new PartitionedLoadBalancer[Int] {
+          var iter = PartitionedNetworkClientSpec.this.nodes.iterator
+          def nextNode(id: Int, c: Option[Long] = None, pc : Option[Long] = None) = {
+            if (!iter.hasNext ) iter = PartitionedNetworkClientSpec.this.nodes.iterator
+            Some(iter.next)
+          }
+          def nodesForOneReplica(id: Int, c: Option[Long] = None, pc: Option[Long] = None) = null
+          def nodesForPartitionedId(id:Int, c: Option[Long] = None, pc: Option[Long] = None) = null
+          def nodesForPartitions(id: Int, partitions: Set[Int], c: Option[Long] = None, pc: Option[Long] = None) = null
+          def nextNodes(id: Int, capability: Option[Long], persistentCapability: Option[Long]): util.LinkedHashSet[Node] = {
+            val result : util.LinkedHashSet[Node] = new util.LinkedHashSet()
+            result.addAll(JavaConversions.asJavaCollection( PartitionedNetworkClientSpec.this.nodes))
+            result
+          }
+        }
+        val loadBalancerFactory = mock[PartitionedLoadBalancerFactory[Int]]
+        val clusterIoClient = new ClusterIoClient {
+          var invocationMap = Map(1 -> 0, 2 -> 0, 3 -> 0)
+          def sendMessage[RequestMsg, ResponseMsg](node: Node, requestCtx: Request[RequestMsg, ResponseMsg]) {
+            val oldVal = invocationMap(node.id)
+            invocationMap = invocationMap + (node.id -> (oldVal+1))
+            if (node.id == 1 || node.id == 2) {
+              requestCtx.onFailure(new ConnectException with RequestAccess[Request[RequestMsg, ResponseMsg]] {
+                def request = requestCtx
+              })
+            } else {
+              requestCtx.onSuccess(requestCtx.outputSerializer.requestToBytes(requestCtx.message))
+            }
+          }
+          def nodesChanged(nodes: Set[Node]) = {PartitionedNetworkClientSpec.this.endpoints}
+          def shutdown {}
+        }
+        val clusterClient = PartitionedNetworkClientSpec.this.clusterClient
+      }
+      nc2.clusterClient.nodes returns nodeSet
+      nc2.clusterClient.isConnected returns true
+      nc2.loadBalancerFactory.newLoadBalancer(endpoints) returns nc2.lb
+      nc2.start
+
+      // check pre-test assumptions
+      nc2.clusterIoClient.invocationMap(1) must be_==(0)
+      nc2.clusterIoClient.invocationMap(2) must be_==(0)
+      nc2.clusterIoClient.invocationMap(3) must be_==(0)
+
+      val future = nc2.sendRequest[Ping, Ping](0, request)
+      future.get must throwA[Exception]
+
+      // check post-test values
+      nc2.clusterIoClient.invocationMap(1) must be_==(1)
+      nc2.clusterIoClient.invocationMap(2) must be_==(1)
+      nc2.clusterIoClient.invocationMap(3) must be_==(0)
+
+    }
+
+    "fail-over must propagate to multiple nodes, if fail over nodes fail as well" in {
+      val nc2 = new PartitionedNetworkClientFailOver[Int] with ClusterClientComponent with ClusterIoClientComponent with PartitionedLoadBalancerFactoryComponent[Int] {
+        override val failOverAttempts = 1000;
+        val lb = new PartitionedLoadBalancer[Int] {
+          var iter = PartitionedNetworkClientSpec.this.nodes.iterator
+          def nextNode(id: Int, c: Option[Long] = None, pc : Option[Long] = None) = {
+            if (!iter.hasNext ) iter = PartitionedNetworkClientSpec.this.nodes.iterator
+            Some(iter.next)
+          }
+          def nodesForOneReplica(id: Int, c: Option[Long] = None, pc: Option[Long] = None) = null
+          def nodesForPartitionedId(id:Int, c: Option[Long] = None, pc: Option[Long] = None) = null
+          def nodesForPartitions(id: Int, partitions: Set[Int], c: Option[Long] = None, pc: Option[Long] = None) = null
+          def nextNodes(id: Int, capability: Option[Long], persistentCapability: Option[Long]): util.LinkedHashSet[Node] = {
+            val result : util.LinkedHashSet[Node] = new util.LinkedHashSet()
+            result.addAll(JavaConversions.asJavaCollection( PartitionedNetworkClientSpec.this.nodes))
+            result
+          }
+        }
+        val loadBalancerFactory = mock[PartitionedLoadBalancerFactory[Int]]
+        val clusterIoClient = new ClusterIoClient {
+          var invocationMap = Map(1 -> 0, 2 -> 0, 3 -> 0)
+          def sendMessage[RequestMsg, ResponseMsg](node: Node, requestCtx: Request[RequestMsg, ResponseMsg]) {
+            val oldVal = invocationMap(node.id)
+            invocationMap = invocationMap + (node.id -> (oldVal+1))
+            if (node.id == 1 || node.id == 2) {
+              requestCtx.onFailure(new ConnectException with RequestAccess[Request[RequestMsg, ResponseMsg]] {
+                def request = requestCtx
+              })
+            } else {
+              requestCtx.onSuccess(requestCtx.outputSerializer.requestToBytes(requestCtx.message))
+            }
+          }
+          def nodesChanged(nodes: Set[Node]) = {PartitionedNetworkClientSpec.this.endpoints}
+          def shutdown {}
+        }
+        val clusterClient = PartitionedNetworkClientSpec.this.clusterClient
+      }
+      nc2.clusterClient.nodes returns nodeSet
+      nc2.clusterClient.isConnected returns true
+      nc2.loadBalancerFactory.newLoadBalancer(endpoints) returns nc2.lb
+      nc2.start
+
+      // check pre-test assumptions
+      nc2.clusterIoClient.invocationMap(1) must be_==(0)
+      nc2.clusterIoClient.invocationMap(2) must be_==(0)
+      nc2.clusterIoClient.invocationMap(3) must be_==(0)
+
+      nc2.sendRequest[Ping, Ping](0, request)
+
+      // check post-test values
+      nc2.clusterIoClient.invocationMap(1) must be_==(1)
+      nc2.clusterIoClient.invocationMap(2) must be_==(1)
+      nc2.clusterIoClient.invocationMap(3) must be_==(1)
+    }
+  }
   def messageCustomizer(node: Node, ids: Set[Int]): Ping = new Ping
 }
