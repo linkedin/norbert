@@ -185,15 +185,15 @@ class ConsistentHashPartitionedLoadBalancerFactorySpec extends SpecificationWith
       val lb = loadBalancerFactory.newLoadBalancer(toEndpoints(nodes))
       val accessVector = Array(0,0,0,0,0,0)
       (0 to 11).foreach { (i) =>
-        val node1 : Node = lb.nextNode(EId(1210), Some(0x1L), Some(2L)).get
+        val node1 : Option[Node] = lb.nextNode(EId(1210), Some(0x1L), Some(2L))
         if (!node1.eq(None))
-          accessVector(node1.id) = accessVector(node1.id) + 1
+          accessVector(node1.get.id) = accessVector(node1.get.id) + 1
       }
 
       (0 to 11).foreach { (i) =>
-        val node2 : Node = lb.nextNode(EId(1210), Some(0x2L), Some(2L)).get
+        val node2 : Option[Node] = lb.nextNode(EId(1210), Some(0x2L), Some(2L))
         if (!node2.eq(None))
-          accessVector(node2.id) = accessVector(node2.id) + 1
+          accessVector(node2.get.id) = accessVector(node2.get.id) + 1
       } 
       
       accessVector(0) must be_==(accessVector(3))
