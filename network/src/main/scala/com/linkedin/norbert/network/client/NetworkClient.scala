@@ -107,15 +107,15 @@ trait NetworkClient extends BaseNetworkClient {
    * to send the request to
    * @throws ClusterDisconnectedException thrown if the cluster is not connected when the method is called
    */
-  @deprecated("Deprecated in favor of new sendRequest", "12/17/2014")
+  @deprecated("Use sendRequest(RequestSpecification[RequestMsg], NodeSpec, RetrySpecifications[ResponseMsg])", "12/17/2014")
   def sendRequest[RequestMsg, ResponseMsg](request: RequestMsg, callback: Either[Throwable, ResponseMsg] => Unit)
   (implicit is: InputSerializer[RequestMsg, ResponseMsg], os: OutputSerializer[RequestMsg, ResponseMsg]): Unit =  
     sendRequest(request, callback, None, None)
-  @deprecated("Deprecated in favor of new sendRequest", "12/17/2014")
+  @deprecated("Use sendRequest(RequestSpecification[RequestMsg], NodeSpec, RetrySpecifications[ResponseMsg])", "12/17/2014")
   def sendRequest[RequestMsg, ResponseMsg](request: RequestMsg, callback: Either[Throwable, ResponseMsg] => Unit, capability: Option[Long])
   (implicit is: InputSerializer[RequestMsg, ResponseMsg], os: OutputSerializer[RequestMsg, ResponseMsg]): Unit = 
      sendRequest(request, callback, capability, None)
-  @deprecated("Deprecated in favor of new sendRequest", "12/17/2014")
+  @deprecated("Use sendRequest(RequestSpecification[RequestMsg], NodeSpec, RetrySpecifications[ResponseMsg])", "12/17/2014")
   def sendRequest[RequestMsg, ResponseMsg](request: RequestMsg, callback: Either[Throwable, ResponseMsg] => Unit, capability: Option[Long], persistentCapability: Option[Long])
   (implicit is: InputSerializer[RequestMsg, ResponseMsg], os: OutputSerializer[RequestMsg, ResponseMsg]): Unit =  doIfConnected {
      sendRequest(request, callback, 0, capability, persistentCapability)
@@ -133,34 +133,34 @@ trait NetworkClient extends BaseNetworkClient {
    * to send the request to
    * @throws ClusterDisconnectedException thrown if the cluster is not connected when the method is called
    */
-  @deprecated("Deprecated in favor of new sendRequest", "12/17/2014")
+  @deprecated("Use sendRequest(RequestSpecification[RequestMsg], NodeSpec, RetrySpecifications[ResponseMsg])", "12/17/2014")
   def sendRequest[RequestMsg, ResponseMsg](request: RequestMsg)
   (implicit is: InputSerializer[RequestMsg, ResponseMsg], os: OutputSerializer[RequestMsg, ResponseMsg]): Future[ResponseMsg] =
     sendRequest(request, None, None)
-  @deprecated("Deprecated in favor of new sendRequest", "12/17/2014")
+  @deprecated("Use sendRequest(RequestSpecification[RequestMsg], NodeSpec, RetrySpecifications[ResponseMsg])", "12/17/2014")
   def sendRequest[RequestMsg, ResponseMsg](request: RequestMsg, maxRetry:Int)
   (implicit is: InputSerializer[RequestMsg, ResponseMsg], os: OutputSerializer[RequestMsg, ResponseMsg]): Future[ResponseMsg] =
     sendRequest(request, maxRetry, None, None)
-  @deprecated("Deprecated in favor of new sendRequest", "12/17/2014")
+  @deprecated("Use sendRequest(RequestSpecification[RequestMsg], NodeSpec, RetrySpecifications[ResponseMsg])", "12/17/2014")
   def sendRequest[RequestMsg, ResponseMsg](request: RequestMsg, capability: Option[Long])
   (implicit is: InputSerializer[RequestMsg, ResponseMsg], os: OutputSerializer[RequestMsg, ResponseMsg]): Future[ResponseMsg] = {
     sendRequest(request, capability, None)
   }
-  @deprecated("Deprecated in favor of new sendRequest", "12/17/2014")
+  @deprecated("Use sendRequest(RequestSpecification[RequestMsg], NodeSpec, RetrySpecifications[ResponseMsg])", "12/17/2014")
   def sendRequest[RequestMsg, ResponseMsg](request: RequestMsg, capability: Option[Long], persistentCapability: Option[Long])
   (implicit is: InputSerializer[RequestMsg, ResponseMsg], os: OutputSerializer[RequestMsg, ResponseMsg]): Future[ResponseMsg] = {
     val future = new FutureAdapterListener[ResponseMsg]
     sendRequest(request, future, capability, persistentCapability)
     future
   }
-  @deprecated("Deprecated in favor of new sendRequest", "12/17/2014")
+  @deprecated("Use sendRequest(RequestSpecification[RequestMsg], NodeSpec, RetrySpecifications[ResponseMsg])", "12/17/2014")
   def sendRequest[RequestMsg, ResponseMsg](request: RequestMsg, maxRetry: Int, capability: Option[Long])
   (implicit is: InputSerializer[RequestMsg, ResponseMsg], os: OutputSerializer[RequestMsg, ResponseMsg]): Future[ResponseMsg] = {
     val future = new FutureAdapterListener[ResponseMsg]
     sendRequest(request, future, maxRetry, capability, None)
     future
   }
-  @deprecated("Deprecated in favor of new sendRequest", "12/17/2014")
+  @deprecated("Use sendRequest(RequestSpecification[RequestMsg], NodeSpec, RetrySpecifications[ResponseMsg])", "12/17/2014")
   def sendRequest[RequestMsg, ResponseMsg](request: RequestMsg, maxRetry: Int, capability: Option[Long], persistentCapability: Option[Long])
   (implicit is: InputSerializer[RequestMsg, ResponseMsg], os: OutputSerializer[RequestMsg, ResponseMsg]): Future[ResponseMsg] = {
     val future = new FutureAdapterListener[ResponseMsg]
@@ -182,15 +182,15 @@ trait NetworkClient extends BaseNetworkClient {
    * to send the request to
    * @throws ClusterDisconnectedException thrown if the cluster is not connected when the method is called
    */
-  @deprecated("Deprecated in favor of new sendRequest", "12/17/2014")
+  @deprecated("Use sendRequest(RequestSpecification[RequestMsg], NodeSpec, RetrySpecifications[ResponseMsg])", "12/17/2014")
   def sendRequest[RequestMsg, ResponseMsg](request: RequestMsg, callback: Either[Throwable, ResponseMsg] => Unit, maxRetry: Int)
   (implicit is: InputSerializer[RequestMsg, ResponseMsg], os: OutputSerializer[RequestMsg, ResponseMsg]): Unit =
     sendRequest(request, callback, maxRetry, None, None)
-  @deprecated("Deprecated in favor of new sendRequest", "12/17/2014")
+  @deprecated("Use sendRequest(RequestSpecification[RequestMsg], NodeSpec, RetrySpecifications[ResponseMsg])", "12/17/2014")
   def sendRequest[RequestMsg, ResponseMsg](request: RequestMsg, callback: Either[Throwable, ResponseMsg] => Unit, maxRetry: Int, capability: Option[Long])
   (implicit is: InputSerializer[RequestMsg, ResponseMsg], os:OutputSerializer[RequestMsg, ResponseMsg]): Unit = 
     sendRequest(request, callback, maxRetry, capability, None)
-  @deprecated("Deprecated in favor of new sendRequest", "12/17/2014")
+  @deprecated("Use sendRequest(RequestSpecification[RequestMsg], NodeSpec, RetrySpecifications[ResponseMsg])", "12/17/2014")
   def sendRequest[RequestMsg, ResponseMsg](request: RequestMsg, callback: Either[Throwable, ResponseMsg] => Unit, maxRetry: Int, capability: Option[Long], persistentCapability: Option[Long])
                                           (implicit is: InputSerializer[RequestMsg, ResponseMsg], os: OutputSerializer[RequestMsg, ResponseMsg]): Unit = doIfConnected {
     // Reroutes to new sendRequest method.
