@@ -40,10 +40,10 @@ class NodeSpec extends NodeTrait[NodeSpec]
 //********************************************************/
 
 class PartitionedNodeSpec[PartitionedId](val ids: Set[PartitionedId]) extends NodeTrait[PartitionedNodeSpec[_]] {
-  var numberOfReplicas: Option[Int] = None
+  var numberOfReplicas: Int = 0
   var clusterId: Option[Int] = None
 
-  def setNumberOfReplicas(_numberOfReplicas: Option[Int]): PartitionedNodeSpec[_] = {
+  def setNumberOfReplicas(_numberOfReplicas: Int): PartitionedNodeSpec[_] = {
     this.numberOfReplicas = _numberOfReplicas
     this
   }
@@ -70,7 +70,7 @@ object testing {
       val PartitionedTest = new PartitionedNodeSpec(Set(1))
         .setCapability(Some(2))
         .setPersistentCapability(Some(3))
-        .setNumberOfReplicas(Some(4))
+        .setNumberOfReplicas(4)
         .setClusterId(Some(5))
         .build
       println("Partitioned: " + "\n" + "ids: " + PartitionedTest.ids + ", Cap: " + PartitionedTest.capability + ", PersCap: " + PartitionedTest.persistentCapability +

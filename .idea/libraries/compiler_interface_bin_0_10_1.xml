@@ -1,0 +1,9 @@
+<component name="libraryTable">
+  <library name="compiler-interface-bin-0.10.1">
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/project/boot/scala-2.8.1/org.scala-tools.sbt/sbt/0.10.1/compiler-interface-bin_2.9.0.1/compiler-interface-bin-0.10.1.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>

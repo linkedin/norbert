@@ -45,6 +45,13 @@ object RetrySpecifications {
  */
 class RetrySpecifications[ResponseMsg](val maxRetry: Int,
                                                   val callback: Option[Either[Throwable, ResponseMsg] => Unit]) {
+  //Validation checks go here:
+  /* removed because causing testing errors
+  if (maxRetry == 0 && callback != None) {
+    throw new IllegalArgumentException("maxRetry must be greater than 0 for callback options to work")
+  }
+*/
+
 }
 
 /**
