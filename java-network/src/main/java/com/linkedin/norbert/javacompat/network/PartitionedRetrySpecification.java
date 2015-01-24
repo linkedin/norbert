@@ -1,5 +1,5 @@
 package com.linkedin.norbert.javacompat.network;
 
-public interface PartitionedRetrySpecification extends RetrySpecification{
+public interface PartitionedRetrySpecification <ResponseMsg> extends RetrySpecification{
 
 }

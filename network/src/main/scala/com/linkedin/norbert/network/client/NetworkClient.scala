@@ -106,7 +106,7 @@ trait NetworkClient extends BaseNetworkClient {
    * to send the request to
    * @throws ClusterDisconnectedException thrown if the cluster is not connected when the method is called
    */
-  @deprecated
+  @deprecated("Use sendRequest(RequestSpecification[RequestMsg], NodeSpec, RetrySpecifications[ResponseMsg]), 12/17/2014")
   def sendRequest[RequestMsg, ResponseMsg](request: RequestMsg, callback: Either[Throwable, ResponseMsg] => Unit)
   (implicit is: InputSerializer[RequestMsg, ResponseMsg], os: OutputSerializer[RequestMsg, ResponseMsg]): Unit =  {
     val requestSpec = RequestSpecification(request)
@@ -114,7 +114,8 @@ trait NetworkClient extends BaseNetworkClient {
     val retrySpec = RetrySpecifications(0, Some(callback))
     sendRequest(requestSpec, nodeSpec, retrySpec)
   }
-  @deprecated
+
+  @deprecated("Use sendRequest(RequestSpecification[RequestMsg], NodeSpec, RetrySpecifications[ResponseMsg]), 12/17/2014")
   def sendRequest[RequestMsg, ResponseMsg](request: RequestMsg, callback: Either[Throwable, ResponseMsg] => Unit, capability: Option[Long])
   (implicit is: InputSerializer[RequestMsg, ResponseMsg], os: OutputSerializer[RequestMsg, ResponseMsg]): Unit = {
     val requestSpec = RequestSpecification(request)
@@ -122,7 +123,8 @@ trait NetworkClient extends BaseNetworkClient {
     val retrySpec = RetrySpecifications(0, Some(callback))
     sendRequest(requestSpec, nodeSpec, retrySpec)
   }
-  @deprecated
+
+  @deprecated("Use sendRequest(RequestSpecification[RequestMsg], NodeSpec, RetrySpecifications[ResponseMsg]), 12/17/2014")
   def sendRequest[RequestMsg, ResponseMsg](request: RequestMsg, callback: Either[Throwable, ResponseMsg] => Unit, capability: Option[Long], persistentCapability: Option[Long])
   (implicit is: InputSerializer[RequestMsg, ResponseMsg], os: OutputSerializer[RequestMsg, ResponseMsg]): Unit =  doIfConnected {
      val requestSpec = RequestSpecification(request)
@@ -143,7 +145,7 @@ trait NetworkClient extends BaseNetworkClient {
    * to send the request to
    * @throws ClusterDisconnectedException thrown if the cluster is not connected when the method is called
    */
-  @deprecated
+  @deprecated("Use sendRequest(RequestSpecification[RequestMsg], NodeSpec, RetrySpecifications[ResponseMsg]), 12/17/2014")
   def sendRequest[RequestMsg, ResponseMsg](request: RequestMsg)
   (implicit is: InputSerializer[RequestMsg, ResponseMsg], os: OutputSerializer[RequestMsg, ResponseMsg]): Future[ResponseMsg] = {
     val future = new FutureAdapterListener[ResponseMsg]
@@ -153,7 +155,8 @@ trait NetworkClient extends BaseNetworkClient {
     sendRequest(requestSpec, nodeSpec, retrySpec)
     future
   }
-  @deprecated
+
+  @deprecated("Use sendRequest(RequestSpecification[RequestMsg], NodeSpec, RetrySpecifications[ResponseMsg]), 12/17/2014")
   def sendRequest[RequestMsg, ResponseMsg](request: RequestMsg, maxRetry:Int)
   (implicit is: InputSerializer[RequestMsg, ResponseMsg], os: OutputSerializer[RequestMsg, ResponseMsg]): Future[ResponseMsg] = {
     val future = new FutureAdapterListener[ResponseMsg]
@@ -163,7 +166,8 @@ trait NetworkClient extends BaseNetworkClient {
     sendRequest(requestSpec, nodeSpec, retrySpec)
     future // TODO: These used to return Unit, even though they overloaded and called a function returning future. Is that a problem?
   }
-  @deprecated
+
+  @deprecated("Use sendRequest(RequestSpecification[RequestMsg], NodeSpec, RetrySpecifications[ResponseMsg]), 12/17/2014")
   def sendRequest[RequestMsg, ResponseMsg](request: RequestMsg, capability: Option[Long])
   (implicit is: InputSerializer[RequestMsg, ResponseMsg], os: OutputSerializer[RequestMsg, ResponseMsg]): Future[ResponseMsg] = {
     val future = new FutureAdapterListener[ResponseMsg]
@@ -173,7 +177,8 @@ trait NetworkClient extends BaseNetworkClient {
     sendRequest(requestSpec, nodeSpec, retrySpec)
     future
   }
-  @deprecated
+
+  @deprecated("Use sendRequest(RequestSpecification[RequestMsg], NodeSpec, RetrySpecifications[ResponseMsg]), 12/17/2014")
   def sendRequest[RequestMsg, ResponseMsg](request: RequestMsg, capability: Option[Long], persistentCapability: Option[Long])
   (implicit is: InputSerializer[RequestMsg, ResponseMsg], os: OutputSerializer[RequestMsg, ResponseMsg]): Future[ResponseMsg] = {
     val future = new FutureAdapterListener[ResponseMsg]
@@ -183,7 +188,8 @@ trait NetworkClient extends BaseNetworkClient {
     sendRequest(requestSpec, nodeSpec, retrySpec)
     future
   }
-  @deprecated
+
+  @deprecated("Use sendRequest(RequestSpecification[RequestMsg], NodeSpec, RetrySpecifications[ResponseMsg]), 12/17/2014")
   def sendRequest[RequestMsg, ResponseMsg](request: RequestMsg, maxRetry: Int, capability: Option[Long])
   (implicit is: InputSerializer[RequestMsg, ResponseMsg], os: OutputSerializer[RequestMsg, ResponseMsg]): Future[ResponseMsg] = {
     val future = new FutureAdapterListener[ResponseMsg]
@@ -193,7 +199,8 @@ trait NetworkClient extends BaseNetworkClient {
     sendRequest(requestSpec, nodeSpec, retrySpec)
     future
   }
-  @deprecated
+
+  @deprecated("Use sendRequest(RequestSpecification[RequestMsg], NodeSpec, RetrySpecifications[ResponseMsg]), 12/17/2014")
   def sendRequest[RequestMsg, ResponseMsg](request: RequestMsg, maxRetry: Int, capability: Option[Long], persistentCapability: Option[Long])
   (implicit is: InputSerializer[RequestMsg, ResponseMsg], os: OutputSerializer[RequestMsg, ResponseMsg]): Future[ResponseMsg] = {
     val future = new FutureAdapterListener[ResponseMsg]
@@ -218,7 +225,7 @@ trait NetworkClient extends BaseNetworkClient {
    * to send the request to
    * @throws ClusterDisconnectedException thrown if the cluster is not connected when the method is called
    */
-  @deprecated
+  @deprecated("Use sendRequest(RequestSpecification[RequestMsg], NodeSpec, RetrySpecifications[ResponseMsg]), 12/17/2014")
   def sendRequest[RequestMsg, ResponseMsg](request: RequestMsg, callback: Either[Throwable, ResponseMsg] => Unit, maxRetry: Int)
   (implicit is: InputSerializer[RequestMsg, ResponseMsg], os: OutputSerializer[RequestMsg, ResponseMsg]): Unit = {
     val requestSpec = RequestSpecification(request)
@@ -226,7 +233,8 @@ trait NetworkClient extends BaseNetworkClient {
     val retrySpec = RetrySpecifications(maxRetry, Some(callback))
     sendRequest(requestSpec, nodeSpec, retrySpec)
   }
-  @deprecated
+
+  @deprecated("Use sendRequest(RequestSpecification[RequestMsg], NodeSpec, RetrySpecifications[ResponseMsg]), 12/17/2014")
   def sendRequest[RequestMsg, ResponseMsg](request: RequestMsg, callback: Either[Throwable, ResponseMsg] => Unit, maxRetry: Int, capability: Option[Long])
   (implicit is: InputSerializer[RequestMsg, ResponseMsg], os:OutputSerializer[RequestMsg, ResponseMsg]): Unit = {
     val requestSpec = RequestSpecification(request)
@@ -234,7 +242,8 @@ trait NetworkClient extends BaseNetworkClient {
     val retrySpec = RetrySpecifications(maxRetry, Some(callback))
     sendRequest(requestSpec, nodeSpec, retrySpec)
   }
-  @deprecated
+
+  @deprecated("Use sendRequest(RequestSpecification[RequestMsg], NodeSpec, RetrySpecifications[ResponseMsg]), 12/17/2014")
   def sendRequest[RequestMsg, ResponseMsg](request: RequestMsg, callback: Either[Throwable, ResponseMsg] => Unit, maxRetry: Int, capability: Option[Long], persistentCapability: Option[Long])
                                           (implicit is: InputSerializer[RequestMsg, ResponseMsg], os: OutputSerializer[RequestMsg, ResponseMsg]): Unit = doIfConnected {
     // TODO: This still reroutes to the old sendRequest method so that we can test with it
@@ -266,6 +275,7 @@ trait NetworkClient extends BaseNetworkClient {
    * instead of adding new overloaded sendRequest methods, changes should be made to the
    * wrapper objects whenever possible.
    */
+
   def sendRequest[RequestMsg, ResponseMsg](requestSpec: RequestSpecification[RequestMsg], nodeSpec: NodeSpec, retrySpec: RetrySpecifications[ResponseMsg])
   (implicit is: InputSerializer[RequestMsg, ResponseMsg], os:OutputSerializer[RequestMsg, ResponseMsg]): Unit = doIfConnected {
     if (requestSpec.message == null) throw new NullPointerException
@@ -278,7 +288,6 @@ trait NetworkClient extends BaseNetworkClient {
         val node: Option[Node] = lb.nextNode(nodeSpec.capability, nodeSpec.persistentCapability)
         node.getOrElse(throw new NoNodesAvailableException("No node available that can handle the request: %s".format(requestSpec.message)))
       })
-
     doSendRequest(Request(requestSpec.message, node, is, os, if (retrySpec.maxRetry == 0) Some(callback) else Some(retryCallback[RequestMsg, ResponseMsg](callback, retrySpec.maxRetry, nodeSpec.capability, nodeSpec.persistentCapability) _)))
   }
 
