@@ -18,7 +18,6 @@ package network
 package client
 
 import java.util.concurrent.Future
-import javax.swing.text.html.Option
 import loadbalancer.{LoadBalancerFactory, LoadBalancer, LoadBalancerFactoryComponent}
 import server.{MessageExecutorComponent, NetworkServer}
 import cluster._
@@ -112,7 +111,7 @@ trait NetworkClient extends BaseNetworkClient {
   (implicit is: InputSerializer[RequestMsg, ResponseMsg], os: OutputSerializer[RequestMsg, ResponseMsg]): Unit =  {
     val requestSpec = RequestSpecification(request)
     val nodeSpec = new NodeSpec().build
-    val retrySpec = RetrySpecifications(Some(callback))
+    val retrySpec = RetrySpecifications(0, Some(callback))
     sendRequest(requestSpec, nodeSpec, retrySpec)
   }
   @deprecated
@@ -120,7 +119,7 @@ trait NetworkClient extends BaseNetworkClient {
   (implicit is: InputSerializer[RequestMsg, ResponseMsg], os: OutputSerializer[RequestMsg, ResponseMsg]): Unit = {
     val requestSpec = RequestSpecification(request)
     val nodeSpec = new NodeSpec().setCapability(capability).build
-    val retrySpec = RetrySpecifications(Some(callback))
+    val retrySpec = RetrySpecifications(0, Some(callback))
     sendRequest(requestSpec, nodeSpec, retrySpec)
   }
   @deprecated
@@ -128,7 +127,7 @@ trait NetworkClient extends BaseNetworkClient {
   (implicit is: InputSerializer[RequestMsg, ResponseMsg], os: OutputSerializer[RequestMsg, ResponseMsg]): Unit =  doIfConnected {
      val requestSpec = RequestSpecification(request)
      val nodeSpec = new NodeSpec().setCapability(capability).setPersistentCapability(persistentCapability).build
-     val retrySpec = RetrySpecifications(Some(callback))
+     val retrySpec = RetrySpecifications(0, Some(callback))
      sendRequest(requestSpec, nodeSpec, retrySpec)
   }
   
@@ -149,8 +148,8 @@ trait NetworkClient extends BaseNetworkClient {
   (implicit is: InputSerializer[RequestMsg, ResponseMsg], os: OutputSerializer[RequestMsg, ResponseMsg]): Future[ResponseMsg] = {
     val future = new FutureAdapterListener[ResponseMsg]
     val requestSpec = RequestSpecification(request)
-    val nodeSpec = new NodeSpec().setCapability().build
-    val retrySpec = RetrySpecifications(Some(future))
+    val nodeSpec = new NodeSpec().build
+    val retrySpec = RetrySpecifications(0, Some(future))
     sendRequest(requestSpec, nodeSpec, retrySpec)
     future
   }
@@ -170,7 +169,7 @@ trait NetworkClient extends BaseNetworkClient {
     val future = new FutureAdapterListener[ResponseMsg]
     val requestSpec = RequestSpecification(request)
     val nodeSpec = new NodeSpec().setCapability(capability).build
-    val retrySpec = RetrySpecifications(Some(future))
+    val retrySpec = RetrySpecifications(0, Some(future))
     sendRequest(requestSpec, nodeSpec, retrySpec)
     future
   }
@@ -180,7 +179,7 @@ trait NetworkClient extends BaseNetworkClient {
     val future = new FutureAdapterListener[ResponseMsg]
     val requestSpec = RequestSpecification(request)
     val nodeSpec = new NodeSpec().setCapability(capability).build
-    val retrySpec = RetrySpecifications(Some(future))
+    val retrySpec = RetrySpecifications(0, Some(future))
     sendRequest(requestSpec, nodeSpec, retrySpec)
     future
   }
@@ -221,7 +220,7 @@ trait NetworkClient extends BaseNetworkClient {
    */
   @deprecated
   def sendRequest[RequestMsg, ResponseMsg](request: RequestMsg, callback: Either[Throwable, ResponseMsg] => Unit, maxRetry: Int)
-  (implicit is: InputSerializer[RequestMsg, ResponseMsg], os: OutputSerializer[RequestMsg, ResponseMsg]) = {
+  (implicit is: InputSerializer[RequestMsg, ResponseMsg], os: OutputSerializer[RequestMsg, ResponseMsg]): Unit = {
     val requestSpec = RequestSpecification(request)
     val nodeSpec = new NodeSpec().build
     val retrySpec = RetrySpecifications(maxRetry, Some(callback))
@@ -229,7 +228,7 @@ trait NetworkClient extends BaseNetworkClient {
   }
   @deprecated
   def sendRequest[RequestMsg, ResponseMsg](request: RequestMsg, callback: Either[Throwable, ResponseMsg] => Unit, maxRetry: Int, capability: Option[Long])
-  (implicit is: InputSerializer[RequestMsg, ResponseMsg], os:OutputSerializer[RequestMsg, ResponseMsg]) = {
+  (implicit is: InputSerializer[RequestMsg, ResponseMsg], os:OutputSerializer[RequestMsg, ResponseMsg]): Unit = {
     val requestSpec = RequestSpecification(request)
     val nodeSpec = new NodeSpec().setCapability(capability).build
     val retrySpec = RetrySpecifications(maxRetry, Some(callback))

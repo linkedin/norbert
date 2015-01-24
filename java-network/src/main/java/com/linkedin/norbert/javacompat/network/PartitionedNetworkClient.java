@@ -15,15 +15,14 @@
  */
 package com.linkedin.norbert.javacompat.network;
 
-import java.util.Set;
-import java.util.concurrent.Future;
-
 import com.linkedin.norbert.cluster.ClusterDisconnectedException;
 import com.linkedin.norbert.cluster.InvalidClusterException;
-import com.linkedin.norbert.javacompat.cluster.Node;
 import com.linkedin.norbert.network.NoNodesAvailableException;
 import com.linkedin.norbert.network.ResponseIterator;
 import com.linkedin.norbert.network.Serializer;
+
+import java.util.Set;
+import java.util.concurrent.Future;
 
 public interface PartitionedNetworkClient<PartitionedId> extends BaseNetworkClient {
 
@@ -31,7 +30,7 @@ public interface PartitionedNetworkClient<PartitionedId> extends BaseNetworkClie
  * TODO: comment the new function
  * TODO: mark the old functions as deprecated (do we do that here or at the implementation?)
  */
-<RequestMsg, ResponseMsg> Future<ResponseMsg> sendRequest(PartitionedRequestSpecification requestSpec, PartitionedNodeSpecification nodeSpec, PartitionedRetrySpecification retrySpec, Serializer<RequestMsg, ResponseMsg> serializer) throws InvalidClusterException, NoNodesAvailableException, ClusterDisconnectedException;
+//<RequestMsg, ResponseMsg> Future<ResponseMsg> sendRequest(PartitionedRequestSpecification requestSpec, PartitionedNodeSpecification nodeSpec, PartitionedRetrySpecification retrySpec, Serializer<RequestMsg, ResponseMsg> serializer) throws InvalidClusterException, NoNodesAvailableException, ClusterDisconnectedException;
 
 
   /**
