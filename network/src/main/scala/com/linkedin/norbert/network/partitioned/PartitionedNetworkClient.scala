@@ -505,6 +505,7 @@ trait PartitionedNetworkClient[PartitionedId] extends BaseNetworkClient {
     responseAggregator(sendRequest[RequestMsg, ResponseMsg](ids, numberOfReplicas, requestBuilder, capability, persistentCapability))
   }
 
+  // TODO: Comment this as the new API.
   def sendRequest[RequestMsg, ResponseMsg](requestSpec: PartitionedRequestSpecification[RequestMsg, PartitionedId], nodeSpec: PartitionedNodeSpec[PartitionedId], retrySpec: PartitionedRetrySpecifications[ResponseMsg])
                                           (implicit is: InputSerializer[RequestMsg, ResponseMsg], os: OutputSerializer[RequestMsg, ResponseMsg]): ResponseIterator[ResponseMsg] =
   {
