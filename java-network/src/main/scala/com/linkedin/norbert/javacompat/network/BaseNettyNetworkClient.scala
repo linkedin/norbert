@@ -106,6 +106,11 @@ class NettyNetworkClient(config: NetworkClientConfig, loadBalancerFactory: LoadB
   def sendRequest[RequestMsg, ResponseMsg](requestMsg: RequestMsg, serializer: Serializer[RequestMsg, ResponseMsg], maxRetry: Int, capability: Long, persistentCapability: Long) =
     underlying.sendRequest(requestMsg, maxRetry, Some(capability), Some(persistentCapability))(serializer, serializer)
 
+ // def sendRequest[RequestMsg, ResponseMsg](requestSpec: RequestSpecification[RequestMsg], nodeSpec: NodeSpec, retrySpec: RetrySpecifications[ResponseMsg], serializer:Serializer[RequestMsg, ResponseMsg]) =
+   // underlying.sendRequest(requestSpec, nodeSpec, retrySpec)(serializer, serializer)
+
+  def sendRequest[RequestMsg, ResponseMsg](requestSpec: com.linkedin.norbert.network.RequestSpecification[RequestMsg],nodeSpec: com.linkedin.norbert.network.client.NodeSpec,retrySpec: com.linkedin.norbert.RetrySpecifications[ResponseMsg], serializer:Serializer[RequestMsg, ResponseMsg]) =
+    underlying.sendRequest(requestSpec, nodeSpec, retrySpec)(serializer, serializer)
 }
 
 class NettyPartitionedNetworkClient[PartitionedId](config: NetworkClientConfig, loadBalancerFactory: PartitionedLoadBalancerFactory[PartitionedId],
@@ -142,6 +147,12 @@ class NettyPartitionedNetworkClient[PartitionedId](config: NetworkClientConfig, 
                            (responseIterator: ResponseIterator[ResponseMsg]) => scatterGather.gatherResponses(responseIterator))(serializer, serializer)
   }
 
+ // def sendRequest[RequestMsg, ResponseMsg](requestSpec: com.linkedin.norbert.network.RequestSpecification[RequestMsg],nodeSpec: com.linkedin.norbert.network.client.NodeSpec,retrySpec: com.linkedin.norbert.RetrySpecifications[ResponseMsg], serializer:Serializer[RequestMsg, ResponseMsg]) =
+  //  underlying.sendRequest(requestSpec, nodeSpec, retrySpec)(serializer, serializer)
+  //(requestSpec: PartitionedRequestSpecification[RequestMsg, PartitionedId], nodeSpec: PartitionedNodeSpec[PartitionedId], retrySpec: PartitionedRetrySpecifications[ResponseMsg]
+  //com.linkedin.norbert.network.PartitionedRequestSpecification[RequestMsg(in method sendRequest),PartitionedId],nodeSpec: com.linkedin.norbert.network.client.PartitionedNodeSpec[PartitionedId],retrySpec: com.linkedin.norbert.PartitionedRetrySpecifications[ResponseMsg
+  def sendRequest[RequestMsg, ResponseMsg](requestSpec: com.linkedin.norbert.network.PartitionedRequestSpecification[RequestMsg, PartitionedId], nodeSpec: com.linkedin.norbert.network.client.PartitionedNodeSpec[PartitionedId], retrySpec:com.linkedin.norbert.PartitionedRetrySpecifications[ResponseMsg], serializer:Serializer[RequestMsg, ResponseMsg]) =
+    underlying.sendRequest(requestSpec, nodeSpec, retrySpec)(serializer, serializer)
 
   def sendRequestToPartitions[RequestMsg, ResponseMsg](id: PartitionedId, partitions: java.util.Set[java.lang.Integer], requestBuilder: RequestBuilder[Integer, RequestMsg], serializer: Serializer[RequestMsg, ResponseMsg]) = {
     val sPartitions = partitions.foldLeft(Set.empty[Int])(_ + _.intValue())

@@ -2,6 +2,7 @@ package com.linkedin.norbert
 
 import com.linkedin.norbert.network.client.NetworkClientConfig
 import com.linkedin.norbert.network.common.RetryStrategy
+
 /**
  * This is the companion object for the RoutingConfigs class.
  */
