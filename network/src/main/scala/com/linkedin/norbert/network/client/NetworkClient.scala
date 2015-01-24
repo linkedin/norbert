@@ -178,7 +178,7 @@ trait NetworkClient extends BaseNetworkClient {
   (implicit is: InputSerializer[RequestMsg, ResponseMsg], os: OutputSerializer[RequestMsg, ResponseMsg]): Future[ResponseMsg] = {
     val future = new FutureAdapterListener[ResponseMsg]
     val requestSpec = RequestSpecification(request)
-    val nodeSpec = new NodeSpec().setCapability(capability).build
+    val nodeSpec = new NodeSpec().setCapability(capability).setPersistentCapability(persistentCapability).build
     val retrySpec = RetrySpecifications(0, Some(future))
     sendRequest(requestSpec, nodeSpec, retrySpec)
     future

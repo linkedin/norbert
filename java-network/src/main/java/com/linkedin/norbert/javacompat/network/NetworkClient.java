@@ -15,12 +15,12 @@
  */
 package com.linkedin.norbert.javacompat.network;
 
-import java.util.concurrent.Future;
-
 import com.linkedin.norbert.cluster.ClusterDisconnectedException;
 import com.linkedin.norbert.cluster.InvalidClusterException;
 import com.linkedin.norbert.network.NoNodesAvailableException;
 import com.linkedin.norbert.network.Serializer;
+
+import java.util.concurrent.Future;
 
 public interface NetworkClient extends BaseNetworkClient {
 
@@ -28,8 +28,8 @@ public interface NetworkClient extends BaseNetworkClient {
    * TODO: comment new function
    * TODO: mark the functions as deprecated (do we do that here or at the implementation?)
    */
-
-  <RequestMsg, ResponseMsg> Future<ResponseMsg> sendRequest(RequestSpecification requestSpec, NodeSpecification nodeSpec, RetrySpecification retrySpec, Serializer<RequestMsg, ResponseMsg> serializer) throws InvalidClusterException, NoNodesAvailableException, ClusterDisconnectedException;
+    // TODO: Uncomment below when implemented.
+//  <RequestMsg, ResponseMsg> Future<ResponseMsg> sendRequest(RequestSpecification requestSpec, NodeSpecification nodeSpec, RetrySpecification retrySpec, Serializer<RequestMsg, ResponseMsg> serializer) throws InvalidClusterException, NoNodesAvailableException, ClusterDisconnectedException;
 
     /**
    * Sends a request to a node in the cluster. The <code>NetworkClient</code> defers to the current
