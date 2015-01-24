@@ -216,7 +216,6 @@ trait NetworkClient extends BaseNetworkClient {
         val node: Option[Node] = lb.nextNode(nodeSpec.capability, nodeSpec.persistentCapability)
         node.getOrElse(throw new NoNodesAvailableException("No node available that can handle the request: %s".format(requestSpec.message)))
       })
-
     doSendRequest(Request(requestSpec.message, node, is, os, if (retrySpec.maxRetry == 0) Some(callback) else Some(retryCallback[RequestMsg, ResponseMsg](callback, retrySpec.maxRetry, nodeSpec.capability, nodeSpec.persistentCapability) _)))
   }
 
