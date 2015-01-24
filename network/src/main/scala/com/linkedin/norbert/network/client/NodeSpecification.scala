@@ -43,13 +43,13 @@ class PartitionedNodeSpec[PartitionedId](val ids: Set[PartitionedId]) extends No
   var numberOfReplicas: Int = 0
   var clusterId: Option[Int] = None
 
-  def setNumberOfReplicas(_numberOfReplicas: Int): PartitionedNodeSpec[PartitionedId] = {
-    numberOfReplicas = _numberOfReplicas
+  def setNumberOfReplicas(_numberOfReplicas: Int): PartitionedNodeSpec[_] = {
+    this.numberOfReplicas = _numberOfReplicas
     this
   }
 
-  def setClusterId(_clusterId: Option[Int]): PartitionedNodeSpec[PartitionedId] = {
-    clusterId = _clusterId
+  def setClusterId(_clusterId: Option[Int]): PartitionedNodeSpec[_] = {
+    this.clusterId = _clusterId
     this
   }
 }
