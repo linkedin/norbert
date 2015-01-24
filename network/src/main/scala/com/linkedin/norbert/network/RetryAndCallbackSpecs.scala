@@ -6,7 +6,7 @@ import com.linkedin.norbert.cluster.ClusterDisconnectedException
 import com.linkedin.norbert.network._
 import com.linkedin.norbert.network.client.NetworkClientConfig
 import com.linkedin.norbert.network.common.RetryStrategy
-import com.linkedin.norbert.network.partitioned.RoutingConfigs
+//import com.linkedin.norbert.network.partitioned.RoutingConfigs
 
 /**
  * This is the companion object for the RoutingConfigs class.
