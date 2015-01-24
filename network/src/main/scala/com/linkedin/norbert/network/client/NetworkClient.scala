@@ -24,6 +24,7 @@ import cluster._
 import network.common._
 import netty.NettyNetworkClient
 
+
 object NetworkClientConfig {
   var defaultIteratorTimeout = NetworkDefaults.DEFAULT_ITERATOR_TIMEOUT;
 }
@@ -84,7 +85,6 @@ object NetworkClient {
 }
 
 
-//TODO: add new function definition, and its implementation
 //TODO: mark all the old functions deprecated and reroute them to the new function definition
 /**
  * The network client interface for interacting with nodes in a cluster.
@@ -107,14 +107,15 @@ trait NetworkClient extends BaseNetworkClient {
    * to send the request to
    * @throws ClusterDisconnectedException thrown if the cluster is not connected when the method is called
    */
+  @deprecated
   def sendRequest[RequestMsg, ResponseMsg](request: RequestMsg, callback: Either[Throwable, ResponseMsg] => Unit)
   (implicit is: InputSerializer[RequestMsg, ResponseMsg], os: OutputSerializer[RequestMsg, ResponseMsg]): Unit =  
     sendRequest(request, callback, None, None)
-
+  @deprecated
   def sendRequest[RequestMsg, ResponseMsg](request: RequestMsg, callback: Either[Throwable, ResponseMsg] => Unit, capability: Option[Long])
   (implicit is: InputSerializer[RequestMsg, ResponseMsg], os: OutputSerializer[RequestMsg, ResponseMsg]): Unit = 
      sendRequest(request, callback, capability, None)
-
+  @deprecated
   def sendRequest[RequestMsg, ResponseMsg](request: RequestMsg, callback: Either[Throwable, ResponseMsg] => Unit, capability: Option[Long], persistentCapability: Option[Long])
   (implicit is: InputSerializer[RequestMsg, ResponseMsg], os: OutputSerializer[RequestMsg, ResponseMsg]): Unit =  doIfConnected {
      sendRequest(request, callback, 0, capability, persistentCapability)
@@ -132,34 +133,34 @@ trait NetworkClient extends BaseNetworkClient {
    * to send the request to
    * @throws ClusterDisconnectedException thrown if the cluster is not connected when the method is called
    */
-
+  @deprecated
   def sendRequest[RequestMsg, ResponseMsg](request: RequestMsg)
   (implicit is: InputSerializer[RequestMsg, ResponseMsg], os: OutputSerializer[RequestMsg, ResponseMsg]): Future[ResponseMsg] =
     sendRequest(request, None, None)
-
+  @deprecated
   def sendRequest[RequestMsg, ResponseMsg](request: RequestMsg, maxRetry:Int)
   (implicit is: InputSerializer[RequestMsg, ResponseMsg], os: OutputSerializer[RequestMsg, ResponseMsg]): Future[ResponseMsg] =
     sendRequest(request, maxRetry, None, None)
-
+  @deprecated
   def sendRequest[RequestMsg, ResponseMsg](request: RequestMsg, capability: Option[Long])
   (implicit is: InputSerializer[RequestMsg, ResponseMsg], os: OutputSerializer[RequestMsg, ResponseMsg]): Future[ResponseMsg] = {
     sendRequest(request, capability, None)
   }
-  
+  @deprecated
   def sendRequest[RequestMsg, ResponseMsg](request: RequestMsg, capability: Option[Long], persistentCapability: Option[Long])
   (implicit is: InputSerializer[RequestMsg, ResponseMsg], os: OutputSerializer[RequestMsg, ResponseMsg]): Future[ResponseMsg] = {
     val future = new FutureAdapterListener[ResponseMsg]
     sendRequest(request, future, capability, persistentCapability)
     future
   }
-
+  @deprecated
   def sendRequest[RequestMsg, ResponseMsg](request: RequestMsg, maxRetry: Int, capability: Option[Long])
   (implicit is: InputSerializer[RequestMsg, ResponseMsg], os: OutputSerializer[RequestMsg, ResponseMsg]): Future[ResponseMsg] = {
     val future = new FutureAdapterListener[ResponseMsg]
     sendRequest(request, future, maxRetry, capability, None)
     future
   }
-
+  @deprecated
   def sendRequest[RequestMsg, ResponseMsg](request: RequestMsg, maxRetry: Int, capability: Option[Long], persistentCapability: Option[Long])
   (implicit is: InputSerializer[RequestMsg, ResponseMsg], os: OutputSerializer[RequestMsg, ResponseMsg]): Future[ResponseMsg] = {
     val future = new FutureAdapterListener[ResponseMsg]
@@ -181,40 +182,41 @@ trait NetworkClient extends BaseNetworkClient {
    * to send the request to
    * @throws ClusterDisconnectedException thrown if the cluster is not connected when the method is called
    */
+  @deprecated
   def sendRequest[RequestMsg, ResponseMsg](request: RequestMsg, callback: Either[Throwable, ResponseMsg] => Unit, maxRetry: Int)
   (implicit is: InputSerializer[RequestMsg, ResponseMsg], os: OutputSerializer[RequestMsg, ResponseMsg]): Unit =
     sendRequest(request, callback, maxRetry, None, None)
-
+  @deprecated
   def sendRequest[RequestMsg, ResponseMsg](request: RequestMsg, callback: Either[Throwable, ResponseMsg] => Unit, maxRetry: Int, capability: Option[Long])
   (implicit is: InputSerializer[RequestMsg, ResponseMsg], os:OutputSerializer[RequestMsg, ResponseMsg]): Unit = 
     sendRequest(request, callback, maxRetry, capability, None)
-
+  @deprecated
   def sendRequest[RequestMsg, ResponseMsg](request: RequestMsg, callback: Either[Throwable, ResponseMsg] => Unit, maxRetry: Int, capability: Option[Long], persistentCapability: Option[Long])
                                           (implicit is: InputSerializer[RequestMsg, ResponseMsg], os: OutputSerializer[RequestMsg, ResponseMsg]): Unit = doIfConnected {
-    if (request == null) throw new NullPointerException
+    // Reroutes to new sendRequest method.
+    val requestSpec = RequestSpecification(request)
+    val nodeSpec = new NodeSpec().setCapability(capability).setPersistentCapability(persistentCapability).build
+    val retrySpec = RetrySpecifications(maxRetry, Some(callback))
+    sendRequest(requestSpec, nodeSpec, retrySpec)
+  }
+
+  /**
+   * TODO: comment new function
+   */
+  def sendRequest[RequestMsg, ResponseMsg](requestSpec: RequestSpecification[RequestMsg], nodeSpec: NodeSpec, retrySpec: RetrySpecifications[ResponseMsg])
+  (implicit is: InputSerializer[RequestMsg, ResponseMsg], os:OutputSerializer[RequestMsg, ResponseMsg]): Unit = doIfConnected {
+    if (requestSpec.message == null) throw new NullPointerException
+    val callback = retrySpec.callback.getOrElse(throw new Exception("No callback and no default callback"));
 
     val loadBalancerReady = loadBalancer.getOrElse(throw new ClusterDisconnectedException("Client has no node information"))
 
     val node = loadBalancerReady.fold(ex => throw ex,
       lb => {
-        val node: Option[Node] = lb.nextNode(capability, persistentCapability)
-        node.getOrElse(throw new NoNodesAvailableException("No node available that can handle the request: %s".format(request)))
+        val node: Option[Node] = lb.nextNode(nodeSpec.capability, nodeSpec.persistentCapability)
+        node.getOrElse(throw new NoNodesAvailableException("No node available that can handle the request: %s".format(requestSpec.message)))
       })
-
-    doSendRequest(Request(request, node, is, os, if (maxRetry == 0) Some(callback) else Some(retryCallback[RequestMsg, ResponseMsg](callback, maxRetry, capability, persistentCapability)_)))
+    doSendRequest(Request(requestSpec.message, node, is, os, if (retrySpec.maxRetry == 0) Some(callback) else Some(retryCallback[RequestMsg, ResponseMsg](callback, retrySpec.maxRetry, nodeSpec.capability, nodeSpec.persistentCapability) _)))
   }
-
-  /**
-   * TODO: comment new function
-   * TODO: mark the functions as deprecated (do we do that here or at the implementation?)
-   */
-  //TODO: implement this
-//  def sendRequest(requestSpec: RequestSpecification, nodeSpec: NodeSpecification, retrySpec: RetrySpecification)
-//  (implicit is: InputSerializer[RequestMsg, ResponseMsg], os:OutputSerializer[RequestMsg, ResponseMsg]): Future[ResponseMsg] = {
-//    val future = new FutureAdapterListener[ResponseMsg]
-//    //do some stuff
-//    future
-//  }
 
 
   /**

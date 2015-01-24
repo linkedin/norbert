@@ -1,13 +1,7 @@
 package com.linkedin.norbert
 
-import _root_.com.linkedin.norbert.network.client.NetworkClientConfig
-import _root_.com.linkedin.norbert.network.common.{FutureAdapterListener, RetryStrategy}
-import com.linkedin.norbert.cluster.ClusterDisconnectedException
-import com.linkedin.norbert.network._
 import com.linkedin.norbert.network.client.NetworkClientConfig
 import com.linkedin.norbert.network.common.RetryStrategy
-import com.linkedin.norbert.network.partitioned.RoutingConfigs
-
 /**
  * This is the companion object for the RoutingConfigs class.
  */
@@ -41,7 +35,7 @@ object RetrySpecifications {
 
 /**
  * This class encapsulates the retry specifications for a request. This class is the non-partitioned version
- * which only contains two parameters. The class contains a default constructor and a check for valid inputs.
+ * which only contains two parameters. The class contains just a default constructor.
  *
  * @param maxRetry This is the maximum number of retry attempts for the request. If not otherwise specified, the value will be 0.
  * @param callback This is a method to be called with either a Throwable in the case of an error along
@@ -57,6 +51,7 @@ class RetrySpecifications[ResponseMsg](val maxRetry: Int,
     throw new IllegalArgumentException("maxRetry must be greater than 0 for callback options to work")
   }
 */
+
 }
 
 /**
