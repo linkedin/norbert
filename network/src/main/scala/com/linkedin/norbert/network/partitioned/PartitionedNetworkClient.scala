@@ -60,8 +60,7 @@ object PartitionedNetworkClient {
  * The network client interface for interacting with nodes in a partitioned cluster.
  */
 
-//TODO: add new function definition, and its implementation
-//TODO: mark all the old functions deprecated and reroute them to the new function definition
+//TODO: reroute all functions to the new function definition, test
 
 trait PartitionedNetworkClient[PartitionedId] extends BaseNetworkClient {
 
@@ -325,6 +324,7 @@ trait PartitionedNetworkClient[PartitionedId] extends BaseNetworkClient {
    * to send the request to
    * @throws ClusterDisconnectedException thrown if the <code>PartitionedNetworkClient</code> is not connected to the cluster
    */
+  // this is not an hmc clinic todo
   // TODO: investigate interplay between default parameter and implicits
   @deprecated
   def sendRequest[RequestMsg, ResponseMsg](ids: Set[PartitionedId], numberOfReplicas: Int, requestBuilder: (Node, Set[PartitionedId]) => RequestMsg, maxRetry: Int)
@@ -363,7 +363,6 @@ trait PartitionedNetworkClient[PartitionedId] extends BaseNetworkClient {
   {
     val requestSpec = PartitionedRequestSpecification[RequestMsg, PartitionedId](rb = Some(requestBuilder));
     val nodeSpec = new PartitionedNodeSpec[PartitionedId](ids).setCapability(capability).setPersistentCapability(persistentCapability).setClusterId(clusterId).setNumberOfReplicas(numberOfReplicas).build;
-    //val nodeSpec = new PartitionedNodeSpec[PartitionedId](ids).setCapability(capability).setPersistentCapability(persistentCapability).build;
     val retrySpec = PartitionedRetrySpecifications[ResponseMsg](maxRetry, retryStrategy = retryStrategy);
     sendRequest(requestSpec, nodeSpec, retrySpec)
 
@@ -505,7 +504,6 @@ trait PartitionedNetworkClient[PartitionedId] extends BaseNetworkClient {
     responseAggregator(sendRequest[RequestMsg, ResponseMsg](ids, numberOfReplicas, requestBuilder, capability, persistentCapability))
   }
 
-  //TODO: test this implementation, also get it to stop being gray!
   def sendRequest[RequestMsg, ResponseMsg](requestSpec: PartitionedRequestSpecification[RequestMsg, PartitionedId], nodeSpec: PartitionedNodeSpec[PartitionedId], retrySpec: PartitionedRetrySpecifications[ResponseMsg])
                                           (implicit is: InputSerializer[RequestMsg, ResponseMsg], os: OutputSerializer[RequestMsg, ResponseMsg]): ResponseIterator[ResponseMsg] =
   {
