@@ -362,8 +362,7 @@ trait PartitionedNetworkClient[PartitionedId] extends BaseNetworkClient {
         os: OutputSerializer[RequestMsg, ResponseMsg]): ResponseIterator[ResponseMsg] = doIfConnected
   {
     val requestSpec = PartitionedRequestSpecification[RequestMsg, PartitionedId](rb = Some(requestBuilder));
-    //val nodeSpec = new PartitionedNodeSpec[PartitionedId](ids).setCapability(capability).setPersistentCapability(persistentCapability).setClusterId(clusterId).setNumberOfReplicas(numberOfReplicas).build;
-    val nodeSpec = new PartitionedNodeSpec[PartitionedId](ids).setCapability(capability).setPersistentCapability(persistentCapability).build;
+    val nodeSpec = new PartitionedNodeSpec[PartitionedId](ids).setCapability(capability).setPersistentCapability(persistentCapability).setClusterId(clusterId).setNumberOfReplicas(numberOfReplicas).build;
     val retrySpec = PartitionedRetrySpecifications[ResponseMsg](maxRetry, retryStrategy = retryStrategy);
     sendRequest(requestSpec, nodeSpec, retrySpec)
 
