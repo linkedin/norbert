@@ -215,7 +215,6 @@ trait PartitionedNetworkClient[PartitionedId] extends BaseNetworkClient {
     sendRequest(requestSpec, nodeSpec, retrySpec)
     future
   }
-//    sendRequest(id, request, None, None) TODO: Remove
 
   @deprecated
   def sendRequest[RequestMsg, ResponseMsg](id: PartitionedId, request: RequestMsg, capability: Option[Long])
@@ -229,7 +228,6 @@ trait PartitionedNetworkClient[PartitionedId] extends BaseNetworkClient {
     sendRequest(requestSpec, nodeSpec, retrySpec)
     future
   }
-//    sendRequest(id, request, capability, None) TODO: Remove
 
   @deprecated
   def sendRequest[RequestMsg, ResponseMsg](id: PartitionedId, request: RequestMsg, capability: Option[Long], persistentCapability: Option[Long])
@@ -258,16 +256,25 @@ trait PartitionedNetworkClient[PartitionedId] extends BaseNetworkClient {
    * to send the request to
    * @throws ClusterDisconnectedException thrown if the <code>PartitionedNetworkClient</code> is not connected to the cluster
    */
-  // TODO: I wasn't sure what to do with these that require we return a ResponseIterator.
   @deprecated
   def sendRequest[RequestMsg, ResponseMsg](ids: Set[PartitionedId], request: RequestMsg)
   (implicit is: InputSerializer[RequestMsg, ResponseMsg], os: OutputSerializer[RequestMsg, ResponseMsg]): ResponseIterator[ResponseMsg] =
-    sendRequest(ids, request, None, None)
+  {
+    val requestSpec = PartitionedRequestSpecification[RequestMsg, PartitionedId](Some(request));
+    val nodeSpec = new PartitionedNodeSpec[PartitionedId](ids).build;
+    val retrySpec = PartitionedRetrySpecifications[ResponseMsg]();
+    sendRequest(requestSpec, nodeSpec, retrySpec)
+  }
 
   @deprecated
   def sendRequest[RequestMsg, ResponseMsg](ids: Set[PartitionedId], request: RequestMsg, capability: Option[Long])
   (implicit is: InputSerializer[RequestMsg, ResponseMsg], os: OutputSerializer[RequestMsg, ResponseMsg]): ResponseIterator[ResponseMsg] =
-    sendRequest(ids, request, capability, None)
+  {
+    val requestSpec = PartitionedRequestSpecification[RequestMsg, PartitionedId](Some(request));
+    val nodeSpec = new PartitionedNodeSpec[PartitionedId](ids).setCapability(capability).build;
+    val retrySpec = PartitionedRetrySpecifications[ResponseMsg]();
+    sendRequest(requestSpec, nodeSpec, retrySpec)
+  }
 
   @deprecated
   def sendRequest[RequestMsg, ResponseMsg](ids: Set[PartitionedId], request: RequestMsg, capability: Option[Long], persistentCapability: Option[Long])
@@ -278,7 +285,6 @@ trait PartitionedNetworkClient[PartitionedId] extends BaseNetworkClient {
     val retrySpec = PartitionedRetrySpecifications[ResponseMsg]();
     sendRequest(requestSpec, nodeSpec, retrySpec)
   }
-//    sendRequest(ids, (node: Node, ids: Set[PartitionedId]) => request, capability, persistentCapability)(is, os)
 
   /**
    * Sends a <code>Message</code> to the specified <code>PartitionedId</code>s. The <code>PartitionedNetworkClient</code>
@@ -305,7 +311,6 @@ trait PartitionedNetworkClient[PartitionedId] extends BaseNetworkClient {
     val retrySpec = PartitionedRetrySpecifications[ResponseMsg](retryStrategy = retryStrategy);
     sendRequest(requestSpec, nodeSpec, retrySpec)
   }
-//    sendRequest(ids, requestBuilder, None, None) TODO:Delete
 
   @deprecated
   def sendRequest[RequestMsg, ResponseMsg](ids: Set[PartitionedId], numberOfReplicas: Int, requestBuilder: (Node, Set[PartitionedId]) => RequestMsg)
@@ -316,7 +321,6 @@ trait PartitionedNetworkClient[PartitionedId] extends BaseNetworkClient {
     val retrySpec = PartitionedRetrySpecifications[ResponseMsg](retryStrategy = retryStrategy);
     sendRequest(requestSpec, nodeSpec, retrySpec)
   }
-//    sendRequest(ids, numberOfReplicas, requestBuilder, None, None) TODO:Delete
 
   @deprecated
   def sendRequest[RequestMsg, ResponseMsg](ids: Set[PartitionedId], numberOfReplicas: Int, requestBuilder: (Node, Set[PartitionedId]) => RequestMsg, capability: Option[Long])
@@ -327,7 +331,6 @@ trait PartitionedNetworkClient[PartitionedId] extends BaseNetworkClient {
     val retrySpec = PartitionedRetrySpecifications[ResponseMsg](retryStrategy = retryStrategy);
     sendRequest(requestSpec, nodeSpec, retrySpec)
   }
-//    sendRequest(ids, numberOfReplicas, requestBuilder, capability, None) TODO:Delete
 
   @deprecated
   def sendRequest[RequestMsg, ResponseMsg](ids: Set[PartitionedId], requestBuilder: (Node, Set[PartitionedId]) => RequestMsg, capability: Option[Long])
@@ -338,7 +341,6 @@ trait PartitionedNetworkClient[PartitionedId] extends BaseNetworkClient {
     val retrySpec = PartitionedRetrySpecifications[ResponseMsg](retryStrategy = retryStrategy);
     sendRequest(requestSpec, nodeSpec, retrySpec)
   }
-//    sendRequest(ids, requestBuilder, capability, None) TODO:Delete
 
   @deprecated
   def sendRequest[RequestMsg, ResponseMsg](ids: Set[PartitionedId], numberOfReplicas: Int, requestBuilder: (Node, Set[PartitionedId]) => RequestMsg, capability: Option[Long], dupOk : Boolean)
@@ -350,7 +352,6 @@ trait PartitionedNetworkClient[PartitionedId] extends BaseNetworkClient {
     val retrySpec = PartitionedRetrySpecifications[ResponseMsg](retryStrategy = retryStrategy, routingConfigs = routingConfigs);
     sendRequest(requestSpec, nodeSpec, retrySpec)
   }
-//    sendRequest(ids, numberOfReplicas, requestBuilder, 0, capability, None, new RoutingConfigs(retryStrategy != None, dupOk)) TODO:Delete
 
   @deprecated
   def sendRequest[RequestMsg, ResponseMsg](ids: Set[PartitionedId], requestBuilder: (Node, Set[PartitionedId]) => RequestMsg, capability: Option[Long], dupOk : Boolean)
@@ -362,7 +363,6 @@ trait PartitionedNetworkClient[PartitionedId] extends BaseNetworkClient {
     val retrySpec = PartitionedRetrySpecifications[ResponseMsg](retryStrategy = retryStrategy, routingConfigs = routingConfigs);
     sendRequest(requestSpec, nodeSpec, retrySpec)
   }
-//    sendRequest(ids, 0, requestBuilder, 0, capability, None, new RoutingConfigs(retryStrategy != None, dupOk))  // TODO: Delete when we're confident the above works.
 
   @deprecated
   def sendRequest[RequestMsg, ResponseMsg](ids: Set[PartitionedId], requestBuilder: (Node, Set[PartitionedId]) => RequestMsg, capability: Option[Long], routingConfigs : RoutingConfigs)
