@@ -2,6 +2,7 @@ package com.linkedin.norbert
 
 import com.linkedin.norbert.network.client.NetworkClientConfig
 import com.linkedin.norbert.network.common.RetryStrategy
+
 /**
  * This is the companion object for the RoutingConfigs class.
  */
@@ -45,12 +46,6 @@ object RetrySpecifications {
  */
 class RetrySpecifications[ResponseMsg](val maxRetry: Int,
                                                   val callback: Option[Either[Throwable, ResponseMsg] => Unit]) {
-  //Validation checks go here:
-  /* removed because causing testing errors
-  if (maxRetry == 0 && callback != None) {
-    throw new IllegalArgumentException("maxRetry must be greater than 0 for callback options to work")
-  }
-*/
 
 }
 
@@ -61,8 +56,9 @@ object PartitionedRetrySpecifications {
   //can have maxRetry without callback, but you cannot have callback without maxRetry
   def apply[ResponseMsg](maxRetry: Int = 0,
                          callback: Option[Either[Throwable, ResponseMsg] => Unit] = None, //new FutureAdapterListener[ResponseMsg],
-                         retryStrategy: Option[RetryStrategy] = None) = {
-    new PartitionedRetrySpecifications[ResponseMsg](maxRetry, callback, retryStrategy)
+                         retryStrategy: Option[RetryStrategy] = None,
+                         routingConfigs: RoutingConfigs = RoutingConfigs.defaultRoutingConfigs) = {
+    new PartitionedRetrySpecifications[ResponseMsg](maxRetry, callback, retryStrategy, routingConfigs)
   }
 
 
@@ -81,14 +77,7 @@ object PartitionedRetrySpecifications {
 class PartitionedRetrySpecifications[ResponseMsg](maxRetry: Int,
                                          callback: Option[Either[Throwable, ResponseMsg] => Unit],
                                          var retryStrategy: Option[RetryStrategy],
-                                         var duplicatesOk: Boolean = false) extends RetrySpecifications[ResponseMsg](maxRetry, callback) {
-
-  val routingConfigs = new RoutingConfigs(retryStrategy != None, duplicatesOk)
-  def setConfig(config: NetworkClientConfig): Unit = {
-    duplicatesOk = config.duplicatesOk
-    if (retryStrategy != null)
-      retryStrategy = config.retryStrategy
-  }
+                                         var routingConfigs: RoutingConfigs = RoutingConfigs.defaultRoutingConfigs) extends RetrySpecifications[ResponseMsg](maxRetry, callback) {
 
 }
 

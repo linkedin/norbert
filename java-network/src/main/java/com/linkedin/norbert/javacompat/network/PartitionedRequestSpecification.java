@@ -1,5 +1,5 @@
 package com.linkedin.norbert.javacompat.network;
 
-public interface PartitionedRequestSpecification {
+public interface PartitionedRequestSpecification <RequestMsg> {
 
 }
