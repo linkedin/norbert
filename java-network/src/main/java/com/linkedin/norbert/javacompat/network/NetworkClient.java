@@ -51,7 +51,6 @@ public interface NetworkClient extends BaseNetworkClient {
   <RequestMsg, ResponseMsg> Future<ResponseMsg> sendRequest(RequestMsg request, Serializer<RequestMsg, ResponseMsg> serializer, int maxRetry, long capability) throws InvalidClusterException, NoNodesAvailableException, ClusterDisconnectedException;
   <RequestMsg, ResponseMsg> Future<ResponseMsg> sendRequest(RequestMsg request, Serializer<RequestMsg, ResponseMsg> serializer, int maxRetry, long capability, long persistentCapability) throws InvalidClusterException, NoNodesAvailableException, ClusterDisconnectedException;
 
-  <RequestMsg, ResponseMsg> void sendRequest(RequestSpecification<RequestMsg> requestSpec,NodeSpec nodeSpec, RetrySpecifications<ResponseMsg> retrySpec,
-           Serializer<RequestMsg, ResponseMsg> serializer) throws InvalidClusterException, NoNodesAvailableException, ClusterDisconnectedException;
-
+//  <RequestMsg, ResponseMsg> void sendRequest(RequestSpecification<RequestMsg> requestSpec,NodeSpec nodeSpec, RetrySpecifications<ResponseMsg> retrySpec,
+//           Serializer<RequestMsg, ResponseMsg> serializer) throws InvalidClusterException, NoNodesAvailableException, ClusterDisconnectedException;
 }

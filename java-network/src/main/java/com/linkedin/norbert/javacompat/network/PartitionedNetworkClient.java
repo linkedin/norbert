@@ -30,7 +30,7 @@ public interface PartitionedNetworkClient<PartitionedId> extends BaseNetworkClie
  * TODO: comment the new function
  * TODO: mark the old functions as deprecated (do we do that here or at the implementation?)
  */
-  <RequestMsg, ResponseMsg> void sendRequest(PartitionedRequestSpecification<RequestMsg, PartitionedId> requestSpec, com.linkedin.norbert.network.client.PartitionedNodeSpec<PartitionedId> nodeSpec, com.linkedin.norbert.PartitionedRetrySpecifications<ResponseMsg> retrySpec, Serializer<RequestMsg, ResponseMsg> serializer) throws InvalidClusterException, NoNodesAvailableException, ClusterDisconnectedException;
+//  <RequestMsg, ResponseMsg> void sendRequest(PartitionedRequestSpecification<RequestMsg, PartitionedId> requestSpec, PartitionedNodeSpecification nodeSpec, PartitionedRetrySpecification<ResponseMsg> retrySpec, Serializer<RequestMsg, ResponseMsg> serializer) throws InvalidClusterException, NoNodesAvailableException, ClusterDisconnectedException;
 
 
   /**
