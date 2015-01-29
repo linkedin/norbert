@@ -25,7 +25,7 @@ import server.{MessageExecutorComponent, NetworkServer}
 import netty.NettyPartitionedNetworkClient
 import client.{PartitionedNodeSpec, NetworkClientConfig}
 import cluster.{Node, ClusterDisconnectedException, InvalidClusterException, ClusterClientComponent}
-
+/*
 object RoutingConfigs {
   val defaultRoutingConfigs = new RoutingConfigs(false, false)
   def getDefaultRoutingConfigs():RoutingConfigs = {
@@ -37,7 +37,7 @@ class RoutingConfigs(SelectiveRetry: Boolean, DuplicatesOk: Boolean ) {
   val selectiveRetry = SelectiveRetry
   val duplicatesOk = DuplicatesOk
 }
-
+*/
 object PartitionedNetworkClient {
   def apply[PartitionedId](config: NetworkClientConfig, loadBalancerFactory: PartitionedLoadBalancerFactory[PartitionedId]): PartitionedNetworkClient[PartitionedId] = {
     val nc = new NettyPartitionedNetworkClient(config, loadBalancerFactory)
