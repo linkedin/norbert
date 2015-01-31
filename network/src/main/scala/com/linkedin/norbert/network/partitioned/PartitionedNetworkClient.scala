@@ -556,7 +556,6 @@ trait PartitionedNetworkClient[PartitionedId] extends BaseNetworkClient {
     */
   }
 
-  //TODO: deal with response aggregator functions - need 1 wrapper around our new function def
   /**
    * Sends a <code>Message</code> to the specified <code>PartitionedId</code>s. The <code>PartitionedNetworkClient</code>
    * will interact with the current <code>PartitionedLoadBalancer</code> to calculate which <code>Node</code>s the message
@@ -625,6 +624,14 @@ trait PartitionedNetworkClient[PartitionedId] extends BaseNetworkClient {
     if (responseAggregator == null) throw new NullPointerException
     responseAggregator(sendRequest[RequestMsg, ResponseMsg](requestSpec, nodeSpec, retrySpec))
   }
+  def sendRequest[RequestMsg, ResponseMsg, Result](requestSpec: PartitionedRequestSpecification[RequestMsg, PartitionedId],
+                                           nodeSpec: PartitionedNodeSpec[PartitionedId],
+                                           retrySpec: PartitionedRetrySpecifications[ResponseMsg],
+                                           responseAggregator: (ResponseIterator[ResponseMsg]) => Result )
+     (implicit is: InputSerializer[RequestMsg, ResponseMsg], os: OutputSerializer[RequestMsg, ResponseMsg]): Result = doIfConnected {
+    responseAggregator(sendRequest[RequestMsg, ResponseMsg](requestSpec, nodeSpec, retrySpec))
+  }
+
 
   // TODO: Comment this as the new API.
   def sendRequest[RequestMsg, ResponseMsg](requestSpec: PartitionedRequestSpecification[RequestMsg, PartitionedId], nodeSpec: PartitionedNodeSpec[PartitionedId], retrySpec: PartitionedRetrySpecifications[ResponseMsg])
