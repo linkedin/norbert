@@ -1,8 +1,10 @@
 /*
  * Partitioned and non-partitioned NodeSpecification wrapper objects for sendRequest
  */
+package com.linkedin.norbert
+package network
+package client
 
-package com.linkedin.norbert.network.client
 
 trait NodeTrait[NodeType] {
   var capability: Option[Long] = None

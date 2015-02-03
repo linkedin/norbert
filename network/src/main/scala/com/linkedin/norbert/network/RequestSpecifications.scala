@@ -1,5 +1,9 @@
 
-package com.linkedin.norbert.network
+package com.linkedin.norbert
+package javacompat
+package network
+
+import com.linkedin.norbert.javacompat.network.{RequestSpecification => JavaRequestSpecification}
 import com.linkedin.norbert.cluster.{ClusterException, Node}
 
 /**
@@ -25,7 +29,7 @@ object RequestSpecification {
  * @param message The requestMsg to be sent to the node.
  * @tparam RequestMsg The type of the request being sent to the node, should be the same as that used by the network client you will use to send the request.
  */
-class RequestSpecification[RequestMsg](val message: RequestMsg) {
+class RequestSpecification[RequestMsg](val message: RequestMsg) extends JavaRequestSpecification[RequestMsg]{
 
 }
 
