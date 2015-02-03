@@ -164,7 +164,7 @@ trait NetworkClient extends BaseNetworkClient {
     val nodeSpec = new NodeSpecification().build
     val retrySpec = RetrySpecification(maxRetry, Some(future))
     sendRequest(requestSpec, nodeSpec, retrySpec)
-    future // TODO: These used to return Unit, even though they overloaded and called a function returning future. Is that a problem?
+    future
   }
 
   @deprecated("Use sendRequest(RequestSpecification[RequestMsg], NodeSpecification, RetrySpecification[ResponseMsg]), 12/17/2014")
@@ -275,7 +275,6 @@ trait NetworkClient extends BaseNetworkClient {
    * instead of adding new overloaded sendRequest methods, changes should be made to the
    * wrapper objects whenever possible.
    */
-
   def sendRequest[RequestMsg, ResponseMsg](requestSpec: RequestSpecification[RequestMsg], nodeSpec: NodeSpecification, retrySpec: RetrySpecification[ResponseMsg])
   (implicit is: InputSerializer[RequestMsg, ResponseMsg], os:OutputSerializer[RequestMsg, ResponseMsg]): Unit = doIfConnected {
     if (requestSpec.message == null) throw new NullPointerException
