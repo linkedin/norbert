@@ -545,7 +545,8 @@ trait PartitionedNetworkClient[PartitionedId] extends BaseNetworkClient {
     sendRequest(requestSpec, nodeSpec, retrySpec, responseAggregator)
   }
 
-  // TODO eoin: This needs comments (the parameters are different than the big comment block 5 or so sendRequests above.
+  // A version of the new sendRequest API (see below), that also takes a responseAggregator, a callback method that
+  // allows the user to aggregate all the responses and return a single object to the caller.
   def sendRequest[RequestMsg, ResponseMsg, Result](requestSpec: PartitionedRequestSpecification[RequestMsg, PartitionedId],
                                            nodeSpec: PartitionedNodeSpecification[PartitionedId],
                                            retrySpec: PartitionedRetrySpecification[ResponseMsg],
