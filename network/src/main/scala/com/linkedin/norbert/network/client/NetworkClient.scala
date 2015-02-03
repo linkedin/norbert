@@ -85,7 +85,6 @@ object NetworkClient {
 }
 
 
-//TODO: mark all the old functions deprecated and reroute them to the new function definition
 /**
  * The network client interface for interacting with nodes in a cluster.
  */
@@ -109,16 +108,29 @@ trait NetworkClient extends BaseNetworkClient {
    */
   @deprecated("Use sendRequest(RequestSpecification[RequestMsg], NodeSpec, RetrySpecifications[ResponseMsg]), 12/17/2014")
   def sendRequest[RequestMsg, ResponseMsg](request: RequestMsg, callback: Either[Throwable, ResponseMsg] => Unit)
-  (implicit is: InputSerializer[RequestMsg, ResponseMsg], os: OutputSerializer[RequestMsg, ResponseMsg]): Unit =  
-    sendRequest(request, callback, None, None)
+  (implicit is: InputSerializer[RequestMsg, ResponseMsg], os: OutputSerializer[RequestMsg, ResponseMsg]): Unit =  {
+    val requestSpec = RequestSpecification(request)
+    val nodeSpec = new NodeSpec().build
+    val retrySpec = RetrySpecifications(0, Some(callback))
+    sendRequest(requestSpec, nodeSpec, retrySpec)
+  }
+
   @deprecated("Use sendRequest(RequestSpecification[RequestMsg], NodeSpec, RetrySpecifications[ResponseMsg]), 12/17/2014")
   def sendRequest[RequestMsg, ResponseMsg](request: RequestMsg, callback: Either[Throwable, ResponseMsg] => Unit, capability: Option[Long])
-  (implicit is: InputSerializer[RequestMsg, ResponseMsg], os: OutputSerializer[RequestMsg, ResponseMsg]): Unit = 
-     sendRequest(request, callback, capability, None)
+  (implicit is: InputSerializer[RequestMsg, ResponseMsg], os: OutputSerializer[RequestMsg, ResponseMsg]): Unit = {
+    val requestSpec = RequestSpecification(request)
+    val nodeSpec = new NodeSpec().setCapability(capability).build
+    val retrySpec = RetrySpecifications(0, Some(callback))
+    sendRequest(requestSpec, nodeSpec, retrySpec)
+  }
+
   @deprecated("Use sendRequest(RequestSpecification[RequestMsg], NodeSpec, RetrySpecifications[ResponseMsg]), 12/17/2014")
   def sendRequest[RequestMsg, ResponseMsg](request: RequestMsg, callback: Either[Throwable, ResponseMsg] => Unit, capability: Option[Long], persistentCapability: Option[Long])
   (implicit is: InputSerializer[RequestMsg, ResponseMsg], os: OutputSerializer[RequestMsg, ResponseMsg]): Unit =  doIfConnected {
-     sendRequest(request, callback, 0, capability, persistentCapability)
+     val requestSpec = RequestSpecification(request)
+     val nodeSpec = new NodeSpec().setCapability(capability).setPersistentCapability(persistentCapability).build
+     val retrySpec = RetrySpecifications(0, Some(callback))
+     sendRequest(requestSpec, nodeSpec, retrySpec)
   }
   
   /**
@@ -135,36 +147,67 @@ trait NetworkClient extends BaseNetworkClient {
    */
   @deprecated("Use sendRequest(RequestSpecification[RequestMsg], NodeSpec, RetrySpecifications[ResponseMsg]), 12/17/2014")
   def sendRequest[RequestMsg, ResponseMsg](request: RequestMsg)
-  (implicit is: InputSerializer[RequestMsg, ResponseMsg], os: OutputSerializer[RequestMsg, ResponseMsg]): Future[ResponseMsg] =
-    sendRequest(request, None, None)
+  (implicit is: InputSerializer[RequestMsg, ResponseMsg], os: OutputSerializer[RequestMsg, ResponseMsg]): Future[ResponseMsg] = {
+    val future = new FutureAdapterListener[ResponseMsg]
+    val requestSpec = RequestSpecification(request)
+    val nodeSpec = new NodeSpec().build
+    val retrySpec = RetrySpecifications(0, Some(future))
+    sendRequest(requestSpec, nodeSpec, retrySpec)
+    future
+  }
+
   @deprecated("Use sendRequest(RequestSpecification[RequestMsg], NodeSpec, RetrySpecifications[ResponseMsg]), 12/17/2014")
   def sendRequest[RequestMsg, ResponseMsg](request: RequestMsg, maxRetry:Int)
-  (implicit is: InputSerializer[RequestMsg, ResponseMsg], os: OutputSerializer[RequestMsg, ResponseMsg]): Future[ResponseMsg] =
-    sendRequest(request, maxRetry, None, None)
+  (implicit is: InputSerializer[RequestMsg, ResponseMsg], os: OutputSerializer[RequestMsg, ResponseMsg]): Future[ResponseMsg] = {
+    val future = new FutureAdapterListener[ResponseMsg]
+    val requestSpec = RequestSpecification(request)
+    val nodeSpec = new NodeSpec().build
+    val retrySpec = RetrySpecifications(maxRetry, Some(future))
+    sendRequest(requestSpec, nodeSpec, retrySpec)
+    future // TODO: These used to return Unit, even though they overloaded and called a function returning future. Is that a problem?
+  }
+
   @deprecated("Use sendRequest(RequestSpecification[RequestMsg], NodeSpec, RetrySpecifications[ResponseMsg]), 12/17/2014")
   def sendRequest[RequestMsg, ResponseMsg](request: RequestMsg, capability: Option[Long])
   (implicit is: InputSerializer[RequestMsg, ResponseMsg], os: OutputSerializer[RequestMsg, ResponseMsg]): Future[ResponseMsg] = {
-    sendRequest(request, capability, None)
+    val future = new FutureAdapterListener[ResponseMsg]
+    val requestSpec = RequestSpecification(request)
+    val nodeSpec = new NodeSpec().setCapability(capability).build
+    val retrySpec = RetrySpecifications(0, Some(future))
+    sendRequest(requestSpec, nodeSpec, retrySpec)
+    future
   }
+
   @deprecated("Use sendRequest(RequestSpecification[RequestMsg], NodeSpec, RetrySpecifications[ResponseMsg]), 12/17/2014")
   def sendRequest[RequestMsg, ResponseMsg](request: RequestMsg, capability: Option[Long], persistentCapability: Option[Long])
   (implicit is: InputSerializer[RequestMsg, ResponseMsg], os: OutputSerializer[RequestMsg, ResponseMsg]): Future[ResponseMsg] = {
     val future = new FutureAdapterListener[ResponseMsg]
-    sendRequest(request, future, capability, persistentCapability)
+    val requestSpec = RequestSpecification(request)
+    val nodeSpec = new NodeSpec().setCapability(capability).setPersistentCapability(persistentCapability).build
+    val retrySpec = RetrySpecifications(0, Some(future))
+    sendRequest(requestSpec, nodeSpec, retrySpec)
     future
   }
+
   @deprecated("Use sendRequest(RequestSpecification[RequestMsg], NodeSpec, RetrySpecifications[ResponseMsg]), 12/17/2014")
   def sendRequest[RequestMsg, ResponseMsg](request: RequestMsg, maxRetry: Int, capability: Option[Long])
   (implicit is: InputSerializer[RequestMsg, ResponseMsg], os: OutputSerializer[RequestMsg, ResponseMsg]): Future[ResponseMsg] = {
     val future = new FutureAdapterListener[ResponseMsg]
-    sendRequest(request, future, maxRetry, capability, None)
+    val requestSpec = RequestSpecification(request)
+    val nodeSpec = new NodeSpec().setCapability(capability).build
+    val retrySpec = RetrySpecifications(maxRetry, Some(future))
+    sendRequest(requestSpec, nodeSpec, retrySpec)
     future
   }
+
   @deprecated("Use sendRequest(RequestSpecification[RequestMsg], NodeSpec, RetrySpecifications[ResponseMsg]), 12/17/2014")
   def sendRequest[RequestMsg, ResponseMsg](request: RequestMsg, maxRetry: Int, capability: Option[Long], persistentCapability: Option[Long])
   (implicit is: InputSerializer[RequestMsg, ResponseMsg], os: OutputSerializer[RequestMsg, ResponseMsg]): Future[ResponseMsg] = {
     val future = new FutureAdapterListener[ResponseMsg]
-    sendRequest(request, future, maxRetry, capability, persistentCapability)
+    val requestSpec = RequestSpecification(request)
+    val nodeSpec = new NodeSpec().setCapability(capability).setPersistentCapability(persistentCapability).build
+    val retrySpec = RetrySpecifications(maxRetry, Some(future))
+    sendRequest(requestSpec, nodeSpec, retrySpec)
     future
   }
 
@@ -184,24 +227,53 @@ trait NetworkClient extends BaseNetworkClient {
    */
   @deprecated("Use sendRequest(RequestSpecification[RequestMsg], NodeSpec, RetrySpecifications[ResponseMsg]), 12/17/2014")
   def sendRequest[RequestMsg, ResponseMsg](request: RequestMsg, callback: Either[Throwable, ResponseMsg] => Unit, maxRetry: Int)
-  (implicit is: InputSerializer[RequestMsg, ResponseMsg], os: OutputSerializer[RequestMsg, ResponseMsg]): Unit =
-    sendRequest(request, callback, maxRetry, None, None)
-  @deprecated("Use sendRequest(RequestSpecification[RequestMsg], NodeSpec, RetrySpecifications[ResponseMsg]), 12/17/2014")
-  def sendRequest[RequestMsg, ResponseMsg](request: RequestMsg, callback: Either[Throwable, ResponseMsg] => Unit, maxRetry: Int, capability: Option[Long])
-  (implicit is: InputSerializer[RequestMsg, ResponseMsg], os:OutputSerializer[RequestMsg, ResponseMsg]): Unit = 
-    sendRequest(request, callback, maxRetry, capability, None)
-  @deprecated("Use sendRequest(RequestSpecification[RequestMsg], NodeSpec, RetrySpecifications[ResponseMsg]), 12/17/2014")
-  def sendRequest[RequestMsg, ResponseMsg](request: RequestMsg, callback: Either[Throwable, ResponseMsg] => Unit, maxRetry: Int, capability: Option[Long], persistentCapability: Option[Long])
-                                          (implicit is: InputSerializer[RequestMsg, ResponseMsg], os: OutputSerializer[RequestMsg, ResponseMsg]): Unit = doIfConnected {
-    // Reroutes to new sendRequest method.
+  (implicit is: InputSerializer[RequestMsg, ResponseMsg], os: OutputSerializer[RequestMsg, ResponseMsg]): Unit = {
     val requestSpec = RequestSpecification(request)
-    val nodeSpec = new NodeSpec().setCapability(capability).setPersistentCapability(persistentCapability).build
+    val nodeSpec = new NodeSpec().build
     val retrySpec = RetrySpecifications(maxRetry, Some(callback))
     sendRequest(requestSpec, nodeSpec, retrySpec)
   }
 
+  @deprecated("Use sendRequest(RequestSpecification[RequestMsg], NodeSpec, RetrySpecifications[ResponseMsg]), 12/17/2014")
+  def sendRequest[RequestMsg, ResponseMsg](request: RequestMsg, callback: Either[Throwable, ResponseMsg] => Unit, maxRetry: Int, capability: Option[Long])
+  (implicit is: InputSerializer[RequestMsg, ResponseMsg], os:OutputSerializer[RequestMsg, ResponseMsg]): Unit = {
+    val requestSpec = RequestSpecification(request)
+    val nodeSpec = new NodeSpec().setCapability(capability).build
+    val retrySpec = RetrySpecifications(maxRetry, Some(callback))
+    sendRequest(requestSpec, nodeSpec, retrySpec)
+  }
+
+  @deprecated("Use sendRequest(RequestSpecification[RequestMsg], NodeSpec, RetrySpecifications[ResponseMsg]), 12/17/2014")
+  def sendRequest[RequestMsg, ResponseMsg](request: RequestMsg, callback: Either[Throwable, ResponseMsg] => Unit, maxRetry: Int, capability: Option[Long], persistentCapability: Option[Long])
+                                          (implicit is: InputSerializer[RequestMsg, ResponseMsg], os: OutputSerializer[RequestMsg, ResponseMsg]): Unit = doIfConnected {
+    // TODO: This still reroutes to the old sendRequest method so that we can test with it
+    // TODO: Uncomment the below when we are completely satisfied to reroute it to the new sendRequest method.
+//    val requestSpec = RequestSpecification(request)
+//    val nodeSpec = new NodeSpec().setCapability(capability).setPersistentCapability(persistentCapability).build
+//    val retrySpec = RetrySpecifications(maxRetry, Some(callback))
+//    sendRequest(requestSpec, nodeSpec, retrySpec)
+    if (request == null) throw new NullPointerException
+
+    val loadBalancerReady = loadBalancer.getOrElse(throw new ClusterDisconnectedException("Client has no node information"))
+
+    val node = loadBalancerReady.fold(ex => throw ex,
+      lb => {
+        val node: Option[Node] = lb.nextNode(capability, persistentCapability)
+        node.getOrElse(throw new NoNodesAvailableException("No node available that can handle the request: %s".format(request)))
+      })
+
+    doSendRequest(Request(request, node, is, os, if (maxRetry == 0) Some(callback) else Some(retryCallback[RequestMsg, ResponseMsg](callback, maxRetry, capability, persistentCapability) _)))
+  }
+
   /**
-   * TODO: comment new function
+   * New sendRequest API. Functionally the same as the old one, but this takes three wrapper objects as input:
+   * requestSpec: Handles the request object.
+   * nodeSpec: Handles capability and persistent capability for the node.
+   * retrySpec: Handles the maxRetry and callback used for the retry function.
+   *
+   * These wrapper objects contain overloading and/or defaulting to simplify development;
+   * instead of adding new overloaded sendRequest methods, changes should be made to the
+   * wrapper objects whenever possible.
    */
 
   def sendRequest[RequestMsg, ResponseMsg](requestSpec: RequestSpecification[RequestMsg], nodeSpec: NodeSpec, retrySpec: RetrySpecifications[ResponseMsg])

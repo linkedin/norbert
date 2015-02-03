@@ -106,8 +106,8 @@ class NettyNetworkClient(config: NetworkClientConfig, loadBalancerFactory: LoadB
   def sendRequest[RequestMsg, ResponseMsg](requestMsg: RequestMsg, serializer: Serializer[RequestMsg, ResponseMsg], maxRetry: Int, capability: Long, persistentCapability: Long) =
     underlying.sendRequest(requestMsg, maxRetry, Some(capability), Some(persistentCapability))(serializer, serializer)
 
- // def sendRequest[RequestMsg, ResponseMsg](requestSpec: RequestSpecification[RequestMsg], nodeSpec: NodeSpec, retrySpec: RetrySpecifications[ResponseMsg], serializer:Serializer[RequestMsg, ResponseMsg]) =
-   // underlying.sendRequest(requestSpec, nodeSpec, retrySpec)(serializer, serializer)
+//  def sendRequest[RequestMsg, ResponseMsg](requestSpec: RequestSpecification[RequestMsg], nodeSpec: NodeSpec, retrySpec: RetrySpecifications[ResponseMsg], serializer:Serializer[RequestMsg, ResponseMsg]) =
+//   underlying.sendRequest(requestSpec, nodeSpec, retrySpec)(serializer, serializer)
 
   def sendRequest[RequestMsg, ResponseMsg](requestSpec: com.linkedin.norbert.network.RequestSpecification[RequestMsg],nodeSpec: com.linkedin.norbert.network.client.NodeSpec,retrySpec: com.linkedin.norbert.RetrySpecifications[ResponseMsg], serializer:Serializer[RequestMsg, ResponseMsg]) =
     underlying.sendRequest(requestSpec, nodeSpec, retrySpec)(serializer, serializer)
