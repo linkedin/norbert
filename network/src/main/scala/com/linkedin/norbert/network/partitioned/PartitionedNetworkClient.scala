@@ -61,7 +61,7 @@ trait PartitionedNetworkClient[PartitionedId] extends BaseNetworkClient {
 
   @volatile private var loadBalancer: Option[Either[InvalidClusterException, PartitionedLoadBalancer[PartitionedId]]] = None
 
-  @deprecated
+  @deprecated("Use sendRequest(PartitionedRequestSpecification[RequestMsg, PartitionedId], PartitionedNodeSpecification[PartitionedId], PartitionedRetrySpecification[ResponseMsg], responseAggregator), 2/2/2015")
   def sendRequest[RequestMsg, ResponseMsg](id: PartitionedId, request: RequestMsg, callback: Either[Throwable, ResponseMsg] => Unit)
   (implicit is: InputSerializer[RequestMsg, ResponseMsg], os: OutputSerializer[RequestMsg, ResponseMsg]): Unit =
     {
@@ -71,7 +71,7 @@ trait PartitionedNetworkClient[PartitionedId] extends BaseNetworkClient {
       sendRequest(requestSpec, nodeSpec, retrySpec)
     }
 
-  @deprecated
+  @deprecated("Use sendRequest(PartitionedRequestSpecification[RequestMsg, PartitionedId], PartitionedNodeSpecification[PartitionedId], PartitionedRetrySpecification[ResponseMsg], responseAggregator), 2/2/2015")
   def sendRequest[RequestMsg, ResponseMsg](id: PartitionedId, request: RequestMsg, callback: Either[Throwable, ResponseMsg] => Unit, capability: Option[Long])
   (implicit is: InputSerializer[RequestMsg, ResponseMsg], os: OutputSerializer[RequestMsg, ResponseMsg]): Unit =
    {
@@ -81,7 +81,7 @@ trait PartitionedNetworkClient[PartitionedId] extends BaseNetworkClient {
      sendRequest(requestSpec, nodeSpec, retrySpec)
    }
 
-  @deprecated
+  @deprecated("Use sendRequest(PartitionedRequestSpecification[RequestMsg, PartitionedId], PartitionedNodeSpecification[PartitionedId], PartitionedRetrySpecification[ResponseMsg], responseAggregator), 2/2/2015")
   def sendRequest[RequestMsg, ResponseMsg](id: PartitionedId, request: RequestMsg, callback: Either[Throwable, ResponseMsg] => Unit, capability: Option[Long], persistentCapability: Option[Long])
   (implicit is: InputSerializer[RequestMsg, ResponseMsg], os: OutputSerializer[RequestMsg, ResponseMsg]): Unit = doIfConnected {
     val requestSpec = PartitionedRequestSpecification[RequestMsg, PartitionedId](Some(request))
@@ -176,7 +176,7 @@ trait PartitionedNetworkClient[PartitionedId] extends BaseNetworkClient {
    * to send the request to
    * @throws ClusterDisconnectedException thrown if the <code>PartitionedNetworkClient</code> is not connected to the cluster
    */
-  @deprecated
+  @deprecated("Use sendRequest(PartitionedRequestSpecification[RequestMsg, PartitionedId], PartitionedNodeSpecification[PartitionedId], PartitionedRetrySpecification[ResponseMsg], responseAggregator), 2/2/2015")
   def sendRequest[RequestMsg, ResponseMsg](id: PartitionedId, request: RequestMsg)
   (implicit is: InputSerializer[RequestMsg, ResponseMsg], os: OutputSerializer[RequestMsg, ResponseMsg]): Future[ResponseMsg] =
   {
@@ -189,7 +189,7 @@ trait PartitionedNetworkClient[PartitionedId] extends BaseNetworkClient {
     future
   }
 
-  @deprecated
+  @deprecated("Use sendRequest(PartitionedRequestSpecification[RequestMsg, PartitionedId], PartitionedNodeSpecification[PartitionedId], PartitionedRetrySpecification[ResponseMsg], responseAggregator), 2/2/2015")
   def sendRequest[RequestMsg, ResponseMsg](id: PartitionedId, request: RequestMsg, capability: Option[Long])
   (implicit is: InputSerializer[RequestMsg, ResponseMsg], os: OutputSerializer[RequestMsg, ResponseMsg]): Future[ResponseMsg] =
   {
@@ -202,7 +202,7 @@ trait PartitionedNetworkClient[PartitionedId] extends BaseNetworkClient {
     future
   }
 
-  @deprecated
+  @deprecated("Use sendRequest(PartitionedRequestSpecification[RequestMsg, PartitionedId], PartitionedNodeSpecification[PartitionedId], PartitionedRetrySpecification[ResponseMsg], responseAggregator), 2/2/2015")
   def sendRequest[RequestMsg, ResponseMsg](id: PartitionedId, request: RequestMsg, capability: Option[Long], persistentCapability: Option[Long])
   (implicit is: InputSerializer[RequestMsg, ResponseMsg], os: OutputSerializer[RequestMsg, ResponseMsg]): Future[ResponseMsg] = {
     val future = new FutureAdapterListener[ResponseMsg]
@@ -229,7 +229,7 @@ trait PartitionedNetworkClient[PartitionedId] extends BaseNetworkClient {
    * to send the request to
    * @throws ClusterDisconnectedException thrown if the <code>PartitionedNetworkClient</code> is not connected to the cluster
    */
-  @deprecated
+  @deprecated("Use sendRequest(PartitionedRequestSpecification[RequestMsg, PartitionedId], PartitionedNodeSpecification[PartitionedId], PartitionedRetrySpecification[ResponseMsg], responseAggregator), 2/2/2015")
   def sendRequest[RequestMsg, ResponseMsg](ids: Set[PartitionedId], request: RequestMsg)
   (implicit is: InputSerializer[RequestMsg, ResponseMsg], os: OutputSerializer[RequestMsg, ResponseMsg]): ResponseIterator[ResponseMsg] =
   {
@@ -239,7 +239,7 @@ trait PartitionedNetworkClient[PartitionedId] extends BaseNetworkClient {
     sendRequest(requestSpec, nodeSpec, retrySpec)(is, os)
   }
 
-  @deprecated
+  @deprecated("Use sendRequest(PartitionedRequestSpecification[RequestMsg, PartitionedId], PartitionedNodeSpecification[PartitionedId], PartitionedRetrySpecification[ResponseMsg], responseAggregator), 2/2/2015")
   def sendRequest[RequestMsg, ResponseMsg](ids: Set[PartitionedId], request: RequestMsg, capability: Option[Long])
   (implicit is: InputSerializer[RequestMsg, ResponseMsg], os: OutputSerializer[RequestMsg, ResponseMsg]): ResponseIterator[ResponseMsg] =
   {
@@ -249,7 +249,7 @@ trait PartitionedNetworkClient[PartitionedId] extends BaseNetworkClient {
     sendRequest(requestSpec, nodeSpec, retrySpec)
   }
 
-  @deprecated
+  @deprecated("Use sendRequest(PartitionedRequestSpecification[RequestMsg, PartitionedId], PartitionedNodeSpecification[PartitionedId], PartitionedRetrySpecification[ResponseMsg], responseAggregator), 2/2/2015")
   def sendRequest[RequestMsg, ResponseMsg](ids: Set[PartitionedId], request: RequestMsg, capability: Option[Long], persistentCapability: Option[Long])
   (implicit is: InputSerializer[RequestMsg, ResponseMsg], os: OutputSerializer[RequestMsg, ResponseMsg]): ResponseIterator[ResponseMsg] =
   {
@@ -275,7 +275,7 @@ trait PartitionedNetworkClient[PartitionedId] extends BaseNetworkClient {
    * to send the request to
    * @throws ClusterDisconnectedException thrown if the <code>PartitionedNetworkClient</code> is not connected to the cluster
    */
-  @deprecated
+  @deprecated("Use sendRequest(PartitionedRequestSpecification[RequestMsg, PartitionedId], PartitionedNodeSpecification[PartitionedId], PartitionedRetrySpecification[ResponseMsg], responseAggregator), 2/2/2015")
   def sendRequest[RequestMsg, ResponseMsg](ids: Set[PartitionedId], requestBuilder: (Node, Set[PartitionedId]) => RequestMsg)
   (implicit is: InputSerializer[RequestMsg, ResponseMsg], os: OutputSerializer[RequestMsg, ResponseMsg]): ResponseIterator[ResponseMsg] =
   {
@@ -285,7 +285,7 @@ trait PartitionedNetworkClient[PartitionedId] extends BaseNetworkClient {
     sendRequest(requestSpec, nodeSpec, retrySpec)
   }
 
-  @deprecated
+  @deprecated("Use sendRequest(PartitionedRequestSpecification[RequestMsg, PartitionedId], PartitionedNodeSpecification[PartitionedId], PartitionedRetrySpecification[ResponseMsg], responseAggregator), 2/2/2015")
   def sendRequest[RequestMsg, ResponseMsg](ids: Set[PartitionedId], numberOfReplicas: Int, requestBuilder: (Node, Set[PartitionedId]) => RequestMsg)
                                           (implicit is: InputSerializer[RequestMsg, ResponseMsg], os: OutputSerializer[RequestMsg, ResponseMsg]): ResponseIterator[ResponseMsg] =
   {
@@ -295,7 +295,7 @@ trait PartitionedNetworkClient[PartitionedId] extends BaseNetworkClient {
     sendRequest(requestSpec, nodeSpec, retrySpec)
   }
 
-  @deprecated
+  @deprecated("Use sendRequest(PartitionedRequestSpecification[RequestMsg, PartitionedId], PartitionedNodeSpecification[PartitionedId], PartitionedRetrySpecification[ResponseMsg], responseAggregator), 2/2/2015")
   def sendRequest[RequestMsg, ResponseMsg](ids: Set[PartitionedId], numberOfReplicas: Int, requestBuilder: (Node, Set[PartitionedId]) => RequestMsg, capability: Option[Long])
                                           (implicit is: InputSerializer[RequestMsg, ResponseMsg], os: OutputSerializer[RequestMsg, ResponseMsg]): ResponseIterator[ResponseMsg] =
   {
@@ -305,7 +305,7 @@ trait PartitionedNetworkClient[PartitionedId] extends BaseNetworkClient {
     sendRequest(requestSpec, nodeSpec, retrySpec)
   }
 
-  @deprecated
+  @deprecated("Use sendRequest(PartitionedRequestSpecification[RequestMsg, PartitionedId], PartitionedNodeSpecification[PartitionedId], PartitionedRetrySpecification[ResponseMsg], responseAggregator), 2/2/2015")
   def sendRequest[RequestMsg, ResponseMsg](ids: Set[PartitionedId], requestBuilder: (Node, Set[PartitionedId]) => RequestMsg, capability: Option[Long])
   (implicit is: InputSerializer[RequestMsg, ResponseMsg], os: OutputSerializer[RequestMsg, ResponseMsg]): ResponseIterator[ResponseMsg] =
   {
@@ -315,7 +315,7 @@ trait PartitionedNetworkClient[PartitionedId] extends BaseNetworkClient {
     sendRequest(requestSpec, nodeSpec, retrySpec)
   }
 
-  @deprecated
+  @deprecated("Use sendRequest(PartitionedRequestSpecification[RequestMsg, PartitionedId], PartitionedNodeSpecification[PartitionedId], PartitionedRetrySpecification[ResponseMsg], responseAggregator), 2/2/2015")
   def sendRequest[RequestMsg, ResponseMsg](ids: Set[PartitionedId], numberOfReplicas: Int, requestBuilder: (Node, Set[PartitionedId]) => RequestMsg, capability: Option[Long], dupOk : Boolean)
                                           (implicit is: InputSerializer[RequestMsg, ResponseMsg], os: OutputSerializer[RequestMsg, ResponseMsg]): ResponseIterator[ResponseMsg] =
   {
@@ -326,7 +326,7 @@ trait PartitionedNetworkClient[PartitionedId] extends BaseNetworkClient {
     sendRequest(requestSpec, nodeSpec, retrySpec)
   }
 
-  @deprecated
+  @deprecated("Use sendRequest(PartitionedRequestSpecification[RequestMsg, PartitionedId], PartitionedNodeSpecification[PartitionedId], PartitionedRetrySpecification[ResponseMsg], responseAggregator), 2/2/2015")
   def sendRequest[RequestMsg, ResponseMsg](ids: Set[PartitionedId], requestBuilder: (Node, Set[PartitionedId]) => RequestMsg, capability: Option[Long], dupOk : Boolean)
                                           (implicit is: InputSerializer[RequestMsg, ResponseMsg], os: OutputSerializer[RequestMsg, ResponseMsg]): ResponseIterator[ResponseMsg] =
   {
@@ -337,7 +337,7 @@ trait PartitionedNetworkClient[PartitionedId] extends BaseNetworkClient {
     sendRequest(requestSpec, nodeSpec, retrySpec)
   }
 
-  @deprecated
+  @deprecated("Use sendRequest(PartitionedRequestSpecification[RequestMsg, PartitionedId], PartitionedNodeSpecification[PartitionedId], PartitionedRetrySpecification[ResponseMsg], responseAggregator), 2/2/2015")
   def sendRequest[RequestMsg, ResponseMsg](ids: Set[PartitionedId], requestBuilder: (Node, Set[PartitionedId]) => RequestMsg, capability: Option[Long], routingConfigs : RoutingConfigs)
   (implicit is: InputSerializer[RequestMsg, ResponseMsg], os: OutputSerializer[RequestMsg, ResponseMsg]): ResponseIterator[ResponseMsg] =
   {
@@ -347,7 +347,7 @@ trait PartitionedNetworkClient[PartitionedId] extends BaseNetworkClient {
     sendRequest(requestSpec, nodeSpec, retrySpec)
   }
 
-  @deprecated
+  @deprecated("Use sendRequest(PartitionedRequestSpecification[RequestMsg, PartitionedId], PartitionedNodeSpecification[PartitionedId], PartitionedRetrySpecification[ResponseMsg], responseAggregator), 2/2/2015")
   def sendRequest[RequestMsg, ResponseMsg](ids: Set[PartitionedId], requestBuilder: (Node, Set[PartitionedId]) => RequestMsg, capability: Option[Long], routingConfigs : RoutingConfigs, retryStrategy: Option[RetryStrategy])
   (implicit is: InputSerializer[RequestMsg, ResponseMsg], os: OutputSerializer[RequestMsg, ResponseMsg]): ResponseIterator[ResponseMsg] =
   {
@@ -357,7 +357,7 @@ trait PartitionedNetworkClient[PartitionedId] extends BaseNetworkClient {
     sendRequest(requestSpec, nodeSpec, retrySpec)
   }
 
-  @deprecated
+  @deprecated("Use sendRequest(PartitionedRequestSpecification[RequestMsg, PartitionedId], PartitionedNodeSpecification[PartitionedId], PartitionedRetrySpecification[ResponseMsg], responseAggregator), 2/2/2015")
   def sendRequest[RequestMsg, ResponseMsg](ids: Set[PartitionedId], requestBuilder: (Node, Set[PartitionedId]) => RequestMsg, capability: Option[Long], persistentCapability: Option[Long])
   (implicit is: InputSerializer[RequestMsg, ResponseMsg], os: OutputSerializer[RequestMsg, ResponseMsg]): ResponseIterator[ResponseMsg] = doIfConnected {
     val requestSpec = PartitionedRequestSpecification[RequestMsg, PartitionedId](rb = Some(requestBuilder))
@@ -366,7 +366,7 @@ trait PartitionedNetworkClient[PartitionedId] extends BaseNetworkClient {
     sendRequest(requestSpec, nodeSpec, retrySpec)
   }
 
-  @deprecated
+  @deprecated("Use sendRequest(PartitionedRequestSpecification[RequestMsg, PartitionedId], PartitionedNodeSpecification[PartitionedId], PartitionedRetrySpecification[ResponseMsg], responseAggregator), 2/2/2015")
   def sendRequest[RequestMsg, ResponseMsg](ids: Set[PartitionedId], numberOfReplicas: Int, requestBuilder: (Node, Set[PartitionedId]) => RequestMsg, capability: Option[Long], persistentCapability: Option[Long])
                                           (implicit is: InputSerializer[RequestMsg, ResponseMsg], os: OutputSerializer[RequestMsg, ResponseMsg]): ResponseIterator[ResponseMsg] = doIfConnected {
     val requestSpec = PartitionedRequestSpecification[RequestMsg, PartitionedId](rb = Some(requestBuilder))
@@ -394,7 +394,7 @@ trait PartitionedNetworkClient[PartitionedId] extends BaseNetworkClient {
    * @throws ClusterDisconnectedException thrown if the <code>PartitionedNetworkClient</code> is not connected to the cluster
    */
   // TODO: investigate interplay between default parameter and implicits
-  @deprecated
+  @deprecated("Use sendRequest(PartitionedRequestSpecification[RequestMsg, PartitionedId], PartitionedNodeSpecification[PartitionedId], PartitionedRetrySpecification[ResponseMsg], responseAggregator), 2/2/2015")
   def sendRequest[RequestMsg, ResponseMsg](ids: Set[PartitionedId], numberOfReplicas: Int, requestBuilder: (Node, Set[PartitionedId]) => RequestMsg, maxRetry: Int)
                                           (implicit is: InputSerializer[RequestMsg, ResponseMsg], os: OutputSerializer[RequestMsg, ResponseMsg]): ResponseIterator[ResponseMsg] =
   {
@@ -404,7 +404,7 @@ trait PartitionedNetworkClient[PartitionedId] extends BaseNetworkClient {
     sendRequest(requestSpec, nodeSpec, retrySpec)
   }
 
-  @deprecated
+  @deprecated("Use sendRequest(PartitionedRequestSpecification[RequestMsg, PartitionedId], PartitionedNodeSpecification[PartitionedId], PartitionedRetrySpecification[ResponseMsg], responseAggregator), 2/2/2015")
   def sendRequest[RequestMsg, ResponseMsg](ids: Set[PartitionedId], requestBuilder: (Node, Set[PartitionedId]) => RequestMsg, maxRetry: Int)
   (implicit is: InputSerializer[RequestMsg, ResponseMsg], os: OutputSerializer[RequestMsg, ResponseMsg]): ResponseIterator[ResponseMsg] =
   {
@@ -414,7 +414,7 @@ trait PartitionedNetworkClient[PartitionedId] extends BaseNetworkClient {
     sendRequest(requestSpec, nodeSpec, retrySpec)
   }
 
-  @deprecated
+  @deprecated("Use sendRequest(PartitionedRequestSpecification[RequestMsg, PartitionedId], PartitionedNodeSpecification[PartitionedId], PartitionedRetrySpecification[ResponseMsg], responseAggregator), 2/2/2015")
   def sendRequest[RequestMsg, ResponseMsg](ids: Set[PartitionedId], requestBuilder: (Node, Set[PartitionedId]) => RequestMsg, maxRetry: Int, capability: Option[Long])
   (implicit is: InputSerializer[RequestMsg, ResponseMsg], os: OutputSerializer[RequestMsg, ResponseMsg]): ResponseIterator[ResponseMsg] =
   {
@@ -424,7 +424,7 @@ trait PartitionedNetworkClient[PartitionedId] extends BaseNetworkClient {
     sendRequest(requestSpec, nodeSpec, retrySpec)
   }
 
-  @deprecated
+  @deprecated("Use sendRequest(PartitionedRequestSpecification[RequestMsg, PartitionedId], PartitionedNodeSpecification[PartitionedId], PartitionedRetrySpecification[ResponseMsg]), 2/2/2015")
   def sendRequest[RequestMsg, ResponseMsg](ids: Set[PartitionedId], numberOfReplicas: Int,
       requestBuilder: (Node, Set[PartitionedId]) => RequestMsg, maxRetry: Int, capability: Option[Long],
       persistentCapability: Option[Long],
@@ -439,7 +439,7 @@ trait PartitionedNetworkClient[PartitionedId] extends BaseNetworkClient {
     sendRequest(requestSpec, nodeSpec, retrySpec)
   }
 
-  @deprecated
+  @deprecated("Use sendRequest(PartitionedRequestSpecification[RequestMsg, PartitionedId], PartitionedNodeSpecification[PartitionedId], PartitionedRetrySpecification[ResponseMsg]), 2/2/2015")
   def sendRequest[RequestMsg, ResponseMsg](ids: Set[PartitionedId], numberOfReplicas: Int, clusterId: Option[Int],
       requestBuilder: (Node, Set[PartitionedId]) => RequestMsg, maxRetry: Int, capability: Option[Long],
       persistentCapability: Option[Long],
@@ -473,7 +473,7 @@ trait PartitionedNetworkClient[PartitionedId] extends BaseNetworkClient {
    * @throws ClusterDisconnectedException thrown if the <code>PartitionedNetworkClient</code> is not connected to the cluster
    * @throws Exception any exception thrown by <code>responseAggregator</code> will be passed through to the client
    */
-  @deprecated
+  @deprecated("Use sendRequest(PartitionedRequestSpecification[RequestMsg, PartitionedId], PartitionedNodeSpecification[PartitionedId], PartitionedRetrySpecification[ResponseMsg], responseAggregator), 2/2/2015")
   def sendRequest[RequestMsg, ResponseMsg, Result](ids: Set[PartitionedId],
                                                    requestBuilder: (Node, Set[PartitionedId]) => RequestMsg,
                                                    responseAggregator: (ResponseIterator[ResponseMsg]) => Result)
@@ -486,7 +486,7 @@ trait PartitionedNetworkClient[PartitionedId] extends BaseNetworkClient {
     sendRequest(requestSpec, nodeSpec, retrySpec, responseAggregator)
   }
 
-  @deprecated
+  @deprecated("Use sendRequest(PartitionedRequestSpecification[RequestMsg, PartitionedId], PartitionedNodeSpecification[PartitionedId], PartitionedRetrySpecification[ResponseMsg], responseAggregator), 2/2/2015")
   def sendRequest[RequestMsg, ResponseMsg, Result](ids: Set[PartitionedId],
                                                    numberOfReplicas: Int,
                                                    requestBuilder: (Node, Set[PartitionedId]) => RequestMsg,
@@ -500,7 +500,7 @@ trait PartitionedNetworkClient[PartitionedId] extends BaseNetworkClient {
     sendRequest(requestSpec, nodeSpec, retrySpec, responseAggregator)
   }
 
-  @deprecated
+  @deprecated("Use sendRequest(PartitionedRequestSpecification[RequestMsg, PartitionedId], PartitionedNodeSpecification[PartitionedId], PartitionedRetrySpecification[ResponseMsg], responseAggregator), 2/2/2015")
   def sendRequest[RequestMsg, ResponseMsg, Result](ids: Set[PartitionedId],
                                                    requestBuilder: (Node, Set[PartitionedId]) => RequestMsg,
                                                    responseAggregator: (ResponseIterator[ResponseMsg]) => Result,
@@ -514,7 +514,7 @@ trait PartitionedNetworkClient[PartitionedId] extends BaseNetworkClient {
     sendRequest(requestSpec, nodeSpec, retrySpec, responseAggregator)
   }
 
-  @deprecated
+  @deprecated("Use sendRequest(PartitionedRequestSpecification[RequestMsg, PartitionedId], PartitionedNodeSpecification[PartitionedId], PartitionedRetrySpecification[ResponseMsg], responseAggregator), 2/2/2015")
   def sendRequest[RequestMsg, ResponseMsg, Result](ids: Set[PartitionedId],
                                                    requestBuilder: (Node, Set[PartitionedId]) => RequestMsg,
                                                    responseAggregator: (ResponseIterator[ResponseMsg]) => Result,
@@ -529,7 +529,7 @@ trait PartitionedNetworkClient[PartitionedId] extends BaseNetworkClient {
     sendRequest(requestSpec, nodeSpec, retrySpec, responseAggregator)
   }
 
-  @deprecated
+  @deprecated("Use sendRequest(PartitionedRequestSpecification[RequestMsg, PartitionedId], PartitionedNodeSpecification[PartitionedId], PartitionedRetrySpecification[ResponseMsg], responseAggregator), 2/2/2015")
   def sendRequest[RequestMsg, ResponseMsg, Result](ids: Set[PartitionedId],
                                                    numberOfReplicas: Int,
                                                    requestBuilder: (Node, Set[PartitionedId]) => RequestMsg,
@@ -545,6 +545,7 @@ trait PartitionedNetworkClient[PartitionedId] extends BaseNetworkClient {
     sendRequest(requestSpec, nodeSpec, retrySpec, responseAggregator)
   }
 
+  // TODO: This needs comments (the parameters are different than the big comment block 5 or so sendRequests above.
   def sendRequest[RequestMsg, ResponseMsg, Result](requestSpec: PartitionedRequestSpecification[RequestMsg, PartitionedId],
                                            nodeSpec: PartitionedNodeSpecification[PartitionedId],
                                            retrySpec: PartitionedRetrySpecification[ResponseMsg],
