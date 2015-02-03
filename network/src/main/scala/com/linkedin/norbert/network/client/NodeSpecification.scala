@@ -33,22 +33,22 @@ trait NodeTrait[NodeType] {
 ///*********************************
 //Non-Partitioned NodeSpecification
 //*********************************/
-class NodeSpec extends NodeTrait[NodeSpec]
+class NodeSpecification extends NodeTrait[NodeSpecification]
 
 ///*******************************************************
 //Partitioned NodeSpecification
 //********************************************************/
 
-class PartitionedNodeSpec[PartitionedId](val ids: Set[PartitionedId]) extends NodeTrait[PartitionedNodeSpec[_]] {
+class PartitionedNodeSpecification[PartitionedId](val ids: Set[PartitionedId]) extends NodeTrait[PartitionedNodeSpecification[_]] {
   var numberOfReplicas: Int = 0
   var clusterId: Option[Int] = None
 
-  def setNumberOfReplicas(_numberOfReplicas: Int): PartitionedNodeSpec[PartitionedId] = {
+  def setNumberOfReplicas(_numberOfReplicas: Int): PartitionedNodeSpecification[PartitionedId] = {
     this.numberOfReplicas = _numberOfReplicas
     this
   }
 
-  def setClusterId(_clusterId: Option[Int]): PartitionedNodeSpec[PartitionedId] = {
+  def setClusterId(_clusterId: Option[Int]): PartitionedNodeSpecification[PartitionedId] = {
     this.clusterId = _clusterId
     this
   }

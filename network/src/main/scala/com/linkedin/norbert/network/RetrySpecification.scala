@@ -1,6 +1,5 @@
 package com.linkedin.norbert
 
-import com.linkedin.norbert.network.client.NetworkClientConfig
 import com.linkedin.norbert.network.common.RetryStrategy
 
 /**
@@ -26,10 +25,10 @@ class RoutingConfigs(SelectiveRetry: Boolean, DuplicatesOk: Boolean ) {
 /**
  * This is the companion object for the RetrySpecifications class.
  */
-object RetrySpecifications {
+object RetrySpecification {
   def apply[ResponseMsg](maxRetry: Int = 0,
                          callback: Option[Either[Throwable, ResponseMsg] => Unit] = None) = {
-    new RetrySpecifications[ResponseMsg](maxRetry, callback)
+    new RetrySpecification[ResponseMsg](maxRetry, callback)
   }
 
 }
@@ -44,40 +43,39 @@ object RetrySpecifications {
  *
  * @throws IllegalArgumentException if the value for maxRetry is less than 0 and the callback is specified.
  */
-class RetrySpecifications[ResponseMsg](val maxRetry: Int,
+class RetrySpecification[ResponseMsg](val maxRetry: Int,
                                                   val callback: Option[Either[Throwable, ResponseMsg] => Unit]) {
 
 }
 
 /**
- * This is the companion object for the PartitionedRetrySpecifications class.
+ * This is the companion object for the PartitionedRetrySpecification class.
  */
-object PartitionedRetrySpecifications {
+object PartitionedRetrySpecification {
   //can have maxRetry without callback, but you cannot have callback without maxRetry
   def apply[ResponseMsg](maxRetry: Int = 0,
                          callback: Option[Either[Throwable, ResponseMsg] => Unit] = None, //new FutureAdapterListener[ResponseMsg],
                          retryStrategy: Option[RetryStrategy] = None,
                          routingConfigs: RoutingConfigs = RoutingConfigs.defaultRoutingConfigs) = {
-    new PartitionedRetrySpecifications[ResponseMsg](maxRetry, callback, retryStrategy, routingConfigs)
+    new PartitionedRetrySpecification[ResponseMsg](maxRetry, callback, retryStrategy, routingConfigs)
   }
 
 
 }
 
 /**
- * This is the partitioned version of the RetrySpecifications class which encapsulates retry specifications. This class contains
+ * This is the partitioned version of the RetrySpecification class which encapsulates retry specifications. This class contains
  * a default constructor and no additional functionality.
  *
  * @param maxRetry This is the maximum number of retry attempts for the request. If not otherwise specified, the value will be 0.
  * @param callback This is a method to be called with either a Throwable in the case of an error along
  *                 the way or a ResponseMsg representing the result.
  * @param retryStrategy This is the strategy to apply when we run into timeout situation.
- * @tparam ResponseMsg
  */
-class PartitionedRetrySpecifications[ResponseMsg](maxRetry: Int,
+class PartitionedRetrySpecification[ResponseMsg](maxRetry: Int,
                                          callback: Option[Either[Throwable, ResponseMsg] => Unit],
                                          var retryStrategy: Option[RetryStrategy],
-                                         var routingConfigs: RoutingConfigs = RoutingConfigs.defaultRoutingConfigs) extends RetrySpecifications[ResponseMsg](maxRetry, callback) {
+                                         var routingConfigs: RoutingConfigs = RoutingConfigs.defaultRoutingConfigs) extends RetrySpecification[ResponseMsg](maxRetry, callback) {
 
 }
 
