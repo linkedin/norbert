@@ -65,21 +65,4 @@ class PartitionedRequestSpecification[RequestMsg, PartitionedId](val message: Op
 
 }
 
-/**
- * Below is a main which provides some basic testing for RequestSpecification and PartitionedRequestSpecification.
- */
 
-object testing {
-  def main(args: Array[String]) {
-    try {
-      val tester: RequestSpecification[String] = RequestSpecification[String]("test")
-      val partitionedTester: PartitionedRequestSpecification[String, Int] = tester
-      val partitionedTester2: PartitionedRequestSpecification[String, Int] = PartitionedRequestSpecification[String, Int](Some("partitionedTest"))
-      val tester2: RequestSpecification[String] = partitionedTester
-      println(tester2.message);
-    }
-    catch {
-      case e: Exception => println("There was an exception: " + e)
-    }
-  }
-}

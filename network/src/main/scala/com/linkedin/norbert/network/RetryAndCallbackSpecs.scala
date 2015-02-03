@@ -81,20 +81,5 @@ class PartitionedRetrySpecifications[ResponseMsg](maxRetry: Int,
 
 }
 
-/**
- * This provides some basic testing for both the RetrySpecifications and PartitionedRetrySpecifications classes.
- */
-object RCBTesting {
-  def main(args: Array[String]) = {
-    try {
-      val tester: RetrySpecifications[String] = RetrySpecifications[String](9)
-      //val partitionedTester: PartitionedRetrySpecifications[String] = PartitionedRetrySpecifications[String]()
-      println(tester.callback)
-      println(tester.maxRetry)
-    }
-    catch {
-      case e: Exception => println("There was an exception: " + e)
-    }
-  }
-}
+
 

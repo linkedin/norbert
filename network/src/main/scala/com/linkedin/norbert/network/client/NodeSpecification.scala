@@ -55,39 +55,5 @@ class PartitionedNodeSpec[PartitionedId](val ids: Set[PartitionedId]) extends No
 }
 
 
-/*******************************************************
-Testing
-  ********************************************************/
-object testing {
-  def main(args: Array[String]): Unit = {
-    try {
-
-      val nonPartitionedTest = new NodeSpec()
-        .setCapability(Some(1))
-        .setPersistentCapability(Some(2))
-        .build
-      println("Non-Partitioned: " + "\n" + "Cap: " + nonPartitionedTest.capability + ", PersCap: " + nonPartitionedTest.persistentCapability)
-      val PartitionedTest = new PartitionedNodeSpec(Set(1))
-        .setCapability(Some(2))
-        .setPersistentCapability(Some(3))
-        .setNumberOfReplicas(4)
-        .setClusterId(Some(5))
-        .build
-      println("Partitioned: " + "\n" + "ids: " + PartitionedTest.ids + ", Cap: " + PartitionedTest.capability + ", PersCap: " + PartitionedTest.persistentCapability +
-        ", NumRep: " + PartitionedTest.numberOfReplicas + ", cId: " + PartitionedTest.clusterId)
-//      val nonPartitionedTestFail = new NodeSpec()
-//        .setPersistentCapability(Some(2))
-//        .build
-//      println("Non-Partitioned Fail: " + "\n" + "Cap: " + nonPartitionedTestFail.capability + ", PersCap: " + nonPartitionedTestFail.persistentCapability)
-      val PartitionedTestFail = new PartitionedNodeSpec(Set(1))
-        .setPersistentCapability(Some(2))
-        .build
-      println("Non-Partitioned Fail: " + "\n" + "Cap: " + PartitionedTestFail.capability + ", PersCap: " + PartitionedTestFail.persistentCapability)
-    }
-    catch {
-      case e: Exception => println("There was an exception: " + e)
-    }
-  }
-}
 
 
