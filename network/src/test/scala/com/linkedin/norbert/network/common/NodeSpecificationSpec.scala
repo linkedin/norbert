@@ -16,7 +16,7 @@ class NodeSpecificationSpec extends SpecificationWithJUnit {
 
   "NodeSpecification" should {
     "create a new NodeSpecification object if capability is set" in {
-      val nonPartitionedTest = new NodeSpec()
+      val nonPartitionedTest = new NodeSpecification()
         .setCapability(Some(1))
         .setPersistentCapability(Some(2))
         .build
@@ -26,7 +26,7 @@ class NodeSpecificationSpec extends SpecificationWithJUnit {
     }
 
     "create a new PartitionedNodeSpecification object if capability is set" in {
-      val PartitionedTest = new PartitionedNodeSpec(Set(1))
+      val PartitionedTest = new PartitionedNodeSpecification(Set(1))
         .setCapability(Some(2))
         .setPersistentCapability(Some(3))
         .setNumberOfReplicas(4)
@@ -40,10 +40,10 @@ class NodeSpecificationSpec extends SpecificationWithJUnit {
 
     "throw an IllegalArgumentException if persistentCapability is set but not capability" in {
 
-      new NodeSpec()
+      new NodeSpecification()
         .setPersistentCapability(Some(2))
         .build must throwA[IllegalArgumentException]
-      new PartitionedNodeSpec(Set(1))
+      new PartitionedNodeSpecification(Set(1))
         .setPersistentCapability(Some(2))
         .build must throwA[IllegalArgumentException]
     }
