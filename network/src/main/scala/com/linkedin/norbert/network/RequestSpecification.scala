@@ -38,8 +38,8 @@ class RequestSpecification[RequestMsg](val message: RequestMsg) {
  */
 object PartitionedRequestSpecification{
   def apply[RequestMsg, PartitionedId](message: Option[RequestMsg] = None,
-                                       rb: Option[(Node, Set[PartitionedId]) => RequestMsg] = None): PartitionedRequestSpecification[RequestMsg, PartitionedId] = {
-    new PartitionedRequestSpecification(message, rb)
+                                       requestBuilder: Option[(Node, Set[PartitionedId]) => RequestMsg] = None): PartitionedRequestSpecification[RequestMsg, PartitionedId] = {
+    new PartitionedRequestSpecification(message, requestBuilder)
   }
   implicit def convert[RequestMsg, PartitionedId](requestSpec: RequestSpecification[RequestMsg]): PartitionedRequestSpecification[RequestMsg, PartitionedId] = {
     new PartitionedRequestSpecification(Some(requestSpec.message), None)
