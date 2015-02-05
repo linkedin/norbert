@@ -56,7 +56,8 @@ class PartitionedRequestSpecification[RequestMsg, PartitionedId](val message: Op
                                              var requestBuilder: Option[(Node, Set[PartitionedId]) => RequestMsg]) {
   if (requestBuilder == None) {
     if (message == None) {
-      //error if both message and requestBuilder are none
+      
+      /* error if both message and requestBuilder are none */
       throw new IllegalArgumentException("You must specify either message or RequestBuilder")
     }
     requestBuilder = Some((node:Node, ids:Set[PartitionedId])=> message.getOrElse(throw new Exception("This should not happen")))
