@@ -52,9 +52,8 @@ class RetrySpecification[ResponseMsg](val maxRetry: Int,
  * This is the companion object for the PartitionedRetrySpecification class.
  */
 object PartitionedRetrySpecification {
-  //can have maxRetry without callback, but you cannot have callback without maxRetry
   def apply[ResponseMsg](maxRetry: Int = 0,
-                         callback: Option[Either[Throwable, ResponseMsg] => Unit] = None, //new FutureAdapterListener[ResponseMsg],
+                         callback: Option[Either[Throwable, ResponseMsg] => Unit] = None,
                          retryStrategy: Option[RetryStrategy] = None,
                          routingConfigs: RoutingConfigs = RoutingConfigs.defaultRoutingConfigs) = {
     new PartitionedRetrySpecification[ResponseMsg](maxRetry, callback, retryStrategy, routingConfigs)
