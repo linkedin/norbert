@@ -5,7 +5,17 @@ package com.linkedin.norbert
 package network
 package client
 
+/**
+ * A NodeSpecification object is used to store the necessary information to specify a node.
+ * For the non-partitioned version this is the capability and persistentCapability.
+ * The Partitioned version extends the non-partitioned version with numberOfReplicas and clusterId
+ */
 
+/**
+ * NodeTrait is the trait that the NodeSpecification objects extend.
+
+ * @tparam NodeType Either a non-partitioned or partitioned nodeSpec
+ */
 trait NodeTrait[NodeType] {
   var capability: Option[Long] = None
   var persistentCapability: Option[Long] = None
@@ -32,15 +42,17 @@ trait NodeTrait[NodeType] {
   }
 }
 
-///*********************************
-//Non-Partitioned NodeSpecification
-//*********************************/
+/**
+ * This is a NodeSpec.  It extends the NodeTrait and has no extra functionality
+ */
 class NodeSpec extends NodeTrait[NodeSpec]
 
-///*******************************************************
-//Partitioned NodeSpecification
-//********************************************************/
 
+/**
+ * This is a PartitionedNodeSpec. It extends the NodeTrait and defines numberOfReplicas and clusterId
+ * @param ids A Set of PartitionedIds
+ * @tparam PartitionedId The type of the ids
+ */
 class PartitionedNodeSpec[PartitionedId](val ids: Set[PartitionedId]) extends NodeTrait[PartitionedNodeSpec[_]] {
   var numberOfReplicas: Int = 0
   var clusterId: Option[Int] = None
