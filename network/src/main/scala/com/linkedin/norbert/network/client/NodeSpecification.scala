@@ -1,4 +1,4 @@
-/*
+/**
  * Partitioned and non-partitioned NodeSpecification wrapper objects for sendRequest
  */
 
@@ -30,14 +30,14 @@ trait NodeTrait[NodeType] {
   }
 }
 
-///*********************************
-//Non-Partitioned NodeSpecification
-//*********************************/
+/**
+* Non-Partitioned NodeSpecification
+*/
 class NodeSpecification extends NodeTrait[NodeSpecification]
 
-///*******************************************************
-//Partitioned NodeSpecification
-//********************************************************/
+/**
+* Partitioned NodeSpecification
+*/
 
 class PartitionedNodeSpecification[PartitionedId](val ids: Set[PartitionedId]) extends NodeTrait[PartitionedNodeSpecification[_]] {
   var numberOfReplicas: Int = 0
