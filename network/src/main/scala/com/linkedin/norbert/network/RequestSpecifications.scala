@@ -1,10 +1,10 @@
 
 package com.linkedin.norbert
-package javacompat
 package network
 
-import com.linkedin.norbert.javacompat.network.{RequestSpecification => JavaRequestSpecification}
 import com.linkedin.norbert.cluster.{ClusterException, Node}
+import com.linkedin.norbert.network.javaobjects.{RequestSpecification => JRequestSpecification, PartitionedRequestSpecification => JPartitionedRequestSpecification}
+
 
 /**
  * A RequestSpecification object is used to store the necessary information to specify the request message.
@@ -29,7 +29,7 @@ object RequestSpecification {
  * @param message The requestMsg to be sent to the node.
  * @tparam RequestMsg The type of the request being sent to the node, should be the same as that used by the network client you will use to send the request.
  */
-class RequestSpecification[RequestMsg](val message: RequestMsg) extends JavaRequestSpecification[RequestMsg]{
+class RequestSpecification[RequestMsg](val message: RequestMsg) extends JRequestSpecification[RequestMsg]{
 
 }
 
@@ -58,7 +58,7 @@ object PartitionedRequestSpecification{
  * @tparam PartitionedId
  */
 class PartitionedRequestSpecification[RequestMsg, PartitionedId](val message: Option[RequestMsg],
-                                             var rb: Option[(Node, Set[PartitionedId]) => RequestMsg]) {
+                                             var rb: Option[(Node, Set[PartitionedId]) => RequestMsg]) extends JPartitionedRequestSpecification[RequestMsg]{
   if (rb == None) {
     if (message == None) {
       //error if both message and requestBuilder are none

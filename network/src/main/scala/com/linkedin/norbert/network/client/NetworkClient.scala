@@ -21,8 +21,8 @@ import java.util.concurrent.Future
 import loadbalancer.{LoadBalancerFactory, LoadBalancer, LoadBalancerFactoryComponent}
 import server.{MessageExecutorComponent, NetworkServer}
 import cluster._
-import network.common._
 import netty.NettyNetworkClient
+import network.common._
 
 
 object NetworkClientConfig {
@@ -204,7 +204,7 @@ trait NetworkClient extends BaseNetworkClient {
    * TODO: comment new function
    */
 
-  def sendRequest[RequestMsg, ResponseMsg](requestSpec: RequestSpecification[RequestMsg], nodeSpec: NodeSpec, retrySpec: RetrySpecifications[ResponseMsg])
+  def sendRequest[RequestMsg, ResponseMsg](requestSpec: javaobjects.RequestSpecification[RequestMsg], nodeSpec: NodeSpec, retrySpec: RetrySpecifications[ResponseMsg])
   (implicit is: InputSerializer[RequestMsg, ResponseMsg], os:OutputSerializer[RequestMsg, ResponseMsg]): Unit = doIfConnected {
     if (requestSpec.message == null) throw new NullPointerException
     val callback = retrySpec.callback.getOrElse(throw new Exception("No callback and no default callback"));

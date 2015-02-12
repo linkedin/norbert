@@ -5,6 +5,8 @@ package com.linkedin.norbert
 package network
 package client
 
+import com.linkedin.norbert.network.javaobjects.{NodeSpecification => JNodeSpecification, PartitionedNodeSpecification => JPartitionedNodeSpecification}
+
 /**
  * A NodeSpecification object is used to store the necessary information to specify a node.
  * For the non-partitioned version this is the capability and persistentCapability.
@@ -45,7 +47,7 @@ trait NodeTrait[NodeType] {
 /**
  * This is a NodeSpec.  It extends the NodeTrait and has no extra functionality
  */
-class NodeSpec extends NodeTrait[NodeSpec]
+class NodeSpec extends NodeTrait[NodeSpec] with JNodeSpecification
 
 
 /**
@@ -53,7 +55,7 @@ class NodeSpec extends NodeTrait[NodeSpec]
  * @param ids A Set of PartitionedIds
  * @tparam PartitionedId The type of the ids
  */
-class PartitionedNodeSpec[PartitionedId](val ids: Set[PartitionedId]) extends NodeTrait[PartitionedNodeSpec[_]] {
+class PartitionedNodeSpec[PartitionedId](val ids: Set[PartitionedId]) extends NodeTrait[PartitionedNodeSpec[_]] with JPartitionedNodeSpecification{
   var numberOfReplicas: Int = 0
   var clusterId: Option[Int] = None
 

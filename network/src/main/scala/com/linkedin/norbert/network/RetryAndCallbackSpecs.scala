@@ -3,6 +3,8 @@ package com.linkedin.norbert
 import com.linkedin.norbert.network.client.NetworkClientConfig
 import com.linkedin.norbert.network.common.RetryStrategy
 
+import com.linkedin.norbert.network.javaobjects.{RetrySpecification => JRetrySpecification, PartitionedRetrySpecification => JPartitionedRetrySpecification}
+
 /**
  * This is the companion object for the RoutingConfigs class.
  */
@@ -45,7 +47,7 @@ object RetrySpecifications {
  * @throws IllegalArgumentException if the value for maxRetry is less than 0 and the callback is specified.
  */
 class RetrySpecifications[ResponseMsg](val maxRetry: Int,
-                                                  val callback: Option[Either[Throwable, ResponseMsg] => Unit]) {
+                                                  val callback: Option[Either[Throwable, ResponseMsg] => Unit]) extends JRetrySpecification[ResponseMsg]{
 
 }
 
@@ -76,7 +78,7 @@ object PartitionedRetrySpecifications {
 class PartitionedRetrySpecifications[ResponseMsg](maxRetry: Int,
                                          callback: Option[Either[Throwable, ResponseMsg] => Unit],
                                          var retryStrategy: Option[RetryStrategy],
-                                         var duplicatesOk: Boolean = false) extends RetrySpecifications[ResponseMsg](maxRetry, callback) {
+                                         var duplicatesOk: Boolean = false) extends RetrySpecifications[ResponseMsg](maxRetry, callback) with JPartitionedRetrySpecification[ResponseMsg]{
 
   val routingConfigs = new RoutingConfigs(retryStrategy != None, duplicatesOk)
   def setConfig(config: NetworkClientConfig): Unit = {

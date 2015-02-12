@@ -1,4 +1,4 @@
-package com.linkedin.norbert.javacompat.network;
+package com.linkedin.norbert.network.javaobjects;
 
 /**
  * Created by hwoodward on 11/16/14.
