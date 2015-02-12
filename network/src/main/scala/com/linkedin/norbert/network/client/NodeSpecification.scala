@@ -1,4 +1,4 @@
-/*
+/**
  * Partitioned and non-partitioned NodeSpecification wrapper objects for sendRequest
  */
 package com.linkedin.norbert
@@ -45,26 +45,24 @@ trait NodeTrait[NodeType] {
 }
 
 /**
- * This is a NodeSpec.  It extends the NodeTrait and has no extra functionality
- */
-class NodeSpec extends NodeTrait[NodeSpec] with JNodeSpecification
-
+* Non-Partitioned NodeSpecification
+*/
+class NodeSpecification extends NodeTrait[NodeSpecification]
 
 /**
- * This is a PartitionedNodeSpec. It extends the NodeTrait and defines numberOfReplicas and clusterId
- * @param ids A Set of PartitionedIds
- * @tparam PartitionedId The type of the ids
- */
-class PartitionedNodeSpec[PartitionedId](val ids: Set[PartitionedId]) extends NodeTrait[PartitionedNodeSpec[_]] with JPartitionedNodeSpecification{
+* Partitioned NodeSpecification
+*/
+
+class PartitionedNodeSpecification[PartitionedId](val ids: Set[PartitionedId]) extends NodeTrait[PartitionedNodeSpecification[_]] {
   var numberOfReplicas: Int = 0
   var clusterId: Option[Int] = None
 
-  def setNumberOfReplicas(_numberOfReplicas: Int): PartitionedNodeSpec[_] = {
+  def setNumberOfReplicas(_numberOfReplicas: Int): PartitionedNodeSpecification[PartitionedId] = {
     this.numberOfReplicas = _numberOfReplicas
     this
   }
 
-  def setClusterId(_clusterId: Option[Int]): PartitionedNodeSpec[_] = {
+  def setClusterId(_clusterId: Option[Int]): PartitionedNodeSpecification[PartitionedId] = {
     this.clusterId = _clusterId
     this
   }
