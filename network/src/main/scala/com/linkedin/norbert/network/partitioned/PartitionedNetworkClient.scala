@@ -22,7 +22,7 @@ import common._
 import loadbalancer.{PartitionedLoadBalancer, PartitionedLoadBalancerFactoryComponent, PartitionedLoadBalancerFactory}
 import server.{MessageExecutorComponent, NetworkServer}
 import netty.NettyPartitionedNetworkClient
-import com.linkedin.norbert.network.client.{PartitionedNodeSpecification, NetworkClientConfig}
+import com.linkedin.norbert.network.client.NetworkClientConfig
 import cluster.{Node, ClusterDisconnectedException, InvalidClusterException, ClusterClientComponent}
 import scala.util.Random
 import java.util

@@ -19,6 +19,7 @@ import com.linkedin.norbert.cluster.ClusterDisconnectedException;
 import com.linkedin.norbert.cluster.InvalidClusterException;
 import com.linkedin.norbert.network.NoNodesAvailableException;
 import com.linkedin.norbert.network.Serializer;
+import com.linkedin.norbert.network.javaobjects.*;
 
 import java.util.concurrent.Future;
 
@@ -51,6 +52,6 @@ public interface NetworkClient extends BaseNetworkClient {
   <RequestMsg, ResponseMsg> Future<ResponseMsg> sendRequest(RequestMsg request, Serializer<RequestMsg, ResponseMsg> serializer, int maxRetry, long capability) throws InvalidClusterException, NoNodesAvailableException, ClusterDisconnectedException;
   <RequestMsg, ResponseMsg> Future<ResponseMsg> sendRequest(RequestMsg request, Serializer<RequestMsg, ResponseMsg> serializer, int maxRetry, long capability, long persistentCapability) throws InvalidClusterException, NoNodesAvailableException, ClusterDisconnectedException;
 
-//  <RequestMsg, ResponseMsg> void sendRequest(RequestSpecification<RequestMsg> requestSpec,NodeSpec nodeSpec, RetrySpecifications<ResponseMsg> retrySpec,
-//           Serializer<RequestMsg, ResponseMsg> serializer) throws InvalidClusterException, NoNodesAvailableException, ClusterDisconnectedException;
+  <RequestMsg, ResponseMsg> void sendRequest(RequestSpecification<RequestMsg> requestSpecification,NodeSpecification nodeSpecification, RetrySpecification<ResponseMsg> retrySpecification,
+           Serializer<RequestMsg, ResponseMsg> serializer) throws InvalidClusterException, NoNodesAvailableException, ClusterDisconnectedException;
 }

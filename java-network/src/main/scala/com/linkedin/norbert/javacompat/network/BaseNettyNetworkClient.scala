@@ -24,6 +24,7 @@ import com.linkedin.norbert.network.client.loadbalancer.{LoadBalancer => SLoadBa
 import com.linkedin.norbert.network.common.{Endpoint => SEndpoint}
 import com.linkedin.norbert.network.partitioned.loadbalancer.{PartitionedLoadBalancer => SPartitionedLoadBalancer, PartitionedLoadBalancerFactory => SPartitionedLoadBalancerFactory}
 import com.linkedin.norbert.network.{ResponseIterator, Serializer}
+import com.linkedin.norbert.network.javaobjects.{NodeSpecification, RequestSpecification, RetrySpecification}
 
 //TODO: add our new function definition from the interface to each class and make it call the underlying traits implementation
 
@@ -106,8 +107,8 @@ class NettyNetworkClient(config: NetworkClientConfig, loadBalancerFactory: LoadB
   def sendRequest[RequestMsg, ResponseMsg](requestMsg: RequestMsg, serializer: Serializer[RequestMsg, ResponseMsg], maxRetry: Int, capability: Long, persistentCapability: Long) =
     underlying.sendRequest(requestMsg, maxRetry, Some(capability), Some(persistentCapability))(serializer, serializer)
 
-  def sendRequest[RequestMsg, ResponseMsg](requestSpec: com.linkedin.norbert.network.RequestSpecification[RequestMsg],nodeSpec: com.linkedin.norbert.network.client.NodeSpecification,retrySpec: com.linkedin.norbert.RetrySpecification[ResponseMsg], serializer:Serializer[RequestMsg, ResponseMsg]) =
-    underlying.sendRequest(requestSpec, nodeSpec, retrySpec)(serializer, serializer)
+  def sendRequest[RequestMsg, ResponseMsg](requestSpecification: RequestSpecification[RequestMsg],nodeSpecification: NodeSpecification,retrySpecification: RetrySpecification[ResponseMsg], serializer:Serializer[RequestMsg, ResponseMsg]) =
+    underlying.sendRequest(requestSpecification, nodeSpecification, retrySpecification)(serializer, serializer)
 }
 
 class NettyPartitionedNetworkClient[PartitionedId](config: NetworkClientConfig, loadBalancerFactory: PartitionedLoadBalancerFactory[PartitionedId],
