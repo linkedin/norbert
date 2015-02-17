@@ -31,7 +31,7 @@ class RequestSpecification[RequestMsg](val message: RequestMsg) {
 
 /**
  * This is the partitioned version of RequestSpecification. It serves the same purpose of storing the information regarding the message being sent.
- * In this partitioned version the request can be specified either by giving the actual RequestMsg to be sent or by providing a requestBuilder (rb).
+ * In this partitioned version the request can be specified either by giving the actual RequestMsg to be sent or by providing a requestBuilder.
  * A RequestBuilder is a function which, given a node and a set of PartitionedIds will return a RequestMsg.
  * which will generate a message from a set of partitionedIds. At least one of those must be specified.
  * You can also convert a RequestSpecification into a PartitionedRequestSpecification, which will set the PartitionedRequestSpecification's message to that of the RequestSpecification and not specify a requestBuilder.
@@ -58,7 +58,7 @@ class PartitionedRequestSpecification[RequestMsg, PartitionedId](val message: Op
     if (message == None) {
       
       /* error if both message and requestBuilder are none */
-      throw new IllegalArgumentException("You must specify either message or RequestBuilder")
+      throw new IllegalArgumentException("You must specify either message or requestBuilder")
     }
     requestBuilder = Some((node:Node, ids:Set[PartitionedId])=> message.getOrElse(throw new Exception("This should not happen")))
   }
