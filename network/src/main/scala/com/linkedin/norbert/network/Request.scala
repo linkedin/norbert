@@ -23,17 +23,13 @@ import com.linkedin.norbert.network.common.CachedNetworkStatistics
 import com.linkedin.norbert.norbertutils.SystemClockComponent
 import com.linkedin.norbert.network.netty.ClientChannelHandler
 
-object Request {
-  def apply[RequestMsg, ResponseMsg](message: RequestMsg, node: Node,
-                                     inputSerializer: InputSerializer[RequestMsg, ResponseMsg], outputSerializer: OutputSerializer[RequestMsg, ResponseMsg],
-                                     callback: Option[Either[Throwable, ResponseMsg] => Unit], retryAttempt: Int = 0): Request[RequestMsg, ResponseMsg] = {
-    new Request(message, node, inputSerializer, outputSerializer, callback, retryAttempt)
-  }
+object BaseRequest {
+
 }
 
-class Request[RequestMsg, ResponseMsg](val message: RequestMsg, val node: Node,
-                                       val inputSerializer: InputSerializer[RequestMsg, ResponseMsg], val outputSerializer: OutputSerializer[RequestMsg, ResponseMsg],
-                                       val callback: Option[Either[Throwable, ResponseMsg] => Unit], val retryAttempt: Int = 0) {
+class BaseRequest[RequestMsg](val message: RequestMsg, val node: Node,
+                              val inputSerializer: InputSerializer[RequestMsg, _],
+                              val outputSerializer: OutputSerializer[RequestMsg, _]) {
   val id = UUID.randomUUID
   val timestamp = System.currentTimeMillis
   val headers : Map[String, String] = Map.empty[String, String]
@@ -46,12 +42,31 @@ class Request[RequestMsg, ResponseMsg](val message: RequestMsg, val node: Node,
 
   def addHeader(key: String, value: String) = headers += (key -> value)
 
-  def onFailure(exception: Throwable) {
-    if(!callback.isEmpty) callback.get(Left(exception))
-  }
-
   def startNettyTiming(stats : CachedNetworkStatistics[Node, UUID]) = {
     stats.beginNetty(node, id, 0)
+  }
+
+  override def toString: String = {
+    "[Request: %s, %s]".format(message, node)
+  }
+
+}
+
+object Request {
+  def apply[RequestMsg, ResponseMsg](message: RequestMsg, node: Node,
+                                     inputSerializer: InputSerializer[RequestMsg, ResponseMsg], outputSerializer: OutputSerializer[RequestMsg, ResponseMsg],
+                                     callback: Option[Either[Throwable, ResponseMsg] => Unit], retryAttempt: Int = 0): Request[RequestMsg, ResponseMsg] = {
+    new Request(message, node, inputSerializer, outputSerializer, callback, retryAttempt)
+  }
+}
+
+class Request[RequestMsg, ResponseMsg](override val message: RequestMsg, override val node: Node,
+                                       override val inputSerializer: InputSerializer[RequestMsg, ResponseMsg], override val outputSerializer: OutputSerializer[RequestMsg, ResponseMsg],
+                                       val callback: Option[Either[Throwable, ResponseMsg] => Unit], val retryAttempt: Int = 0)
+  extends BaseRequest[RequestMsg](message, node, inputSerializer, outputSerializer){
+
+  def onFailure(exception: Throwable) {
+    if(!callback.isEmpty) callback.get(Left(exception))
   }
 
   def onSuccess(bytes: Array[Byte]) {
