@@ -24,7 +24,11 @@ import com.linkedin.norbert.norbertutils.SystemClockComponent
 import com.linkedin.norbert.network.netty.ClientChannelHandler
 
 object BaseRequest {
-
+  def apply[RequestMsg](message: RequestMsg, node: Node,
+                        inputSerializer: InputSerializer[RequestMsg, Unit],
+                        outputSerializer: OutputSerializer[RequestMsg, Unit]): BaseRequest[RequestMsg] = {
+    new BaseRequest(message, node, inputSerializer, outputSerializer)
+  }
 }
 
 class BaseRequest[RequestMsg](val message: RequestMsg, val node: Node,
