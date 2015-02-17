@@ -37,6 +37,7 @@ class BaseRequest[RequestMsg](val message: RequestMsg, val node: Node,
   val id = UUID.randomUUID
   val timestamp = System.currentTimeMillis
   val headers : Map[String, String] = Map.empty[String, String]
+  val expectsResponse = false
 
   def name: String = {
     inputSerializer.requestName
@@ -69,12 +70,14 @@ class Request[RequestMsg, ResponseMsg](override val message: RequestMsg, overrid
                                        val callback: Option[Either[Throwable, ResponseMsg] => Unit], val retryAttempt: Int = 0)
   extends BaseRequest[RequestMsg](message, node, inputSerializer, outputSerializer){
 
+  override val expectsResponse = !callback.isEmpty
+
   def onFailure(exception: Throwable) {
-    if(!callback.isEmpty) callback.get(Left(exception))
+    if(expectsResponse) callback.get(Left(exception))
   }
 
   def onSuccess(bytes: Array[Byte]) {
-    if(!callback.isEmpty) callback.get(try {
+    if(expectsResponse) callback.get(try {
       Right(inputSerializer.responseFromBytes(bytes))
     } catch {
       case ex: Exception => Left(new ClusterException("Exception while deserializing response", ex))

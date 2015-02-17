@@ -96,10 +96,10 @@ class ClientChannelHandler(clientName: Option[String],
   private val statsJMX = JMX.register(new NetworkClientStatisticsMBeanImpl(clientName, serviceName, stats, clientStatsStrategy))
 
   override def writeRequested(ctx: ChannelHandlerContext, e: MessageEvent) = {
-    val request = e.getMessage.asInstanceOf[Request[_, _]]
+    val request = e.getMessage.asInstanceOf[BaseRequest[_]]
     log.debug("Writing request: %s".format(request))
-    if(!request.callback.isEmpty) {
-      requestMap.put(request.id, request)
+    if(request.expectsResponse) {
+      requestMap.put(request.id, request.asInstanceOf[Request[_,_]])
       stats.beginRequest(request.node, request.id, 0)
     }
 
