@@ -42,9 +42,9 @@ object Node {
       val partitions = node.getPartitionList.asInstanceOf[java.util.List[Int]].foldLeft(Set[Int]()) { (set, i) => set + i }
 
       if(!node.hasPersistentCapability)
-        Node(node.getId, node.getUrl, available, partitions, capability, None, node.getAltPort)
+        Node(node.getId, node.getUrl, available, partitions, capability, None, Some(node.getAltPort))
       else
-        Node(node.getId, node.getUrl, available, partitions, capability, Some(node.getPersistentCapability), node.getAltPort)
+        Node(node.getId, node.getUrl, available, partitions, capability, Some(node.getPersistentCapability), Some(node.getAltPort))
     } catch {
       case ex: InvalidProtocolBufferException => throw new InvalidNodeException("Error deserializing node", ex)
     }
