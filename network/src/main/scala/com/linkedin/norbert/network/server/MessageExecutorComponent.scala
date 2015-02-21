@@ -127,6 +127,26 @@ class ThreadPoolMessageExecutor(clientName: Option[String],
                                                        val queuedAt: Long = System.currentTimeMillis,
                                                        val id: Int = idGenerator.getAndIncrement.abs,
                                                        implicit val is: InputSerializer[RequestMsg, ResponseMsg]) extends Runnable {
+    /**
+     *
+     * @param rr the request being compared with
+     * @return 0 if they deserve the same priority in the queue, a positive number if the deserves
+     */
+    def compareTo(rr:RequestRunner): Int = {
+      val myPriority = is.priority
+      val rrPriority = rr.is.priority
+      if (myPriority == rrPriority) {
+        // if the priorities are the same, we want the older request to go first, so if rr is older (has a smaller time) we want my > rr (a positive result)
+        val myTime = queuedAt
+        val rrTime = rr.queuedAt
+        return (myTime - rrTime).asInstanceOf[Int]
+      }
+      else {
+        // If rr has a higher priority then it should come out first - so we want my > rr (a positive result) if rrPriority>myPriority
+        return rrPriority - myPriority
+      }
+    }
+
     def run = {
       val now = System.currentTimeMillis
       if(now - queuedAt > reqTimeout) {
