@@ -99,6 +99,7 @@ class ClientChannelHandler(clientName: Option[String],
     val request = e.getMessage.asInstanceOf[BaseRequest[_]]
     log.debug("Writing request: %s".format(request))
     if(request.expectsResponse) {
+      //We assume that if a response is expected then the message is a Request or some derivative of Request.
       requestMap.put(request.id, request.asInstanceOf[Request[_,_]])
       stats.beginRequest(request.node, request.id, 0)
     }

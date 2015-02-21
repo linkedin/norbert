@@ -37,6 +37,8 @@ class BaseRequest[RequestMsg](val message: RequestMsg, val node: Node,
   val id = UUID.randomUUID
   val timestamp = System.currentTimeMillis
   val headers : Map[String, String] = Map.empty[String, String]
+  //currently there is an assumption in ClientChannelHandler that only the Request class and derivatives of it can expect responses
+  //if you extend baseRequest (and not request) with something that expects a response make sure to change that
   val expectsResponse = false
 
   def name: String = {
