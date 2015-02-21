@@ -32,6 +32,7 @@ trait NettyClusterIoClientComponent extends ClusterIoClientComponent {
 
   class NettyClusterIoClient(channelPoolFactory: ChannelPoolFactory, strategy: CanServeRequestStrategy) extends ClusterIoClient with UrlParser with Logging {
     private val channelPools = new ConcurrentHashMap[Node, ChannelPool]
+    private val altChannelPools = new ConcurrentHashMap[Node, ChannelPool]
 
     def sendMessage[RequestMsg, ResponseMsg](node: Node, request: Request[RequestMsg, ResponseMsg]) {
       if (node == null || request == null) throw new NullPointerException
@@ -46,11 +47,34 @@ trait NettyClusterIoClientComponent extends ClusterIoClientComponent {
       }
     }
 
+    def sendAltMessage[RequestMsg](node: Node, request: BaseRequest[RequestMsg]) {
+      if (node == null || request == null) throw new NullPointerException
+
+      val pool = getAltChannelPool(node)
+      try {
+        pool.sendRequest(request) // TODO: Make this take a base request, not a request.
+      } catch {
+        case ex: ChannelPoolClosedException =>
+          // ChannelPool was closed, try again
+          sendAltMessage(node, request)
+      }
+    }
+
     def getChannelPool(node: Node): ChannelPool = {
       // TODO: Theoretically, we might be able to get a null reference instead of a channel pool here
       import norbertutils._
       atomicCreateIfAbsent(channelPools, node) { n: Node =>
         val (address, port) = parseUrl(n.url)
+        channelPoolFactory.newChannelPool(new InetSocketAddress(address, port))
+      }
+    }
+
+    def getAltChannelPool(node: Node): ChannelPool = {
+      // TODO: Theoretically, we might be able to get a null reference instead of a channel pool here
+      import norbertutils._
+      atomicCreateIfAbsent(altChannelPools, node) { n: Node =>
+        val (address, _) = parseUrl(n.url)
+        val port = n.altPort
         channelPoolFactory.newChannelPool(new InetSocketAddress(address, port))
       }
     }
@@ -63,6 +87,16 @@ trait NettyClusterIoClientComponent extends ClusterIoClientComponent {
           val pool = channelPools.remove(node)
           pool.close
           log.info("Closing pool for unavailable node: %s".format(node))
+        }
+      }
+
+      // Now we also do the same for our altChannelPools.
+      altChannelPools.keySet.foreach { node =>
+        if (!nodes.contains(node)) {
+          altChannelPools.get(node).unregisterJMX
+          val pool = altChannelPools.remove(node)
+          pool.close
+          log.info("Closing alt channel pool for unavailable node: %s".format(node))
         }
       }
 
@@ -85,6 +119,16 @@ trait NettyClusterIoClientComponent extends ClusterIoClientComponent {
           case pool =>
             pool.close
             channelPools.remove(key)
+        }
+      }
+
+      // Do the same for altChannelPools
+      altChannelPools.keySet.foreach { key =>
+        altChannelPools.get(key) match {
+          case null => // do nothing
+          case pool =>
+            pool.close
+            altChannelPools.remove(key)
         }
       }
 
