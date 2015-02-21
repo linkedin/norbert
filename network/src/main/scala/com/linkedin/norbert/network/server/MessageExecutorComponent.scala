@@ -131,6 +131,7 @@ class ThreadPoolMessageExecutor(clientName: Option[String],
      * CompareTo compares this RequestRunner with another and returns an integer indicating which one has a higher priority
      * to be executed. It pulls the priority from InputSerializer.priority (a higher priority goes first), and tiebreaks based on
      * the queuedAt time (an older, or lower time, message goes first)
+     *
      * @param rr the request being compared with
      * @return 0 if they deserve the same priority in the queue, a positive number if the deserves
      */
