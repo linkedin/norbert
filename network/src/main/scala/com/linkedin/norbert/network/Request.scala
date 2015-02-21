@@ -16,12 +16,11 @@
 package com.linkedin.norbert.network
 
 import java.util.UUID
-import com.linkedin.norbert.cluster.{Node, ClusterException}
-import scala.collection.mutable.Map
-import com.linkedin.norbert.logging.Logging
+
+import com.linkedin.norbert.cluster.{ClusterException, Node}
 import com.linkedin.norbert.network.common.CachedNetworkStatistics
-import com.linkedin.norbert.norbertutils.SystemClockComponent
-import com.linkedin.norbert.network.netty.ClientChannelHandler
+
+import scala.collection.mutable.Map
 
 object BaseRequest {
   def apply[RequestMsg](message: RequestMsg, node: Node,
@@ -57,6 +56,10 @@ class BaseRequest[RequestMsg](val message: RequestMsg, val node: Node,
     "[Request: %s, %s]".format(message, node)
   }
 
+  def onFailure(exception: Throwable) {
+    // Nothing to do here!
+  }
+
 }
 
 object Request {
@@ -74,7 +77,7 @@ class Request[RequestMsg, ResponseMsg](override val message: RequestMsg, overrid
 
   override val expectsResponse = !callback.isEmpty
 
-  def onFailure(exception: Throwable) {
+  override def onFailure(exception: Throwable) {
     if(expectsResponse) callback.get(Left(exception))
   }
 
