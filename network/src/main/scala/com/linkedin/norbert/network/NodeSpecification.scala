@@ -46,8 +46,8 @@ trait NodeTrait[NodeType] {
 * Non-Partitioned NodeSpecification
 */
 class NodeSpecification extends NodeTrait[NodeSpecification] with JNodeSpecification {
-  def getCapability() = capability;
-  def getPersistentCapability = persistentCapability;
+  def getCapability() = capability
+  def getPersistentCapability = persistentCapability
 }
 
 /**
@@ -67,9 +67,10 @@ class PartitionedNodeSpecification[PartitionedId](val ids: Set[PartitionedId]) e
     this.clusterId = _clusterId
     this
   }
-
-  def getNumberofReplicas() = numberOfReplicas;
-  def getClusterId() = clusterId;
+  def getCapability() = capability
+  def getPersistentCapability = persistentCapability
+  def getNumberOfReplicas() = numberOfReplicas
+  def getClusterId() = clusterId
 }
 
 

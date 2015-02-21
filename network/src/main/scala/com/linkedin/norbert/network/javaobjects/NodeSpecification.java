@@ -1,7 +1,6 @@
 package com.linkedin.norbert.network.javaobjects;
 
 import scala.Option;
-import scala.Long;
 
 
 /**
@@ -10,6 +9,6 @@ import scala.Long;
 
 public interface NodeSpecification {
     Option<Long> getCapability();
-    Option<Long> getPersistentCapability();
+    Option<long> getPersistentCapability();
 }
 

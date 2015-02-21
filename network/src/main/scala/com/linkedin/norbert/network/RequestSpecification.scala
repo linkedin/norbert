@@ -64,6 +64,9 @@ class PartitionedRequestSpecification[RequestMsg, PartitionedId](val message: Op
     requestBuilder = Some((node:Node, ids:Set[PartitionedId])=> message.getOrElse(throw new Exception("This should not happen")))
   }
 
+  def getMessage() = message
+  def getRequestBuilder() = requestBuilder
+
 }
 
 
