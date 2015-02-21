@@ -334,6 +334,49 @@ trait NetworkClient extends BaseNetworkClient {
     }
   }
 
+  /**
+   * Sends the alternative one way message to a node in the cluster. The <code>NetworkClient</code> defers to the current
+   * <code>LoadBalancer</code> to decide which <code>Node</code> the request should be sent to.
+   *
+   * @param request the message to send
+   *
+   * @throws InvalidClusterException thrown if the cluster is currently in an invalid state
+   * @throws NoNodesAvailableException thrown if the <code>LoadBalancer</code> was unable to provide a <code>Node</code>
+   * to send the request to
+   * @throws ClusterDisconnectedException thrown if the cluster is not connected when the method is called
+   */
+
+  def sendAltMessage[RequestMsg](request: RequestMsg)
+                                          (implicit is: InputSerializer[RequestMsg, Unit], os: OutputSerializer[RequestMsg, Unit]) {
+    doIfConnected {
+      sendAltMessage(request, None, None)
+    }
+  }
+
+  def sendAltMessage[RequestMsg](request: RequestMsg, capability: Option[Long])
+                                          (implicit is: InputSerializer[RequestMsg, Unit], os: OutputSerializer[RequestMsg, Unit]) {
+    doIfConnected {
+      sendAltMessage(request, capability, None)
+    }
+  }
+
+  def sendAltMessage[RequestMsg](request: RequestMsg, capability: Option[Long], persistentCapability: Option[Long])
+                                          (implicit is: InputSerializer[RequestMsg, Unit], os: OutputSerializer[RequestMsg, Unit]) {
+    doIfConnected {
+      if (request == null) throw new NullPointerException
+
+      val loadBalancerReady = loadBalancer.getOrElse(throw new ClusterDisconnectedException("Client has no node information"))
+
+      val node = loadBalancerReady.fold(ex => throw ex,
+        lb => {
+          val node: Option[Node] = lb.nextNode(capability, persistentCapability)
+          node.getOrElse(throw new NoNodesAvailableException("No node available that can handle the request: %s".format(request)))
+        })
+
+      doSendAltMessage(BaseRequest(request, node, is, os))
+    }
+  }
+
   private[client] def retryCallback[RequestMsg, ResponseMsg](underlying: Either[Throwable, ResponseMsg] => Unit, maxRetry: Int, capability: Option[Long], persistentCapability: Option[Long])(res: Either[Throwable, ResponseMsg])
   (implicit is: InputSerializer[RequestMsg, ResponseMsg], os: OutputSerializer[RequestMsg, ResponseMsg]): Unit = {
     def propagate(t: Throwable) { underlying(Left(t)) }

@@ -73,8 +73,8 @@ trait NettyClusterIoClientComponent extends ClusterIoClientComponent {
       // TODO: Theoretically, we might be able to get a null reference instead of a channel pool here
       import norbertutils._
       atomicCreateIfAbsent(altChannelPools, node) { n: Node =>
-        val (address, _) = parseUrl(n.url)
-        val port = n.altPort
+        val (address, port) = parseUrl(n.url) // TODO: Make port -> _ and uncomment next line. (only here for compile checking)
+//        val port = n.altPort'
         channelPoolFactory.newChannelPool(new InetSocketAddress(address, port))
       }
     }
