@@ -281,7 +281,7 @@ trait NetworkClient extends BaseNetworkClient {
   def sendRequest[RequestMsg, ResponseMsg](requestSpec: JRequestSpecification[RequestMsg], nodeSpec: JNodeSpecification, retrySpec: JRetrySpecification[ResponseMsg])
   (implicit is: InputSerializer[RequestMsg, ResponseMsg], os:OutputSerializer[RequestMsg, ResponseMsg]): Unit = doIfConnected {
     if (requestSpec.getMessage() == null) throw new NullPointerException
-    val callback = Option(retrySpec.getCallback()).getOrElse(throw new Exception("No callback and no default callback"));
+    val callback = retrySpec.getCallback().getOrElse(throw new Exception("No callback and no default callback"));
 
     val loadBalancerReady = loadBalancer.getOrElse(throw new ClusterDisconnectedException("Client has no node information"))
 
