@@ -61,9 +61,15 @@ object Node {
     val builder = NorbertProtos.Node.newBuilder
     node.persistentCapability match {
         //TODO: HMC Clinic - we may have to make this pattern matching better
-      case None => builder.setId(node.id).setUrl(node.url).setAltPort(node.getAltPort)
-      case Some(x) => builder.setId(node.id).setUrl(node.url).setPersistentCapability(x).setAltPort(node.getAltPort)
+      case None => builder.setId(node.id).setUrl(node.url)
+      case Some(x) => builder.setId(node.id).setUrl(node.url).setPersistentCapability(x)
     }
+    node.altPort match {
+      // Only set altPort if we actually have an altPort.
+      case None => // Do nothing!
+      case Some(x) => builder.setAltPort(x)
+    }
+
     node.partitionIds.foreach(builder.addPartition(_))
 
     builder.build.toByteArray
