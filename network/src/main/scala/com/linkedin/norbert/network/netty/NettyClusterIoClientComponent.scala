@@ -52,7 +52,7 @@ trait NettyClusterIoClientComponent extends ClusterIoClientComponent {
 
       val pool = getAltChannelPool(node)
       try {
-        pool.sendRequest(request) // TODO: Make this take a base request, not a request.
+        pool.sendRequest(request)
       } catch {
         case ex: ChannelPoolClosedException =>
           // ChannelPool was closed, try again
