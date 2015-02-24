@@ -39,7 +39,7 @@ trait OutputSerializer[-RequestMsg, -ResponseMsg] {
 
 trait InputSerializer[+RequestMsg, +ResponseMsg] {
   def requestName: String
-  def priority: Int
+  def priority: Int = 0
   def requestFromBytes(bytes: Array[Byte]): RequestMsg
   def responseFromBytes(bytes: Array[Byte]): ResponseMsg
 }
