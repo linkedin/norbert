@@ -74,7 +74,7 @@ class ThreadPoolMessageExecutor(clientName: Option[String],
   private val statsActor = CachedNetworkStatistics[Int, Int](SystemClock, requestStatisticsWindow, 200L)
   private val totalNumRejected = new AtomicInteger
 
-  val requestQueue = new ArrayBlockingQueue[Runnable](maxWaitingQueueSize)
+  val requestQueue = new PriorityBlockingQueue[Runnable](maxWaitingQueueSize)
   val statsJmx = JMX.register(new RequestProcessorMBeanImpl(clientName, serviceName, statsActor, requestQueue, threadPool))
 
   private val threadPool = new ThreadPoolExecutor(corePoolSize, maxPoolSize, keepAliveTime, TimeUnit.SECONDS, requestQueue,
@@ -119,14 +119,14 @@ class ThreadPoolMessageExecutor(clientName: Option[String],
 
   private val idGenerator = new AtomicInteger(0)
 
-  private class RequestRunner[RequestMsg, ResponseMsg](request: RequestMsg,
+  private class RequestRunner[RequestMsg, ResponseMsg] (request: RequestMsg,
                                                        val reqTimeout : Long,
                                                        context: Option[RequestContext],
                                                        filters: MutableList[Filter],
                                                        callback: Option[(Either[Exception, ResponseMsg]) => Unit],
                                                        val queuedAt: Long = System.currentTimeMillis,
                                                        val id: Int = idGenerator.getAndIncrement.abs,
-                                                       implicit val is: InputSerializer[RequestMsg, ResponseMsg]) extends Runnable {
+                                                       implicit val is: InputSerializer[RequestMsg, ResponseMsg]) extends Runnable with Comparable[RequestRunner[_,_]] {
     /**
      * CompareTo compares this RequestRunner with another and returns an integer indicating which one has a higher priority
      * to be executed. It pulls the priority from InputSerializer.priority (a higher priority goes first), and tiebreaks based on
@@ -134,7 +134,8 @@ class ThreadPoolMessageExecutor(clientName: Option[String],
      * @param rr the request being compared with
      * @return 0 if they deserve the same priority in the queue, a positive number if the deserves
      */
-    def compareTo(rr:RequestRunner): Int = {
+    @Override
+    def compareTo(rr:RequestRunner[_,_]): Int = {
       val myPriority = is.priority
       val rrPriority = rr.is.priority
       if (myPriority == rrPriority) {
@@ -213,7 +214,7 @@ class ThreadPoolMessageExecutor(clientName: Option[String],
     def getActivePoolSize: Int
   }
 
-  class RequestProcessorMBeanImpl(clientName: Option[String], serviceName: String, val stats: CachedNetworkStatistics[Int, Int], queue: ArrayBlockingQueue[Runnable], threadPool: ThreadPoolExecutor)
+  class RequestProcessorMBeanImpl(clientName: Option[String], serviceName: String, val stats: CachedNetworkStatistics[Int, Int], queue: PriorityBlockingQueue[Runnable], threadPool: ThreadPoolExecutor)
     extends MBean(classOf[RequestProcessorMBean], JMX.name(clientName, serviceName)) with RequestProcessorMBean {
     def getQueueSize = queue.size
 

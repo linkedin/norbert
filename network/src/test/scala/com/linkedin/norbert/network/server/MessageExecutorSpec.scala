@@ -44,8 +44,12 @@ class MessageExecutorSpec extends SpecificationWithJUnit with Mockito with WaitF
     -1)
 
   var handlerCalled = false
+  var priorityHandlerCalled = false
   var either: Either[Exception, Ping] = null
+  var priorityEither: Either[Exception, PriorityPing] = null
+  var messageCount = 0
 
+  //this isn't used
   val unregisteredSerializer = {
     val s = mock[Serializer[Ping, Ping]]
     s.requestName returns ("Foo")
@@ -54,8 +58,16 @@ class MessageExecutorSpec extends SpecificationWithJUnit with Mockito with WaitF
 
   def handler(e: Either[Exception, Ping]) {
     handlerCalled = true
+    messageCount += 1
     either = e
   }
+
+  def priorityHandler(e: Either[Exception, PriorityPing]) {
+    priorityHandlerCalled = true
+    messageCount += 1
+    priorityEither = e
+  }
+
 
   "MessageExecutor" should {
     doAfter {
@@ -91,9 +103,33 @@ class MessageExecutorSpec extends SpecificationWithJUnit with Mockito with WaitF
 
       messageExecutor.executeMessage(request, Some(handler _))
 
+
       handlerCalled must eventually(beTrue)
       either.isRight must beTrue
       either.right.get must be(request)
+    }
+
+    //Added by HMC clinic
+    "Run higher priority messages first" in {
+      messageHandlerRegistry.handlerFor(request) returns timeStampHandler _
+      messageHandlerRegistry.handlerFor(priorityRequest) returns priorityTimeStampHandler _
+
+      //put one priority request first to make sure that the second priorityRequest
+      // gets in the queue before we start handling the regular request
+      messageExecutor.executeMessage(priorityRequest, Some(priorityHandler _))
+      messageExecutor.executeMessage(request, Some(handler _))
+      messageExecutor.executeMessage(priorityRequest, Some(priorityHandler _))
+      messageExecutor.executeMessage(priorityRequest, Some(priorityHandler _))
+
+      handlerCalled must eventually(beTrue)
+      priorityHandlerCalled must beTrue
+      //need to have run all the messages when we finish running the regular message
+      messageCount must be(4)
+      either.isRight must beTrue
+      priorityEither.isRight must beTrue
+      //check that the regular request was handled after the last priorityRequest
+      priorityEither.right.get.timestamp must be_<(either.right.get.timestamp)
+
     }
 
     "not execute the responseHandler if the handler returns null" in {
@@ -201,6 +237,15 @@ class MessageExecutorSpec extends SpecificationWithJUnit with Mockito with WaitF
   }
 
   def returnHandler(message: Ping): Ping = message
+  def timeStampHandler(message: Ping): Ping = { waitFor(50.ms); return new Ping}
+  def priorityReturnHandler(message: PriorityPing): PriorityPing = message
+  def priorityTimeStampHandler(message: PriorityPing): PriorityPing = {waitFor(50.ms); return new PriorityPing}
   def throwsHandler(message: Ping): Ping = throw exception
   def nullHandler(message: Ping): Ping = null
 }
+
+/*TODO: things to test: (do these deserve their own file?)
+    - getting priority happens (part of compare to test?
+    - that compare to compares in the desired way (first by priority and then by timestamp
+    - that the executor executes the requests in order (is this needed if i test the compareTo function? can I just turst the priorityQueue?)
+ */
