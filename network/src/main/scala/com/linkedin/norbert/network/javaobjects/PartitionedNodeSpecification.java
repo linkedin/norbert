@@ -1,8 +1,9 @@
 package com.linkedin.norbert.network.javaobjects;
 
 import scala.Option;
+import scala.Int;
 
 public interface PartitionedNodeSpecification<PartitionedId> extends NodeSpecification {
-    int getNumberOfReplicas();
-    Option<int> getClusterId();
+    Int getNumberOfReplicas();
+    Option<Int> getClusterId();
 }
