@@ -4,6 +4,8 @@
 package com.linkedin.norbert.network
 
 import com.linkedin.norbert.network.javaobjects.{NodeSpecification => JNodeSpecification, PartitionedNodeSpecification => JPartitionedNodeSpecification}
+import scala.collection.JavaConversions._
+import scala.collection.JavaConverters._
 
 /**
  * A NodeSpecification object is used to store the necessary information to specify a node.
@@ -42,12 +44,24 @@ trait NodeTrait[NodeType] {
   }
 }
 
+
 /**
 * Non-Partitioned NodeSpecification
 */
 class NodeSpecification extends NodeTrait[NodeSpecification] with JNodeSpecification {
-  def getCapability() = capability
-  def getPersistentCapability = persistentCapability
+
+  def getCapability() = {
+    capability match {
+      case Some(cap) => cap
+      case None => null
+    }
+  }
+  def getPersistentCapability = {
+    persistentCapability match {
+      case Some(pc) => pc
+      case None => null
+    }
+  }
 }
 
 /**
@@ -67,10 +81,26 @@ class PartitionedNodeSpecification[PartitionedId](val ids: Set[PartitionedId]) e
     this.clusterId = _clusterId
     this
   }
-  def getCapability() = capability
-  def getPersistentCapability = persistentCapability
+  def getCapability() = {
+    capability match {
+      case Some(cap) => cap
+      case None => null
+    }
+  }
+  def getPersistentCapability = {
+    persistentCapability match {
+      case Some(pc) => pc
+      case None => null
+    }
+  }
   def getNumberOfReplicas() = numberOfReplicas
-  def getClusterId() = clusterId
+
+  def getClusterId() = {
+    clusterId match {
+      case Some(cid) => cid
+      case None => null
+    }
+  }
 }
 
 
