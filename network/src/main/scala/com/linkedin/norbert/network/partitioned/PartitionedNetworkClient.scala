@@ -581,7 +581,7 @@ trait PartitionedNetworkClient[PartitionedId] extends BaseNetworkClient {
    * @throws ClusterDisconnectedException thrown if the <code>PartitionedNetworkClient</code> is not connected to the cluster
    * @throws Exception any exception thrown by <code>responseAggregator</code> will be passed through to the client
    */
-  def sendRequest[RequestMsg, ResponseMsg](requestSpec: JPartitionedRequestSpecification[RequestMsg, PartitionedId], nodeSpec: JPartitionedNodeSpecification[PartitionedId], retrySpec: JPartitionedRetrySpecification[ResponseMsg])
+  def sendRequest[RequestMsg, ResponseMsg](requestSpec: JPartitionedRequestSpecification[RequestMsg, PartitionedId], nodeSpec: JPartitionedNodeSpecification[PartitionedId], retrySpec: JPartitionedRetrySpecification[ResponseMsg, Unit])
                                           (implicit is: InputSerializer[RequestMsg, ResponseMsg], os: OutputSerializer[RequestMsg, ResponseMsg]): ResponseIterator[ResponseMsg] = doIfConnected
   {
     val requestBuilder = requestSpec.getRequestBuilder().getOrElse(throw new Exception("Request spec automatically creates a builder - this shouldn't happen ever."))

@@ -109,6 +109,7 @@ class NettyNetworkClient(config: NetworkClientConfig, loadBalancerFactory: LoadB
 
   def sendRequest[RequestMsg, ResponseMsg](requestSpecification: RequestSpecification[RequestMsg],nodeSpecification: NodeSpecification,retrySpecification: RetrySpecification[ResponseMsg, Unit], serializer:Serializer[RequestMsg, ResponseMsg]) =
     underlying.sendRequest(requestSpecification, nodeSpecification, retrySpecification)(serializer, serializer)
+
 }
 
 class NettyPartitionedNetworkClient[PartitionedId](config: NetworkClientConfig, loadBalancerFactory: PartitionedLoadBalancerFactory[PartitionedId],
@@ -146,7 +147,7 @@ class NettyPartitionedNetworkClient[PartitionedId](config: NetworkClientConfig, 
   }
 
 
-  def sendRequest[RequestMsg, ResponseMsg](requestSpec: PartitionedRequestSpecification[RequestMsg, PartitionedId], nodeSpec: PartitionedNodeSpecification[PartitionedId], retrySpec:PartitionedRetrySpecification[ResponseMsg], serializer:Serializer[RequestMsg, ResponseMsg]) =
+  def sendRequest[RequestMsg, ResponseMsg](requestSpec: PartitionedRequestSpecification[RequestMsg, PartitionedId], nodeSpec: PartitionedNodeSpecification[PartitionedId], retrySpec:PartitionedRetrySpecification[ResponseMsg, Unit], serializer:Serializer[RequestMsg, ResponseMsg]) =
     underlying.sendRequest(requestSpec, nodeSpec, retrySpec)(serializer, serializer)
 
   def sendRequestToPartitions[RequestMsg, ResponseMsg](id: PartitionedId, partitions: java.util.Set[java.lang.Integer], requestBuilder: RequestBuilder[Integer, RequestMsg], serializer: Serializer[RequestMsg, ResponseMsg]) = {

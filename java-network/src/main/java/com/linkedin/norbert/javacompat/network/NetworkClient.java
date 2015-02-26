@@ -52,6 +52,6 @@ public interface NetworkClient extends BaseNetworkClient {
   <RequestMsg, ResponseMsg> Future<ResponseMsg> sendRequest(RequestMsg request, Serializer<RequestMsg, ResponseMsg> serializer, int maxRetry, long capability) throws InvalidClusterException, NoNodesAvailableException, ClusterDisconnectedException;
   <RequestMsg, ResponseMsg> Future<ResponseMsg> sendRequest(RequestMsg request, Serializer<RequestMsg, ResponseMsg> serializer, int maxRetry, long capability, long persistentCapability) throws InvalidClusterException, NoNodesAvailableException, ClusterDisconnectedException;
 
-  <RequestMsg, ResponseMsg> void sendRequest(RequestSpecification<RequestMsg> requestSpecification,NodeSpecification nodeSpecification, RetrySpecification<ResponseMsg,scala.runtime.BoxedUnit> retrySpecification,
-           Serializer<RequestMsg, ResponseMsg> serializer) throws InvalidClusterException, NoNodesAvailableException, ClusterDisconnectedException;
+  //<RequestMsg, ResponseMsg> void sendRequest(RequestSpecification<RequestMsg> requestSpecification,NodeSpecification nodeSpecification, RetrySpecification<ResponseMsg,Unit> retrySpecification,
+    //       Serializer<RequestMsg, ResponseMsg> serializer) throws InvalidClusterException, NoNodesAvailableException, ClusterDisconnectedException;
 }
