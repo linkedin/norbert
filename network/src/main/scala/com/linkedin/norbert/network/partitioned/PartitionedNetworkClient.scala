@@ -584,36 +584,40 @@ trait PartitionedNetworkClient[PartitionedId] extends BaseNetworkClient {
   def sendRequest[RequestMsg, ResponseMsg](requestSpec: JPartitionedRequestSpecification[RequestMsg, PartitionedId], nodeSpec: JPartitionedNodeSpecification[PartitionedId], retrySpec: JPartitionedRetrySpecification[ResponseMsg])
                                           (implicit is: InputSerializer[RequestMsg, ResponseMsg], os: OutputSerializer[RequestMsg, ResponseMsg]): ResponseIterator[ResponseMsg] = doIfConnected
   {
-    val requestBuilder = requestSpec.requestBuilder.getOrElse(throw new Exception("Request spec automatically creates a builder - this shouldn't happen ever."))
+    val requestBuilder = requestSpec.getRequestBuilder().getOrElse(throw new Exception("Request spec automatically creates a builder - this shouldn't happen ever."))
 
-    if (nodeSpec.ids == null || requestBuilder == null) throw new NullPointerException
+    if (nodeSpec.getIds == null || requestBuilder == null) throw new NullPointerException
 
-    val nodes = nodeSpec.clusterId match {
-      case Some(clusterId:Int) => calculateNodesFromIdsInCluster (nodeSpec.ids, clusterId, nodeSpec.capability, nodeSpec.persistentCapability)
-      case None => calculateNodesFromIds (nodeSpec.ids, nodeSpec.numberOfReplicas, nodeSpec.capability, nodeSpec.persistentCapability)
+    val clusterId = Option(nodeSpec.getClusterId.intValue)
+    val capability = Option(nodeSpec.getCapability.longValue)
+    val persistentCapability = Option(nodeSpec.getPersistentCapability.longValue)
+
+    val nodes = clusterId match {
+      case Some(clusterId:Int) => calculateNodesFromIdsInCluster (nodeSpec.getIds, clusterId, capability, persistentCapability)
+      case None => calculateNodesFromIds (nodeSpec.getIds, nodeSpec.getNumberOfReplicas, capability, persistentCapability)
     }
 
-    log.debug("Total number of ids: %d, selected nodes: %d, ids per node: [%s]".format(nodeSpec.ids.size, nodes.size,
+    log.debug("Total number of ids: %d, selected nodes: %d, ids per node: [%s]".format(nodeSpec.getIds.size, nodes.size,
       nodes.view.map {
         case (node, idsForNode) => idsForNode.size
       } mkString("", ",", "")
     ))
 
-    if (nodes.size <= 1 || !retrySpec.routingConfigs.selectiveRetry || retrySpec.retryStrategy == None) {
+    if (nodes.size <= 1 || !retrySpec.getRoutingConfigs.selectiveRetry || retrySpec.getRetryStrategy == None) {
       val queue = new ResponseQueue[ResponseMsg]
       val resIter = new NorbertDynamicResponseIterator[ResponseMsg](nodes.size, queue)
       nodes.foreach { case (node, idsForNode) =>
         try {
-        doSendRequest(PartitionedRequest(requestBuilder(node, idsForNode), node, idsForNode, requestBuilder, is, os, if (retrySpec.maxRetry == 0) Some((a: Either[Throwable, ResponseMsg]) => {queue += a :Unit}) else Some(retryCallback[RequestMsg, ResponseMsg](queue.+=, retrySpec.maxRetry, nodeSpec.capability, nodeSpec.persistentCapability)_), 0, Some(resIter)))
+        doSendRequest(PartitionedRequest(requestBuilder(node, idsForNode), node, idsForNode, requestBuilder, is, os, if (retrySpec.getMaxRetry == 0) Some((a: Either[Throwable, ResponseMsg]) => {queue += a :Unit}) else Some(retryCallback[RequestMsg, ResponseMsg](queue.+=, retrySpec.getMaxRetry, capability, persistentCapability)_), 0, Some(resIter)))
         } catch {
           case ex: Exception => queue += Left(ex)
         }
       }
       return resIter
     } else {
-      val nodes = nodeSpec.clusterId match {
-        case Some(clusterId:Int) => calculateNodesFromIdsInCluster (nodeSpec.ids, clusterId, None, None)
-        case None => calculateNodesFromIds (nodeSpec.ids, nodeSpec.numberOfReplicas, None, None)
+      val nodes = clusterId match {
+        case Some(clusterId:Int) => calculateNodesFromIdsInCluster (nodeSpec.getIds, clusterId, None, None)
+        case None => calculateNodesFromIds (nodeSpec.getIds, nodeSpec.getNumberOfReplicas, None, None)
       }
       var setRequests: Map[PartitionedId, Node] = Map.empty[PartitionedId, Node]
       nodes.foreach {
@@ -628,13 +632,13 @@ trait PartitionedNetworkClient[PartitionedId] extends BaseNetworkClient {
       /* wrapper so that iterator does not have to care about capability stuff */
       def calculateNodesFromIdsSRetry(ids: Set[PartitionedId], excludedNodes: Set[Node], maxAttempts: Int)
       :Map[Node, Set[PartitionedId]] = {
-        calculateNodesFromIds(ids, excludedNodes, maxAttempts, nodeSpec.capability, nodeSpec.persistentCapability).toMap
+        calculateNodesFromIds(ids, excludedNodes, maxAttempts, capability, persistentCapability).toMap
       }
 
       val resIter = new SelectiveRetryIterator[PartitionedId, RequestMsg, ResponseMsg](
-        nodes.size, retrySpec.retryStrategy.get.initialTimeout, doSendRequest, setRequests,
-        queue, calculateNodesFromIdsSRetry, requestBuilder, is, os, retrySpec.retryStrategy,
-        retrySpec.routingConfigs.duplicatesOk)
+        nodes.size, retrySpec.getRetryStrategy.get.initialTimeout, doSendRequest, setRequests,
+        queue, calculateNodesFromIdsSRetry, requestBuilder, is, os, retrySpec.getRetryStrategy,
+        retrySpec.getRoutingConfigs.duplicatesOk)
 
       nodes.foreach {
         case (node, idsForNode) => {

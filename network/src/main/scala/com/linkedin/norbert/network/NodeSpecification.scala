@@ -101,6 +101,8 @@ class PartitionedNodeSpecification[PartitionedId](val ids: Set[PartitionedId]) e
       case None => null
     }
   }
+
+  def getIds() = ids
 }
 
 
