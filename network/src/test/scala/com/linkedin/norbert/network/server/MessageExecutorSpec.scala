@@ -46,6 +46,7 @@ class MessageExecutorSpec extends SpecificationWithJUnit with Mockito with WaitF
   var handlerCalled = false
   var either: Either[Exception, Ping] = null
 
+  //this isn't used
   val unregisteredSerializer = {
     val s = mock[Serializer[Ping, Ping]]
     s.requestName returns ("Foo")
@@ -204,3 +205,9 @@ class MessageExecutorSpec extends SpecificationWithJUnit with Mockito with WaitF
   def throwsHandler(message: Ping): Ping = throw exception
   def nullHandler(message: Ping): Ping = null
 }
+
+/*TODO: things to test: (do these deserve their own file?)
+    - getting priority happens (part of compare to test?
+    - that compare to compares in the desired way (first by priority and then by timestamp
+    - that the executor executes the requests in order (is this needed if i test the compareTo function? can I just turst the priorityQueue?)
+ */
