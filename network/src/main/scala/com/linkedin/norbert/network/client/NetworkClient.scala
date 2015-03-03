@@ -285,6 +285,7 @@ trait NetworkClient extends BaseNetworkClient {
 
     val loadBalancerReady = loadBalancer.getOrElse(throw new ClusterDisconnectedException("Client has no node information"))
 
+    // Convert capability and persistentCapability from java.lang.Long to scala.Long
     val capability = Option(Long.unbox(nodeSpec.getCapability))
     val persistentCapability = Option(Long.unbox(nodeSpec.getPersistentCapability))
 

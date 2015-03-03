@@ -588,7 +588,10 @@ trait PartitionedNetworkClient[PartitionedId] extends BaseNetworkClient {
 
     if (nodeSpec.getIds == null || requestBuilder == null) throw new NullPointerException
 
+    // Convert clusterId from java.lang.Integer to scala.Int
     val clusterId = Option(Int.unbox(nodeSpec.getClusterId))
+
+    // Convert capability and persistentCapability from java.lang.Long to scala.Long
     val capability = Option(Long.unbox(nodeSpec.getCapability))
     val persistentCapability = Option(Long.unbox(nodeSpec.getPersistentCapability))
 

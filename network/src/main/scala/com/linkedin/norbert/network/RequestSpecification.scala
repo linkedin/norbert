@@ -27,7 +27,7 @@ object RequestSpecification {
  * @tparam RequestMsg The type of the request being sent to the node, should be the same as that used by the network client you will use to send the request.
  */
 class RequestSpecification[RequestMsg](val message: RequestMsg) extends JRequestSpecification[RequestMsg]{
-  def getMessage() = message;
+  def getMessage() = message
 }
 
 /**
@@ -65,6 +65,8 @@ class PartitionedRequestSpecification[RequestMsg, PartitionedId](val message: Op
   }
 
   def getMessage() = message
+
+  // Returns an optional anonymous function
   def getRequestBuilder() = requestBuilder
 
 }

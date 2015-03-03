@@ -46,16 +46,19 @@ trait NodeTrait[NodeType] {
 
 
 /**
-* Non-Partitioned NodeSpecification
+* Non-Partitioned NodeSpecification. Defines getters for the java interface.
 */
 class NodeSpecification extends NodeTrait[NodeSpecification] with JNodeSpecification {
 
+  // Converts Option[Long] to java.lang.Long
   def getCapability() = {
     capability match {
       case Some(cap) => cap
       case None => null
     }
   }
+
+  // Converts Option[Long] to java.lang.Long
   def getPersistentCapability = {
     persistentCapability match {
       case Some(pc) => pc
@@ -65,7 +68,7 @@ class NodeSpecification extends NodeTrait[NodeSpecification] with JNodeSpecifica
 }
 
 /**
-* Partitioned NodeSpecification
+* Partitioned NodeSpecification.  Defines getters for the java interface.
 */
 
 class PartitionedNodeSpecification[PartitionedId](val ids: Set[PartitionedId]) extends NodeTrait[PartitionedNodeSpecification[_]] with JPartitionedNodeSpecification[PartitionedId] {
@@ -81,20 +84,27 @@ class PartitionedNodeSpecification[PartitionedId](val ids: Set[PartitionedId]) e
     this.clusterId = _clusterId
     this
   }
+
+  // Converts Option[Long] to java.lang.Long
   def getCapability() = {
     capability match {
       case Some(cap) => cap
       case None => null
     }
   }
+
+  // Converts Option[Long] to java.lang.Long
   def getPersistentCapability = {
     persistentCapability match {
       case Some(pc) => pc
       case None => null
     }
   }
+
+  // Returns Int that is unboxed to int
   def getNumberOfReplicas() = numberOfReplicas
 
+  // Converts Option[Int] to java.lang.Int
   def getClusterId() = {
     clusterId match {
       case Some(cid) => cid
@@ -102,6 +112,7 @@ class PartitionedNodeSpecification[PartitionedId](val ids: Set[PartitionedId]) e
     }
   }
 
+  // Returns Set[PartitionedId]
   def getIds() = ids
 }
 

@@ -47,7 +47,9 @@ object RetrySpecification {
  */
 class RetrySpecification[ResponseMsg](val maxRetry: Int,
                                                   val callback: Option[Either[Throwable, ResponseMsg] => Unit]) extends JRetrySpecification[ResponseMsg, Unit]{
+  // Returns Int that is unboxed to int
   def getMaxRetry() = maxRetry
+  // Returns an optional anonymous function
   def getCallback() = callback
 }
 
