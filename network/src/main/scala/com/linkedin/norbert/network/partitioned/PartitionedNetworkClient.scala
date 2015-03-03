@@ -588,9 +588,9 @@ trait PartitionedNetworkClient[PartitionedId] extends BaseNetworkClient {
 
     if (nodeSpec.getIds == null || requestBuilder == null) throw new NullPointerException
 
-    val clusterId = Option(nodeSpec.getClusterId.intValue)
-    val capability = Option(nodeSpec.getCapability.longValue)
-    val persistentCapability = Option(nodeSpec.getPersistentCapability.longValue)
+    val clusterId = Option(Int.unbox(nodeSpec.getClusterId))
+    val capability = Option(Long.unbox(nodeSpec.getCapability))
+    val persistentCapability = Option(Long.unbox(nodeSpec.getPersistentCapability))
 
     val nodes = clusterId match {
       case Some(clusterId:Int) => calculateNodesFromIdsInCluster (nodeSpec.getIds, clusterId, capability, persistentCapability)
