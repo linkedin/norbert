@@ -147,8 +147,8 @@ class NettyPartitionedNetworkClient[PartitionedId](config: NetworkClientConfig, 
   }
 
 
-  def sendRequest[RequestMsg, ResponseMsg](requestSpec: PartitionedRequestSpecification[RequestMsg, PartitionedId], nodeSpec: PartitionedNodeSpecification[PartitionedId], retrySpec:PartitionedRetrySpecification[ResponseMsg, Unit], serializer:Serializer[RequestMsg, ResponseMsg]) =
-    underlying.sendRequest(requestSpec, nodeSpec, retrySpec)(serializer, serializer)
+  def sendRequest[RequestMsg, ResponseMsg](requestSpecification: PartitionedRequestSpecification[RequestMsg, PartitionedId], nodeSpecification: PartitionedNodeSpecification[PartitionedId], retrySpecification:PartitionedRetrySpecification[ResponseMsg, Unit], serializer:Serializer[RequestMsg, ResponseMsg]) =
+    underlying.sendRequest(requestSpecification, nodeSpecification, retrySpecification)(serializer, serializer)
 
   def sendRequestToPartitions[RequestMsg, ResponseMsg](id: PartitionedId, partitions: java.util.Set[java.lang.Integer], requestBuilder: RequestBuilder[Integer, RequestMsg], serializer: Serializer[RequestMsg, ResponseMsg]) = {
     val sPartitions = partitions.foldLeft(Set.empty[Int])(_ + _.intValue())

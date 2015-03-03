@@ -586,32 +586,32 @@ trait PartitionedNetworkClient[PartitionedId] extends BaseNetworkClient {
   {
     val requestBuilder = requestSpec.getRequestBuilder().getOrElse(throw new Exception("Request spec automatically creates a builder - this shouldn't happen ever."))
 
-    if (nodeSpec.getIds == null || requestBuilder == null) throw new NullPointerException
+    if (nodeSpec.getIds() == null || requestBuilder == null) throw new NullPointerException
 
     // Convert clusterId from java.lang.Integer to scala.Int
-    val clusterId = Option(Int.unbox(nodeSpec.getClusterId))
+    val clusterId = Option(Int.unbox(nodeSpec.getClusterId()))
 
     // Convert capability and persistentCapability from java.lang.Long to scala.Long
-    val capability = Option(Long.unbox(nodeSpec.getCapability))
-    val persistentCapability = Option(Long.unbox(nodeSpec.getPersistentCapability))
+    val capability = Option(Long.unbox(nodeSpec.getCapability()))
+    val persistentCapability = Option(Long.unbox(nodeSpec.getPersistentCapability()))
 
     val nodes = clusterId match {
-      case Some(clusterId:Int) => calculateNodesFromIdsInCluster (nodeSpec.getIds, clusterId, capability, persistentCapability)
-      case None => calculateNodesFromIds (nodeSpec.getIds, nodeSpec.getNumberOfReplicas, capability, persistentCapability)
+      case Some(clusterId:Int) => calculateNodesFromIdsInCluster (nodeSpec.getIds(), clusterId, capability, persistentCapability)
+      case None => calculateNodesFromIds (nodeSpec.getIds(), nodeSpec.getNumberOfReplicas(), capability, persistentCapability)
     }
 
-    log.debug("Total number of ids: %d, selected nodes: %d, ids per node: [%s]".format(nodeSpec.getIds.size, nodes.size,
+    log.debug("Total number of ids: %d, selected nodes: %d, ids per node: [%s]".format(nodeSpec.getIds().size, nodes.size,
       nodes.view.map {
         case (node, idsForNode) => idsForNode.size
       } mkString("", ",", "")
     ))
 
-    if (nodes.size <= 1 || !retrySpec.getRoutingConfigs.selectiveRetry || retrySpec.getRetryStrategy == None) {
+    if (nodes.size <= 1 || !retrySpec.getRoutingConfigs().selectiveRetry || retrySpec.getRetryStrategy() == None) {
       val queue = new ResponseQueue[ResponseMsg]
       val resIter = new NorbertDynamicResponseIterator[ResponseMsg](nodes.size, queue)
       nodes.foreach { case (node, idsForNode) =>
         try {
-        doSendRequest(PartitionedRequest(requestBuilder(node, idsForNode), node, idsForNode, requestBuilder, is, os, if (retrySpec.getMaxRetry == 0) Some((a: Either[Throwable, ResponseMsg]) => {queue += a :Unit}) else Some(retryCallback[RequestMsg, ResponseMsg](queue.+=, retrySpec.getMaxRetry, capability, persistentCapability)_), 0, Some(resIter)))
+        doSendRequest(PartitionedRequest(requestBuilder(node, idsForNode), node, idsForNode, requestBuilder, is, os, if (retrySpec.getMaxRetry() == 0) Some((a: Either[Throwable, ResponseMsg]) => {queue += a :Unit}) else Some(retryCallback[RequestMsg, ResponseMsg](queue.+=, retrySpec.getMaxRetry(), capability, persistentCapability)_), 0, Some(resIter)))
         } catch {
           case ex: Exception => queue += Left(ex)
         }
@@ -619,8 +619,8 @@ trait PartitionedNetworkClient[PartitionedId] extends BaseNetworkClient {
       return resIter
     } else {
       val nodes = clusterId match {
-        case Some(clusterId:Int) => calculateNodesFromIdsInCluster (nodeSpec.getIds, clusterId, None, None)
-        case None => calculateNodesFromIds (nodeSpec.getIds, nodeSpec.getNumberOfReplicas, None, None)
+        case Some(clusterId:Int) => calculateNodesFromIdsInCluster (nodeSpec.getIds(), clusterId, None, None)
+        case None => calculateNodesFromIds (nodeSpec.getIds(), nodeSpec.getNumberOfReplicas(), None, None)
       }
       var setRequests: Map[PartitionedId, Node] = Map.empty[PartitionedId, Node]
       nodes.foreach {
@@ -639,9 +639,9 @@ trait PartitionedNetworkClient[PartitionedId] extends BaseNetworkClient {
       }
 
       val resIter = new SelectiveRetryIterator[PartitionedId, RequestMsg, ResponseMsg](
-        nodes.size, retrySpec.getRetryStrategy.get.initialTimeout, doSendRequest, setRequests,
-        queue, calculateNodesFromIdsSRetry, requestBuilder, is, os, retrySpec.getRetryStrategy,
-        retrySpec.getRoutingConfigs.duplicatesOk)
+        nodes.size, retrySpec.getRetryStrategy().get.initialTimeout, doSendRequest, setRequests,
+        queue, calculateNodesFromIdsSRetry, requestBuilder, is, os, retrySpec.getRetryStrategy(),
+        retrySpec.getRoutingConfigs().duplicatesOk)
 
       nodes.foreach {
         case (node, idsForNode) => {
