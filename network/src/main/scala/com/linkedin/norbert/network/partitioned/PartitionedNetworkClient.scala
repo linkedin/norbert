@@ -17,14 +17,18 @@ package com.linkedin.norbert
 package network
 package partitioned
 
-import java.util.Random
 import java.util.concurrent.Future
 import common._
 import loadbalancer.{PartitionedLoadBalancer, PartitionedLoadBalancerFactoryComponent, PartitionedLoadBalancerFactory}
 import server.{MessageExecutorComponent, NetworkServer}
 import netty.NettyPartitionedNetworkClient
-import com.linkedin.norbert.network.client.{PartitionedNodeSpecification, NetworkClientConfig}
+import com.linkedin.norbert.network.client.NetworkClientConfig
 import cluster.{Node, ClusterDisconnectedException, InvalidClusterException, ClusterClientComponent}
+import scala.util.Random
+import java.util
+import com.linkedin.norbert.network.javaobjects.{NodeSpecification => JNodeSpecification, PartitionedNodeSpecification => JPartitionedNodeSpecification,
+RetrySpecification => JRetrySpecification, PartitionedRetrySpecification => JPartitionedRetrySpecification,
+RequestSpecification => JRequestSpecification, PartitionedRequestSpecification => JPartitionedRequestSpecification}
 
 object PartitionedNetworkClient {
   def apply[PartitionedId](config: NetworkClientConfig, loadBalancerFactory: PartitionedLoadBalancerFactory[PartitionedId]): PartitionedNetworkClient[PartitionedId] = {
@@ -279,7 +283,7 @@ trait PartitionedNetworkClient[PartitionedId] extends BaseNetworkClient {
   def sendRequest[RequestMsg, ResponseMsg](ids: Set[PartitionedId], requestBuilder: (Node, Set[PartitionedId]) => RequestMsg)
   (implicit is: InputSerializer[RequestMsg, ResponseMsg], os: OutputSerializer[RequestMsg, ResponseMsg]): ResponseIterator[ResponseMsg] =
   {
-    val requestSpec = PartitionedRequestSpecification[RequestMsg, PartitionedId](rb = Some(requestBuilder))
+    val requestSpec = PartitionedRequestSpecification[RequestMsg, PartitionedId](requestBuilder = Some(requestBuilder))
     val nodeSpec = new PartitionedNodeSpecification[PartitionedId](ids).build
     val retrySpec = PartitionedRetrySpecification[ResponseMsg](retryStrategy = retryStrategy)
     sendRequest(requestSpec, nodeSpec, retrySpec)
@@ -289,7 +293,7 @@ trait PartitionedNetworkClient[PartitionedId] extends BaseNetworkClient {
   def sendRequest[RequestMsg, ResponseMsg](ids: Set[PartitionedId], numberOfReplicas: Int, requestBuilder: (Node, Set[PartitionedId]) => RequestMsg)
                                           (implicit is: InputSerializer[RequestMsg, ResponseMsg], os: OutputSerializer[RequestMsg, ResponseMsg]): ResponseIterator[ResponseMsg] =
   {
-    val requestSpec = PartitionedRequestSpecification[RequestMsg, PartitionedId](rb = Some(requestBuilder))
+    val requestSpec = PartitionedRequestSpecification[RequestMsg, PartitionedId](requestBuilder = Some(requestBuilder))
     val nodeSpec = new PartitionedNodeSpecification[PartitionedId](ids).setNumberOfReplicas(numberOfReplicas).build
     val retrySpec = PartitionedRetrySpecification[ResponseMsg](retryStrategy = retryStrategy)
     sendRequest(requestSpec, nodeSpec, retrySpec)
@@ -299,7 +303,7 @@ trait PartitionedNetworkClient[PartitionedId] extends BaseNetworkClient {
   def sendRequest[RequestMsg, ResponseMsg](ids: Set[PartitionedId], numberOfReplicas: Int, requestBuilder: (Node, Set[PartitionedId]) => RequestMsg, capability: Option[Long])
                                           (implicit is: InputSerializer[RequestMsg, ResponseMsg], os: OutputSerializer[RequestMsg, ResponseMsg]): ResponseIterator[ResponseMsg] =
   {
-    val requestSpec = PartitionedRequestSpecification[RequestMsg, PartitionedId](rb = Some(requestBuilder))
+    val requestSpec = PartitionedRequestSpecification[RequestMsg, PartitionedId](requestBuilder = Some(requestBuilder))
     val nodeSpec = new PartitionedNodeSpecification[PartitionedId](ids).setCapability(capability).setNumberOfReplicas(numberOfReplicas).build
     val retrySpec = PartitionedRetrySpecification[ResponseMsg](retryStrategy = retryStrategy)
     sendRequest(requestSpec, nodeSpec, retrySpec)
@@ -309,7 +313,7 @@ trait PartitionedNetworkClient[PartitionedId] extends BaseNetworkClient {
   def sendRequest[RequestMsg, ResponseMsg](ids: Set[PartitionedId], requestBuilder: (Node, Set[PartitionedId]) => RequestMsg, capability: Option[Long])
   (implicit is: InputSerializer[RequestMsg, ResponseMsg], os: OutputSerializer[RequestMsg, ResponseMsg]): ResponseIterator[ResponseMsg] =
   {
-    val requestSpec = PartitionedRequestSpecification[RequestMsg, PartitionedId](rb = Some(requestBuilder))
+    val requestSpec = PartitionedRequestSpecification[RequestMsg, PartitionedId](requestBuilder = Some(requestBuilder))
     val nodeSpec = new PartitionedNodeSpecification[PartitionedId](ids).setCapability(capability).build
     val retrySpec = PartitionedRetrySpecification[ResponseMsg](retryStrategy = retryStrategy)
     sendRequest(requestSpec, nodeSpec, retrySpec)
@@ -320,7 +324,7 @@ trait PartitionedNetworkClient[PartitionedId] extends BaseNetworkClient {
                                           (implicit is: InputSerializer[RequestMsg, ResponseMsg], os: OutputSerializer[RequestMsg, ResponseMsg]): ResponseIterator[ResponseMsg] =
   {
     val routingConfigs = new RoutingConfigs(retryStrategy != None, dupOk)
-    val requestSpec = PartitionedRequestSpecification[RequestMsg, PartitionedId](rb = Some(requestBuilder))
+    val requestSpec = PartitionedRequestSpecification[RequestMsg, PartitionedId](requestBuilder = Some(requestBuilder))
     val nodeSpec = new PartitionedNodeSpecification[PartitionedId](ids).setCapability(capability).setNumberOfReplicas(numberOfReplicas).build
     val retrySpec = PartitionedRetrySpecification[ResponseMsg](retryStrategy = retryStrategy, routingConfigs = routingConfigs)
     sendRequest(requestSpec, nodeSpec, retrySpec)
@@ -331,7 +335,7 @@ trait PartitionedNetworkClient[PartitionedId] extends BaseNetworkClient {
                                           (implicit is: InputSerializer[RequestMsg, ResponseMsg], os: OutputSerializer[RequestMsg, ResponseMsg]): ResponseIterator[ResponseMsg] =
   {
     val routingConfigs = new RoutingConfigs(retryStrategy != None, dupOk)
-    val requestSpec = PartitionedRequestSpecification[RequestMsg, PartitionedId](rb = Some(requestBuilder))
+    val requestSpec = PartitionedRequestSpecification[RequestMsg, PartitionedId](requestBuilder = Some(requestBuilder))
     val nodeSpec = new PartitionedNodeSpecification[PartitionedId](ids).setCapability(capability).build
     val retrySpec = PartitionedRetrySpecification[ResponseMsg](retryStrategy = retryStrategy, routingConfigs = routingConfigs)
     sendRequest(requestSpec, nodeSpec, retrySpec)
@@ -341,7 +345,7 @@ trait PartitionedNetworkClient[PartitionedId] extends BaseNetworkClient {
   def sendRequest[RequestMsg, ResponseMsg](ids: Set[PartitionedId], requestBuilder: (Node, Set[PartitionedId]) => RequestMsg, capability: Option[Long], routingConfigs : RoutingConfigs)
   (implicit is: InputSerializer[RequestMsg, ResponseMsg], os: OutputSerializer[RequestMsg, ResponseMsg]): ResponseIterator[ResponseMsg] =
   {
-    val requestSpec = PartitionedRequestSpecification[RequestMsg, PartitionedId](rb = Some(requestBuilder))
+    val requestSpec = PartitionedRequestSpecification[RequestMsg, PartitionedId](requestBuilder = Some(requestBuilder))
     val nodeSpec = new PartitionedNodeSpecification[PartitionedId](ids).setCapability(capability).build
     val retrySpec = PartitionedRetrySpecification[ResponseMsg](retryStrategy = retryStrategy, routingConfigs = routingConfigs)
     sendRequest(requestSpec, nodeSpec, retrySpec)
@@ -351,7 +355,7 @@ trait PartitionedNetworkClient[PartitionedId] extends BaseNetworkClient {
   def sendRequest[RequestMsg, ResponseMsg](ids: Set[PartitionedId], requestBuilder: (Node, Set[PartitionedId]) => RequestMsg, capability: Option[Long], routingConfigs : RoutingConfigs, retryStrategy: Option[RetryStrategy])
   (implicit is: InputSerializer[RequestMsg, ResponseMsg], os: OutputSerializer[RequestMsg, ResponseMsg]): ResponseIterator[ResponseMsg] =
   {
-    val requestSpec = PartitionedRequestSpecification[RequestMsg, PartitionedId](rb = Some(requestBuilder))
+    val requestSpec = PartitionedRequestSpecification[RequestMsg, PartitionedId](requestBuilder = Some(requestBuilder))
     val nodeSpec = new PartitionedNodeSpecification[PartitionedId](ids).setCapability(capability).build
     val retrySpec = PartitionedRetrySpecification[ResponseMsg](retryStrategy = retryStrategy, routingConfigs = routingConfigs)
     sendRequest(requestSpec, nodeSpec, retrySpec)
@@ -360,7 +364,7 @@ trait PartitionedNetworkClient[PartitionedId] extends BaseNetworkClient {
   @deprecated("Use sendRequest(PartitionedRequestSpecification[RequestMsg, PartitionedId], PartitionedNodeSpecification[PartitionedId], PartitionedRetrySpecification[ResponseMsg], responseAggregator), 2/2/2015")
   def sendRequest[RequestMsg, ResponseMsg](ids: Set[PartitionedId], requestBuilder: (Node, Set[PartitionedId]) => RequestMsg, capability: Option[Long], persistentCapability: Option[Long])
   (implicit is: InputSerializer[RequestMsg, ResponseMsg], os: OutputSerializer[RequestMsg, ResponseMsg]): ResponseIterator[ResponseMsg] = doIfConnected {
-    val requestSpec = PartitionedRequestSpecification[RequestMsg, PartitionedId](rb = Some(requestBuilder))
+    val requestSpec = PartitionedRequestSpecification[RequestMsg, PartitionedId](requestBuilder = Some(requestBuilder))
     val nodeSpec = new PartitionedNodeSpecification[PartitionedId](ids).setCapability(capability).setPersistentCapability(persistentCapability).build
     val retrySpec = PartitionedRetrySpecification[ResponseMsg](retryStrategy = retryStrategy)
     sendRequest(requestSpec, nodeSpec, retrySpec)
@@ -369,7 +373,7 @@ trait PartitionedNetworkClient[PartitionedId] extends BaseNetworkClient {
   @deprecated("Use sendRequest(PartitionedRequestSpecification[RequestMsg, PartitionedId], PartitionedNodeSpecification[PartitionedId], PartitionedRetrySpecification[ResponseMsg], responseAggregator), 2/2/2015")
   def sendRequest[RequestMsg, ResponseMsg](ids: Set[PartitionedId], numberOfReplicas: Int, requestBuilder: (Node, Set[PartitionedId]) => RequestMsg, capability: Option[Long], persistentCapability: Option[Long])
                                           (implicit is: InputSerializer[RequestMsg, ResponseMsg], os: OutputSerializer[RequestMsg, ResponseMsg]): ResponseIterator[ResponseMsg] = doIfConnected {
-    val requestSpec = PartitionedRequestSpecification[RequestMsg, PartitionedId](rb = Some(requestBuilder))
+    val requestSpec = PartitionedRequestSpecification[RequestMsg, PartitionedId](requestBuilder = Some(requestBuilder))
     val nodeSpec = new PartitionedNodeSpecification[PartitionedId](ids).setCapability(capability).setPersistentCapability(persistentCapability).setNumberOfReplicas(numberOfReplicas).build
     val retrySpec = PartitionedRetrySpecification[ResponseMsg](retryStrategy = retryStrategy)
     sendRequest(requestSpec, nodeSpec, retrySpec)
@@ -398,7 +402,7 @@ trait PartitionedNetworkClient[PartitionedId] extends BaseNetworkClient {
   def sendRequest[RequestMsg, ResponseMsg](ids: Set[PartitionedId], numberOfReplicas: Int, requestBuilder: (Node, Set[PartitionedId]) => RequestMsg, maxRetry: Int)
                                           (implicit is: InputSerializer[RequestMsg, ResponseMsg], os: OutputSerializer[RequestMsg, ResponseMsg]): ResponseIterator[ResponseMsg] =
   {
-    val requestSpec = PartitionedRequestSpecification[RequestMsg, PartitionedId](rb = Some(requestBuilder))
+    val requestSpec = PartitionedRequestSpecification[RequestMsg, PartitionedId](requestBuilder = Some(requestBuilder))
     val nodeSpec = new PartitionedNodeSpecification[PartitionedId](ids).setNumberOfReplicas(numberOfReplicas).build
     val retrySpec = PartitionedRetrySpecification[ResponseMsg](maxRetry, retryStrategy = retryStrategy)
     sendRequest(requestSpec, nodeSpec, retrySpec)
@@ -408,7 +412,7 @@ trait PartitionedNetworkClient[PartitionedId] extends BaseNetworkClient {
   def sendRequest[RequestMsg, ResponseMsg](ids: Set[PartitionedId], requestBuilder: (Node, Set[PartitionedId]) => RequestMsg, maxRetry: Int)
   (implicit is: InputSerializer[RequestMsg, ResponseMsg], os: OutputSerializer[RequestMsg, ResponseMsg]): ResponseIterator[ResponseMsg] =
   {
-    val requestSpec = PartitionedRequestSpecification[RequestMsg, PartitionedId](rb = Some(requestBuilder))
+    val requestSpec = PartitionedRequestSpecification[RequestMsg, PartitionedId](requestBuilder = Some(requestBuilder))
     val nodeSpec = new PartitionedNodeSpecification[PartitionedId](ids).build
     val retrySpec = PartitionedRetrySpecification[ResponseMsg](maxRetry, retryStrategy = retryStrategy)
     sendRequest(requestSpec, nodeSpec, retrySpec)
@@ -418,7 +422,7 @@ trait PartitionedNetworkClient[PartitionedId] extends BaseNetworkClient {
   def sendRequest[RequestMsg, ResponseMsg](ids: Set[PartitionedId], requestBuilder: (Node, Set[PartitionedId]) => RequestMsg, maxRetry: Int, capability: Option[Long])
   (implicit is: InputSerializer[RequestMsg, ResponseMsg], os: OutputSerializer[RequestMsg, ResponseMsg]): ResponseIterator[ResponseMsg] =
   {
-    val requestSpec = PartitionedRequestSpecification[RequestMsg, PartitionedId](rb = Some(requestBuilder))
+    val requestSpec = PartitionedRequestSpecification[RequestMsg, PartitionedId](requestBuilder = Some(requestBuilder))
     val nodeSpec = new PartitionedNodeSpecification[PartitionedId](ids).setCapability(capability).build
     val retrySpec = PartitionedRetrySpecification[ResponseMsg](maxRetry, retryStrategy = retryStrategy)
     sendRequest(requestSpec, nodeSpec, retrySpec)
@@ -433,7 +437,7 @@ trait PartitionedNetworkClient[PartitionedId] extends BaseNetworkClient {
     (implicit is: InputSerializer[RequestMsg, ResponseMsg],
         os: OutputSerializer[RequestMsg, ResponseMsg]): ResponseIterator[ResponseMsg] =
   {
-    val requestSpec = PartitionedRequestSpecification[RequestMsg, PartitionedId](rb = Some(requestBuilder))
+    val requestSpec = PartitionedRequestSpecification[RequestMsg, PartitionedId](requestBuilder = Some(requestBuilder))
     val nodeSpec = new PartitionedNodeSpecification[PartitionedId](ids).setCapability(capability).setPersistentCapability(persistentCapability).setNumberOfReplicas(numberOfReplicas).build
     val retrySpec = PartitionedRetrySpecification[ResponseMsg](maxRetry, retryStrategy = retryStrategy, routingConfigs = routingConfigs)
     sendRequest(requestSpec, nodeSpec, retrySpec)
@@ -448,7 +452,7 @@ trait PartitionedNetworkClient[PartitionedId] extends BaseNetworkClient {
     (implicit is: InputSerializer[RequestMsg, ResponseMsg],
         os: OutputSerializer[RequestMsg, ResponseMsg]): ResponseIterator[ResponseMsg] = doIfConnected
   {
-    val requestSpec = PartitionedRequestSpecification[RequestMsg, PartitionedId](rb = Some(requestBuilder))
+    val requestSpec = PartitionedRequestSpecification[RequestMsg, PartitionedId](requestBuilder = Some(requestBuilder))
     val nodeSpec = new PartitionedNodeSpecification[PartitionedId](ids).setCapability(capability).setPersistentCapability(persistentCapability).setClusterId(clusterId).setNumberOfReplicas(numberOfReplicas).build
     val retrySpec = PartitionedRetrySpecification[ResponseMsg](maxRetry, retryStrategy = retryStrategy, routingConfigs = routingConfigs)
     sendRequest(requestSpec, nodeSpec, retrySpec)
@@ -479,7 +483,7 @@ trait PartitionedNetworkClient[PartitionedId] extends BaseNetworkClient {
                                                    responseAggregator: (ResponseIterator[ResponseMsg]) => Result)
   (implicit is: InputSerializer[RequestMsg, ResponseMsg], os: OutputSerializer[RequestMsg, ResponseMsg]): Result =
   {
-    val requestSpec = PartitionedRequestSpecification[RequestMsg, PartitionedId](rb = Some(requestBuilder))
+    val requestSpec = PartitionedRequestSpecification[RequestMsg, PartitionedId](requestBuilder = Some(requestBuilder))
     val nodeSpec = new PartitionedNodeSpecification[PartitionedId](ids).build
     val retrySpec = PartitionedRetrySpecification[ResponseMsg](retryStrategy = retryStrategy)
 
@@ -493,7 +497,7 @@ trait PartitionedNetworkClient[PartitionedId] extends BaseNetworkClient {
                                                    responseAggregator: (ResponseIterator[ResponseMsg]) => Result)
                                                   (implicit is: InputSerializer[RequestMsg, ResponseMsg], os: OutputSerializer[RequestMsg, ResponseMsg]): Result =
   {
-    val requestSpec = PartitionedRequestSpecification[RequestMsg, PartitionedId](rb = Some(requestBuilder))
+    val requestSpec = PartitionedRequestSpecification[RequestMsg, PartitionedId](requestBuilder = Some(requestBuilder))
     val nodeSpec = new PartitionedNodeSpecification[PartitionedId](ids).setNumberOfReplicas(numberOfReplicas).build
     val retrySpec = PartitionedRetrySpecification[ResponseMsg](retryStrategy = retryStrategy)
 
@@ -507,7 +511,7 @@ trait PartitionedNetworkClient[PartitionedId] extends BaseNetworkClient {
                                                    capability: Option[Long])
   (implicit is: InputSerializer[RequestMsg, ResponseMsg], os: OutputSerializer[RequestMsg, ResponseMsg]): Result =
   {
-    val requestSpec = PartitionedRequestSpecification[RequestMsg, PartitionedId](rb = Some(requestBuilder))
+    val requestSpec = PartitionedRequestSpecification[RequestMsg, PartitionedId](requestBuilder = Some(requestBuilder))
     val nodeSpec = new PartitionedNodeSpecification[PartitionedId](ids).setCapability(capability).build
     val retrySpec = PartitionedRetrySpecification[ResponseMsg](retryStrategy = retryStrategy)
 
@@ -522,7 +526,7 @@ trait PartitionedNetworkClient[PartitionedId] extends BaseNetworkClient {
                                                    persistentCapability: Option[Long])
                                                   (implicit is: InputSerializer[RequestMsg, ResponseMsg], os: OutputSerializer[RequestMsg, ResponseMsg]): Result =
   {
-    val requestSpec = PartitionedRequestSpecification[RequestMsg, PartitionedId](rb = Some(requestBuilder))
+    val requestSpec = PartitionedRequestSpecification[RequestMsg, PartitionedId](requestBuilder = Some(requestBuilder))
     val nodeSpec = new PartitionedNodeSpecification[PartitionedId](ids).setCapability(capability).setPersistentCapability(persistentCapability).build
     val retrySpec = PartitionedRetrySpecification[ResponseMsg](retryStrategy = retryStrategy)
 
@@ -538,7 +542,7 @@ trait PartitionedNetworkClient[PartitionedId] extends BaseNetworkClient {
                                                    persistentCapability: Option[Long])
   (implicit is: InputSerializer[RequestMsg, ResponseMsg], os: OutputSerializer[RequestMsg, ResponseMsg]): Result = doIfConnected {
 
-    val requestSpec = PartitionedRequestSpecification[RequestMsg, PartitionedId](rb = Some(requestBuilder))
+    val requestSpec = PartitionedRequestSpecification[RequestMsg, PartitionedId](requestBuilder = Some(requestBuilder))
     val nodeSpec = new PartitionedNodeSpecification[PartitionedId](ids).setCapability(capability).setPersistentCapability(persistentCapability).setNumberOfReplicas(numberOfReplicas).build
     val retrySpec = PartitionedRetrySpecification[ResponseMsg](retryStrategy = retryStrategy)
 
@@ -577,39 +581,46 @@ trait PartitionedNetworkClient[PartitionedId] extends BaseNetworkClient {
    * @throws ClusterDisconnectedException thrown if the <code>PartitionedNetworkClient</code> is not connected to the cluster
    * @throws Exception any exception thrown by <code>responseAggregator</code> will be passed through to the client
    */
-  def sendRequest[RequestMsg, ResponseMsg](requestSpec: PartitionedRequestSpecification[RequestMsg, PartitionedId], nodeSpec: PartitionedNodeSpecification[PartitionedId], retrySpec: PartitionedRetrySpecification[ResponseMsg])
+  def sendRequest[RequestMsg, ResponseMsg](requestSpec: JPartitionedRequestSpecification[RequestMsg, PartitionedId], nodeSpec: JPartitionedNodeSpecification[PartitionedId], retrySpec: JPartitionedRetrySpecification[ResponseMsg, Unit])
                                           (implicit is: InputSerializer[RequestMsg, ResponseMsg], os: OutputSerializer[RequestMsg, ResponseMsg]): ResponseIterator[ResponseMsg] = doIfConnected
   {
-    val requestBuilder = requestSpec.requestBuilder.getOrElse(throw new Exception("Request spec automatically creates a builder - this shouldn't happen ever."))
+    val requestBuilder = requestSpec.getRequestBuilder().getOrElse(throw new Exception("Request spec automatically creates a builder - this shouldn't happen ever."))
 
-    if (nodeSpec.ids == null || requestBuilder == null) throw new NullPointerException
+    if (nodeSpec.getIds() == null || requestBuilder == null) throw new NullPointerException
 
-    val nodes = nodeSpec.clusterId match {
-      case Some(clusterId:Int) => calculateNodesFromIdsInCluster (nodeSpec.ids, clusterId, nodeSpec.capability, nodeSpec.persistentCapability)
-      case None => calculateNodesFromIds (nodeSpec.ids, nodeSpec.numberOfReplicas, nodeSpec.capability, nodeSpec.persistentCapability)
+    // Convert clusterId from java.lang.Integer to scala.Int
+    val clusterId = Option(Int.unbox(nodeSpec.getClusterId()))
+
+    // Convert capability and persistentCapability from java.lang.Long to scala.Long
+    val capability = Option(Long.unbox(nodeSpec.getCapability()))
+    val persistentCapability = Option(Long.unbox(nodeSpec.getPersistentCapability()))
+
+    val nodes = clusterId match {
+      case Some(clusterId:Int) => calculateNodesFromIdsInCluster (nodeSpec.getIds(), clusterId, capability, persistentCapability)
+      case None => calculateNodesFromIds (nodeSpec.getIds(), nodeSpec.getNumberOfReplicas(), capability, persistentCapability)
     }
 
-    log.debug("Total number of ids: %d, selected nodes: %d, ids per node: [%s]".format(nodeSpec.ids.size, nodes.size,
+    log.debug("Total number of ids: %d, selected nodes: %d, ids per node: [%s]".format(nodeSpec.getIds().size, nodes.size,
       nodes.view.map {
         case (node, idsForNode) => idsForNode.size
       } mkString("", ",", "")
     ))
 
-    if (nodes.size <= 1 || !retrySpec.routingConfigs.selectiveRetry || retrySpec.retryStrategy == None) {
+    if (nodes.size <= 1 || !retrySpec.getRoutingConfigs().selectiveRetry || retrySpec.getRetryStrategy() == None) {
       val queue = new ResponseQueue[ResponseMsg]
       val resIter = new NorbertDynamicResponseIterator[ResponseMsg](nodes.size, queue)
       nodes.foreach { case (node, idsForNode) =>
         try {
-        doSendRequest(PartitionedRequest(requestBuilder(node, idsForNode), node, idsForNode, requestBuilder, is, os, if (retrySpec.maxRetry == 0) Some((a: Either[Throwable, ResponseMsg]) => {queue += a :Unit}) else Some(retryCallback[RequestMsg, ResponseMsg](queue.+=, retrySpec.maxRetry, nodeSpec.capability, nodeSpec.persistentCapability)_), 0, Some(resIter)))
+        doSendRequest(PartitionedRequest(requestBuilder(node, idsForNode), node, idsForNode, requestBuilder, is, os, if (retrySpec.getMaxRetry() == 0) Some((a: Either[Throwable, ResponseMsg]) => {queue += a :Unit}) else Some(retryCallback[RequestMsg, ResponseMsg](queue.+=, retrySpec.getMaxRetry(), capability, persistentCapability)_), 0, Some(resIter)))
         } catch {
           case ex: Exception => queue += Left(ex)
         }
       }
       return resIter
     } else {
-      val nodes = nodeSpec.clusterId match {
-        case Some(clusterId:Int) => calculateNodesFromIdsInCluster (nodeSpec.ids, clusterId, None, None)
-        case None => calculateNodesFromIds (nodeSpec.ids, nodeSpec.numberOfReplicas, None, None)
+      val nodes = clusterId match {
+        case Some(clusterId:Int) => calculateNodesFromIdsInCluster (nodeSpec.getIds(), clusterId, None, None)
+        case None => calculateNodesFromIds (nodeSpec.getIds(), nodeSpec.getNumberOfReplicas(), None, None)
       }
       var setRequests: Map[PartitionedId, Node] = Map.empty[PartitionedId, Node]
       nodes.foreach {
@@ -624,13 +635,13 @@ trait PartitionedNetworkClient[PartitionedId] extends BaseNetworkClient {
       /* wrapper so that iterator does not have to care about capability stuff */
       def calculateNodesFromIdsSRetry(ids: Set[PartitionedId], excludedNodes: Set[Node], maxAttempts: Int)
       :Map[Node, Set[PartitionedId]] = {
-        calculateNodesFromIds(ids, excludedNodes, maxAttempts, nodeSpec.capability, nodeSpec.persistentCapability).toMap
+        calculateNodesFromIds(ids, excludedNodes, maxAttempts, capability, persistentCapability).toMap
       }
 
       val resIter = new SelectiveRetryIterator[PartitionedId, RequestMsg, ResponseMsg](
-        nodes.size, retrySpec.retryStrategy.get.initialTimeout, doSendRequest, setRequests,
-        queue, calculateNodesFromIdsSRetry, requestBuilder, is, os, retrySpec.retryStrategy,
-        retrySpec.routingConfigs.duplicatesOk)
+        nodes.size, retrySpec.getRetryStrategy().get.initialTimeout, doSendRequest, setRequests,
+        queue, calculateNodesFromIdsSRetry, requestBuilder, is, os, retrySpec.getRetryStrategy(),
+        retrySpec.getRoutingConfigs().duplicatesOk)
 
       nodes.foreach {
         case (node, idsForNode) => {
