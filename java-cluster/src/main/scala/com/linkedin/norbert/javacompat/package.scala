@@ -35,7 +35,7 @@ package object javacompat {
     collection.JavaConversions.asScalaSet(set).foldLeft(collection.immutable.Set.empty[Int]) { _ + _.intValue }
   }
 
-  implicit def scalaIntSetToJavaIntegerSet(set: util.Set[Int]): java.util.Set[java.lang.Integer] = {
+  implicit def scalaIntSetToJavaIntegerSet(set: Set[Int]): java.util.Set[java.lang.Integer] = {
     val result = new java.util.HashSet[java.lang.Integer](set.size)
     set.foreach (result add _)
     result
@@ -55,9 +55,9 @@ package object javacompat {
       }
 
       SNode(node.getId, node.getUrl, node.isAvailable, partitionIds,
-			if(node.getCapability == null) None else Some(node.getCapability.longValue),
-			if(node.getPersistentCapability == null) None else Some(node.getPersistentCapability.longValue),
-      node.getAltPort)
+        if(node.getCapability == null) None else Some(node.getCapability.longValue),
+        if(node.getPersistentCapability == null) None else Some(node.getPersistentCapability.longValue),
+        Some(node.getAltPort))
     }
   }
 
