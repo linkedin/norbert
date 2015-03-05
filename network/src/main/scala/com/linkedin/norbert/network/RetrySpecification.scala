@@ -2,6 +2,8 @@ package com.linkedin.norbert
 
 import com.linkedin.norbert.network.common.RetryStrategy
 
+import com.linkedin.norbert.network.javaobjects.{RetrySpecification => JRetrySpecification, PartitionedRetrySpecification => JPartitionedRetrySpecification}
+
 /**
  * This is the companion object for the RoutingConfigs class.
  */
@@ -44,8 +46,11 @@ object RetrySpecification {
  * @throws IllegalArgumentException if the value for maxRetry is less than 0 and the callback is specified.
  */
 class RetrySpecification[ResponseMsg](val maxRetry: Int,
-                                                  val callback: Option[Either[Throwable, ResponseMsg] => Unit]) {
-
+                                                  val callback: Option[Either[Throwable, ResponseMsg] => Unit]) extends JRetrySpecification[ResponseMsg, Unit]{
+  // Returns Int that is unboxed to int
+  def getMaxRetry() = maxRetry
+  // Returns an optional anonymous function
+  def getCallback() = callback
 }
 
 /**
@@ -74,7 +79,12 @@ object PartitionedRetrySpecification {
 class PartitionedRetrySpecification[ResponseMsg](maxRetry: Int,
                                          callback: Option[Either[Throwable, ResponseMsg] => Unit],
                                          var retryStrategy: Option[RetryStrategy],
-                                         var routingConfigs: RoutingConfigs = RoutingConfigs.defaultRoutingConfigs) extends RetrySpecification[ResponseMsg](maxRetry, callback) {
+                                         var routingConfigs: RoutingConfigs = RoutingConfigs.defaultRoutingConfigs)
+                                              extends JPartitionedRetrySpecification[ResponseMsg, Unit]{
+  def getMaxRetry() = maxRetry
+  def getCallback() = callback
+  def getRetryStrategy() = retryStrategy
+  def getRoutingConfigs() = routingConfigs
 
 }
 

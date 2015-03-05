@@ -18,12 +18,12 @@ class RetryAndCallbackSpecificationSpec extends SpecificationWithJUnit {
   "RetryAndCallbackSpecification" should {
     "create a new retrySpecification object" in {
       val retrySpecificationTest: RetrySpecification[String] = RetrySpecification[String](9)
-      retrySpecificationTest.maxRetry must be equalTo(9)
+      retrySpecificationTest.getMaxRetry() must be equalTo(9)
     }
 
     "create a new partitionedRetrySpecification object" in {
       val partitionedRetrySpecificationTest: PartitionedRetrySpecification[String] = PartitionedRetrySpecification[String](9)
-      partitionedRetrySpecificationTest.maxRetry must be equalTo(9)
+      partitionedRetrySpecificationTest.getMaxRetry() must be equalTo(9)
     }
 
 

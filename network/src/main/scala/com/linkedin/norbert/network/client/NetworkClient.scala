@@ -21,8 +21,11 @@ import java.util.concurrent.Future
 import loadbalancer.{LoadBalancerFactory, LoadBalancer, LoadBalancerFactoryComponent}
 import server.{MessageExecutorComponent, NetworkServer}
 import cluster._
-import network.common._
 import netty.NettyNetworkClient
+import network.common._
+import com.linkedin.norbert.network.javaobjects.{NodeSpecification => JNodeSpecification, PartitionedNodeSpecification => JPartitionedNodeSpecification,
+                                                RetrySpecification => JRetrySpecification, PartitionedRetrySpecification => JPartitionedRetrySpecification,
+                                                RequestSpecification => JRequestSpecification, PartitionedRequestSpecification => JPartitionedRequestSpecification}
 
 
 object NetworkClientConfig {
@@ -275,19 +278,23 @@ trait NetworkClient extends BaseNetworkClient {
    * instead of adding new overloaded sendRequest methods, changes should be made to the
    * wrapper objects whenever possible.
    */
-  def sendRequest[RequestMsg, ResponseMsg](requestSpec: RequestSpecification[RequestMsg], nodeSpec: NodeSpecification, retrySpec: RetrySpecification[ResponseMsg])
+  def sendRequest[RequestMsg, ResponseMsg](requestSpec: JRequestSpecification[RequestMsg], nodeSpec: JNodeSpecification, retrySpec: JRetrySpecification[ResponseMsg, Unit])
   (implicit is: InputSerializer[RequestMsg, ResponseMsg], os:OutputSerializer[RequestMsg, ResponseMsg]): Unit = doIfConnected {
-    if (requestSpec.message == null) throw new NullPointerException
-    val callback = retrySpec.callback.getOrElse(throw new Exception("No callback and no default callback"));
+    if (requestSpec.getMessage() == null) throw new NullPointerException
+    val callback = retrySpec.getCallback().getOrElse(throw new Exception("No callback and no default callback"));
 
     val loadBalancerReady = loadBalancer.getOrElse(throw new ClusterDisconnectedException("Client has no node information"))
 
+    // Convert capability and persistentCapability from java.lang.Long to scala.Long
+    val capability = Option(Long.unbox(nodeSpec.getCapability()))
+    val persistentCapability = Option(Long.unbox(nodeSpec.getPersistentCapability()))
+
     val node = loadBalancerReady.fold(ex => throw ex,
       lb => {
-        val node: Option[Node] = lb.nextNode(nodeSpec.capability, nodeSpec.persistentCapability)
-        node.getOrElse(throw new NoNodesAvailableException("No node available that can handle the request: %s".format(requestSpec.message)))
+        val node: Option[Node] = lb.nextNode(capability, persistentCapability)
+        node.getOrElse(throw new NoNodesAvailableException("No node available that can handle the request: %s".format(requestSpec.getMessage())))
       })
-    doSendRequest(Request(requestSpec.message, node, is, os, if (retrySpec.maxRetry == 0) Some(callback) else Some(retryCallback[RequestMsg, ResponseMsg](callback, retrySpec.maxRetry, nodeSpec.capability, nodeSpec.persistentCapability) _)))
+    doSendRequest(Request(requestSpec.getMessage(), node, is, os, if (retrySpec.getMaxRetry() == 0) Some(callback) else Some(retryCallback[RequestMsg, ResponseMsg](callback, retrySpec.getMaxRetry(), capability, persistentCapability) _)))
   }
 
 

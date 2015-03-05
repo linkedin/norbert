@@ -1,6 +1,7 @@
 
 package com.linkedin.norbert.network
 import com.linkedin.norbert.cluster.Node
+import com.linkedin.norbert.network.javaobjects.{RequestSpecification => JRequestSpecification, PartitionedRequestSpecification => JPartitionedRequestSpecification}
 
 /**
  * A RequestSpecification object is used to store the necessary information to specify the request message.
@@ -25,8 +26,8 @@ object RequestSpecification {
  * @param message The requestMsg to be sent to the node.
  * @tparam RequestMsg The type of the request being sent to the node, should be the same as that used by the network client you will use to send the request.
  */
-class RequestSpecification[RequestMsg](val message: RequestMsg) {
-
+class RequestSpecification[RequestMsg](val message: RequestMsg) extends JRequestSpecification[RequestMsg]{
+  def getMessage() = message
 }
 
 /**
@@ -53,7 +54,7 @@ object PartitionedRequestSpecification{
  * @param requestBuilder Builds a request using the specified set of partitionedIds.
  */
 class PartitionedRequestSpecification[RequestMsg, PartitionedId](val message: Option[RequestMsg],
-                                             var requestBuilder: Option[(Node, Set[PartitionedId]) => RequestMsg]) {
+                                             var requestBuilder: Option[(Node, Set[PartitionedId]) => RequestMsg]) extends JPartitionedRequestSpecification[RequestMsg, PartitionedId]{
   if (requestBuilder == None) {
     if (message == None) {
       
@@ -62,6 +63,11 @@ class PartitionedRequestSpecification[RequestMsg, PartitionedId](val message: Op
     }
     requestBuilder = Some((node:Node, ids:Set[PartitionedId])=> message.getOrElse(throw new Exception("This should not happen")))
   }
+
+  def getMessage() = message
+
+  // Returns an optional anonymous function
+  def getRequestBuilder() = requestBuilder
 
 }
 
