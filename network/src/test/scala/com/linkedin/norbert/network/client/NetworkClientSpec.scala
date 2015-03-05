@@ -179,6 +179,12 @@ class NetworkClientSpec extends BaseNetworkClientSpecification {
                 def request = requestCtx
               })
             }
+            def sendAltMessage[RequestMsg](node: Node, requestCtx: BaseRequest[RequestMsg]) {
+              invocationCount += 1
+              requestCtx.onFailure(new Exception with RequestAccess[BaseRequest[RequestMsg]] {
+                def request = requestCtx
+              })
+            }
             def nodesChanged(nodes: Set[Node]) = {NetworkClientSpec.this.endpoints}
             def shutdown {}
           }

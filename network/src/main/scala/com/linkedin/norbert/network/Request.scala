@@ -60,6 +60,10 @@ class BaseRequest[RequestMsg](val message: RequestMsg, val node: Node,
     // Nothing to do here!
   }
 
+  def onSuccess(bytes: Array[Byte]) {
+    // Nothing to do here!
+  }
+
 }
 
 object Request {
@@ -81,7 +85,7 @@ class Request[RequestMsg, ResponseMsg](override val message: RequestMsg, overrid
     if(expectsResponse) callback.get(Left(exception))
   }
 
-  def onSuccess(bytes: Array[Byte]) {
+  override def onSuccess(bytes: Array[Byte]) {
     if(expectsResponse) callback.get(try {
       Right(inputSerializer.responseFromBytes(bytes))
     } catch {
