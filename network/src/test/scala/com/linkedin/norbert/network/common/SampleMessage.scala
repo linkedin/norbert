@@ -17,7 +17,6 @@ package com.linkedin.norbert.network.common
 
 import com.linkedin.norbert.protos.NorbertExampleProtos
 import com.linkedin.norbert.network.Serializer
-import com.sun.deploy.pings.Pings
 
 trait SampleMessage {
   object Ping {
@@ -43,27 +42,28 @@ trait SampleMessage {
   case class Ping(timestamp: Long = System.currentTimeMillis)
   val request = new Ping
 
-  object PriorityPing {
-    implicit case object PriorityPingSerializer extends Serializer[Ping, Ping] {
-      def requestName = "Priority ping"
-      def responseName = "Pong"
-      def priority = 5
+  object PriorityPing extends Ping{
+    implicit case object PriorityPingSerializer extends Serializer[PriorityPing, PriorityPing] {
+      def requestName = "ping"
+      def responseName = "pong"
+      override def priority = 5
 
-      def requestToBytes(message: Ping) =
+      def requestToBytes(message: PriorityPing) =
         NorbertExampleProtos.Ping.newBuilder.setTimestamp(message.timestamp).build.toByteArray
 
       def requestFromBytes(bytes: Array[Byte]) = {
-        Ping(NorbertExampleProtos.Ping.newBuilder.mergeFrom(bytes).build.getTimestamp)
+         var timestamp = (NorbertExampleProtos.Ping.newBuilder.mergeFrom(bytes).build.getTimestamp)
+        PriorityPing(timestamp)
       }
 
-      def responseToBytes(message: Ping) =
+      def responseToBytes(message: PriorityPing) =
         requestToBytes(message)
 
       def responseFromBytes(bytes: Array[Byte]) =
         requestFromBytes(bytes)
     }
   }
-  case class PriorityPing(timestamp: Long = System.currentTimeMillis)
-  val PriorityRequest = new PriorityPing
 
+  case class PriorityPing(timestamp: Long = System.currentTimeMillis)
+  val priorityRequest = new PriorityPing
 }

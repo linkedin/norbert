@@ -44,7 +44,10 @@ class MessageExecutorSpec extends SpecificationWithJUnit with Mockito with WaitF
     -1)
 
   var handlerCalled = false
+  var priorityHandlerCalled = false
   var either: Either[Exception, Ping] = null
+  var priorityEither: Either[Exception, PriorityPing] = null
+  var messageCount = 0
 
   //this isn't used
   val unregisteredSerializer = {
@@ -55,8 +58,16 @@ class MessageExecutorSpec extends SpecificationWithJUnit with Mockito with WaitF
 
   def handler(e: Either[Exception, Ping]) {
     handlerCalled = true
+    messageCount += 1
     either = e
   }
+
+  def priorityHandler(e: Either[Exception, PriorityPing]) {
+    priorityHandlerCalled = true
+    messageCount += 1
+    priorityEither = e
+  }
+
 
   "MessageExecutor" should {
     doAfter {
@@ -93,6 +104,23 @@ class MessageExecutorSpec extends SpecificationWithJUnit with Mockito with WaitF
       messageExecutor.executeMessage(request, Some(handler _))
 
       handlerCalled must eventually(beTrue)
+      either.isRight must beTrue
+      either.right.get must be(request)
+    }
+
+    "Run higher priority messages first" in {
+      //      messageHandlerRegistry.validResponseFor(request, request) returns true
+      messageHandlerRegistry.handlerFor(request) returns returnHandler _
+      messageHandlerRegistry.handlerFor(priorityRequest) returns priorityReturnHandler _
+
+      messageExecutor.executeMessage(request, Some(handler _))
+      messageExecutor.executeMessage(priorityRequest, Some(priorityHandler _))
+      messageExecutor.executeMessage(priorityRequest, Some(priorityHandler _))
+      messageExecutor.executeMessage(priorityRequest, Some(priorityHandler _))
+
+      handlerCalled must eventually(beTrue)
+      priorityHandlerCalled must beTrue
+      messageCount must be(4)
       either.isRight must beTrue
       either.right.get must be(request)
     }
@@ -202,6 +230,7 @@ class MessageExecutorSpec extends SpecificationWithJUnit with Mockito with WaitF
   }
 
   def returnHandler(message: Ping): Ping = message
+  def priorityReturnHandler(message: PriorityPing): PriorityPing = message
   def throwsHandler(message: Ping): Ping = throw exception
   def nullHandler(message: Ping): Ping = null
 }
