@@ -26,4 +26,5 @@ public interface Node {
   boolean isCapableOf(Long c, Long pc);
   Long getCapability();
   Long getPersistentCapability();
+  Integer getAltPort();
 }
