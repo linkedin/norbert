@@ -17,7 +17,7 @@ package com.linkedin.norbert
 package javacompat
 package network
 
-import com.linkedin.norbert.EndpointConversions._
+import com.linkedin.norbert.EndpointConversions.convertScalaEndpointSet
 import com.linkedin.norbert.cluster.{Node => SNode}
 import com.linkedin.norbert.javacompat.cluster.{BaseClusterClient, Node}
 import com.linkedin.norbert.network.client.loadbalancer.{LoadBalancer => SLoadBalancer, LoadBalancerFactory => SLoadBalancerFactory}

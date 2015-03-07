@@ -87,6 +87,3 @@ class PartitionedRetrySpecification[ResponseMsg](maxRetry: Int,
   def getRoutingConfigs() = routingConfigs
 
 }
-
-
-

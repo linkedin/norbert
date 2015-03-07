@@ -4,8 +4,6 @@
 package com.linkedin.norbert.network
 
 import com.linkedin.norbert.network.javaobjects.{NodeSpecification => JNodeSpecification, PartitionedNodeSpecification => JPartitionedNodeSpecification}
-import scala.collection.JavaConversions._
-import scala.collection.JavaConverters._
 
 /**
  * A NodeSpecification object is used to store the necessary information to specify a node.
@@ -15,7 +13,6 @@ import scala.collection.JavaConverters._
 
 /**
  * NodeTrait is the trait that the NodeSpecification objects extend.
-
  * @tparam NodeType Either a non-partitioned or partitioned nodeSpec
  */
 trait NodeTrait[NodeType] {
