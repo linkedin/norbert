@@ -16,12 +16,11 @@
 package com.linkedin.norbert.network
 
 import java.util.UUID
-import com.linkedin.norbert.cluster.{Node, ClusterException}
-import scala.collection.mutable.Map
-import com.linkedin.norbert.logging.Logging
+
+import com.linkedin.norbert.cluster.{ClusterException, Node}
 import com.linkedin.norbert.network.common.CachedNetworkStatistics
-import com.linkedin.norbert.norbertutils.SystemClockComponent
-import com.linkedin.norbert.network.netty.ClientChannelHandler
+
+import scala.collection.mutable.Map
 
 object Request {
   def apply[RequestMsg, ResponseMsg](message: RequestMsg, node: Node,
