@@ -109,11 +109,13 @@ class MessageExecutorSpec extends SpecificationWithJUnit with Mockito with WaitF
       either.right.get must be(request)
     }
 
+    //Added by HMC clinic
     "Run higher priority messages first" in {
-      //      messageHandlerRegistry.validResponseFor(request, request) returns true
       messageHandlerRegistry.handlerFor(request) returns timeStampHandler _
       messageHandlerRegistry.handlerFor(priorityRequest) returns priorityTimeStampHandler _
 
+      //put one priority request first to make sure that the second priorityRequest
+      // gets in the queue before we start handling the regular request
       messageExecutor.executeMessage(priorityRequest, Some(priorityHandler _))
       messageExecutor.executeMessage(request, Some(handler _))
       messageExecutor.executeMessage(priorityRequest, Some(priorityHandler _))
@@ -121,9 +123,11 @@ class MessageExecutorSpec extends SpecificationWithJUnit with Mockito with WaitF
 
       handlerCalled must eventually(beTrue)
       priorityHandlerCalled must beTrue
+      //need to have run all the messages when we finish running the regular message
       messageCount must be(4)
       either.isRight must beTrue
       priorityEither.isRight must beTrue
+      //check that the regular request was handled after the last priorityRequest
       priorityEither.right.get.timestamp must be_<(either.right.get.timestamp)
 
     }
