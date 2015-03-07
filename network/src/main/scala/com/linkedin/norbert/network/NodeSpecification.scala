@@ -4,8 +4,6 @@
 package com.linkedin.norbert.network
 
 import com.linkedin.norbert.network.javaobjects.{NodeSpecification => JNodeSpecification, PartitionedNodeSpecification => JPartitionedNodeSpecification}
-import scala.collection.JavaConversions._
-import scala.collection.JavaConverters._
 
 /**
  * A NodeSpecification object is used to store the necessary information to specify a node.
@@ -15,12 +13,12 @@ import scala.collection.JavaConverters._
 
 /**
  * NodeTrait is the trait that the NodeSpecification objects extend.
-
  * @tparam NodeType Either a non-partitioned or partitioned nodeSpec
  */
 trait NodeTrait[NodeType] {
   var capability: Option[Long] = None
   var persistentCapability: Option[Long] = None
+  var altPort: Option[Int] = None
 
   def setCapability(cap: Option[Long]): this.type = {
     capability = cap
@@ -29,6 +27,11 @@ trait NodeTrait[NodeType] {
 
   def setPersistentCapability(persistentCap: Option[Long]): this.type = {
     persistentCapability = persistentCap
+    this
+  }
+
+  def setAltPort(port: Option[Int]): this.type = {
+    altPort = port
     this
   }
 
@@ -64,6 +67,10 @@ class NodeSpecification extends NodeTrait[NodeSpecification] with JNodeSpecifica
       case Some(pc) => pc
       case None => null
     }
+  }
+
+  def getAltPort = {
+
   }
 }
 
