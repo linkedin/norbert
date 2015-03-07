@@ -103,6 +103,7 @@ class MessageExecutorSpec extends SpecificationWithJUnit with Mockito with WaitF
 
       messageExecutor.executeMessage(request, Some(handler _))
 
+
       handlerCalled must eventually(beTrue)
       either.isRight must beTrue
       either.right.get must be(request)
@@ -110,11 +111,11 @@ class MessageExecutorSpec extends SpecificationWithJUnit with Mockito with WaitF
 
     "Run higher priority messages first" in {
       //      messageHandlerRegistry.validResponseFor(request, request) returns true
-      messageHandlerRegistry.handlerFor(request) returns returnHandler _
-      messageHandlerRegistry.handlerFor(priorityRequest) returns priorityReturnHandler _
+      messageHandlerRegistry.handlerFor(request) returns timeStampHandler _
+      messageHandlerRegistry.handlerFor(priorityRequest) returns priorityTimeStampHandler _
 
-      messageExecutor.executeMessage(request, Some(handler _))
       messageExecutor.executeMessage(priorityRequest, Some(priorityHandler _))
+      messageExecutor.executeMessage(request, Some(handler _))
       messageExecutor.executeMessage(priorityRequest, Some(priorityHandler _))
       messageExecutor.executeMessage(priorityRequest, Some(priorityHandler _))
 
@@ -122,7 +123,9 @@ class MessageExecutorSpec extends SpecificationWithJUnit with Mockito with WaitF
       priorityHandlerCalled must beTrue
       messageCount must be(4)
       either.isRight must beTrue
-      either.right.get must be(request)
+      priorityEither.isRight must beTrue
+      priorityEither.right.get.timestamp must be_<(either.right.get.timestamp)
+
     }
 
     "not execute the responseHandler if the handler returns null" in {
@@ -230,7 +233,9 @@ class MessageExecutorSpec extends SpecificationWithJUnit with Mockito with WaitF
   }
 
   def returnHandler(message: Ping): Ping = message
+  def timeStampHandler(message: Ping): Ping = { waitFor(50.ms); return new Ping}
   def priorityReturnHandler(message: PriorityPing): PriorityPing = message
+  def priorityTimeStampHandler(message: PriorityPing): PriorityPing = {waitFor(50.ms); return new PriorityPing}
   def throwsHandler(message: Ping): Ping = throw exception
   def nullHandler(message: Ping): Ping = null
 }
