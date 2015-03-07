@@ -69,8 +69,12 @@ class NodeSpecification extends NodeTrait[NodeSpecification] with JNodeSpecifica
     }
   }
 
+  // Converts Option[Int] to java.lang.Integer
   def getAltPort = {
-
+    altPort match {
+      case Some(ap) => ap
+      case None => null
+    }
   }
 }
 
@@ -104,6 +108,14 @@ class PartitionedNodeSpecification[PartitionedId](val ids: Set[PartitionedId]) e
   def getPersistentCapability = {
     persistentCapability match {
       case Some(pc) => pc
+      case None => null
+    }
+  }
+
+  // Converts Option[Int] to java.lang.Integer
+  def getAltPort = {
+    altPort match {
+      case Some(ap) => ap
       case None => null
     }
   }

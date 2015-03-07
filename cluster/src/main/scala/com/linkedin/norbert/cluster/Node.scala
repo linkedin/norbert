@@ -60,7 +60,6 @@ object Node {
   implicit def nodeToByteArray(node: Node): Array[Byte] = {
     val builder = NorbertProtos.Node.newBuilder
     node.persistentCapability match {
-        //TODO: HMC Clinic - we may have to make this pattern matching better
       case None => builder.setId(node.id).setUrl(node.url)
       case Some(x) => builder.setId(node.id).setUrl(node.url).setPersistentCapability(x)
     }
