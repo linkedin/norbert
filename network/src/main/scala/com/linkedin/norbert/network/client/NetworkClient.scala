@@ -353,22 +353,22 @@ trait NetworkClient extends BaseNetworkClient {
    * @throws ClusterDisconnectedException thrown if the cluster is not connected when the method is called
    */
 
-  def sendAltMessage[RequestMsg](request: RequestMsg)
-                                          (implicit is: InputSerializer[RequestMsg, Unit], os: OutputSerializer[RequestMsg, Unit]) {
+  def sendAltMessage[RequestMsg, ResponseMsg](request: RequestMsg)
+                                          (implicit is: InputSerializer[RequestMsg, ResponseMsg], os: OutputSerializer[RequestMsg, ResponseMsg]) {
     doIfConnected {
       sendAltMessage(request, None, None)
     }
   }
 
-  def sendAltMessage[RequestMsg](request: RequestMsg, capability: Option[Long])
-                                          (implicit is: InputSerializer[RequestMsg, Unit], os: OutputSerializer[RequestMsg, Unit]) {
+  def sendAltMessage[RequestMsg, ResponseMsg](request: RequestMsg, capability: Option[Long])
+                                          (implicit is: InputSerializer[RequestMsg, ResponseMsg], os: OutputSerializer[RequestMsg, ResponseMsg]) {
     doIfConnected {
       sendAltMessage(request, capability, None)
     }
   }
 
-  def sendAltMessage[RequestMsg](request: RequestMsg, capability: Option[Long], persistentCapability: Option[Long])
-                                          (implicit is: InputSerializer[RequestMsg, Unit], os: OutputSerializer[RequestMsg, Unit]) {
+  def sendAltMessage[RequestMsg, ResponseMsg](request: RequestMsg, capability: Option[Long], persistentCapability: Option[Long])
+                                          (implicit is: InputSerializer[RequestMsg, ResponseMsg], os: OutputSerializer[RequestMsg, ResponseMsg]) {
     doIfConnected {
       if (request == null) throw new NullPointerException
 

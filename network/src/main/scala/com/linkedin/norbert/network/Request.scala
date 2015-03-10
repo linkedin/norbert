@@ -23,9 +23,9 @@ import com.linkedin.norbert.network.common.CachedNetworkStatistics
 import scala.collection.mutable.Map
 
 object BaseRequest {
-  def apply[RequestMsg](message: RequestMsg, node: Node,
-                        inputSerializer: InputSerializer[RequestMsg, Unit],
-                        outputSerializer: OutputSerializer[RequestMsg, Unit]): BaseRequest[RequestMsg] = {
+  def apply[RequestMsg, ResponseMsg](message: RequestMsg, node: Node,
+                                     inputSerializer: InputSerializer[RequestMsg, ResponseMsg],
+                                     outputSerializer: OutputSerializer[RequestMsg, ResponseMsg]): BaseRequest[RequestMsg] = {
     new BaseRequest(message, node, inputSerializer, outputSerializer)
   }
 }
