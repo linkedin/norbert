@@ -26,7 +26,7 @@ abstract class BaseNetworkClientSpecification extends SpecificationWithJUnit wit
   val clusterClient = mock[ClusterClient]
   val networkClient: BaseNetworkClient
 
-  val nodes = List(Node(1, "", true), Node(2, "", true), Node(3, "", true))
+  val nodes = List(Node(1, "", true, altPort=Some(1)), Node(2, "", true, altPort=Some(2)), Node(3, "", true, altPort=Some(3)))
   val nodeSet = Set() ++ nodes
   val endpoints = nodeSet.map { n => new Endpoint {
     def node = n
