@@ -119,7 +119,7 @@ class ThreadPoolMessageExecutor(clientName: Option[String],
 
   private val idGenerator = new AtomicInteger(0)
 
-  private class RequestRunner[RequestMsg, ResponseMsg] (request: RequestMsg,
+  private class RequestRunner[RequestMsg, ResponseMsg](request: RequestMsg,
                                                        val reqTimeout : Long,
                                                        context: Option[RequestContext],
                                                        filters: MutableList[Filter],
@@ -130,10 +130,14 @@ class ThreadPoolMessageExecutor(clientName: Option[String],
     /**
      * CompareTo compares this RequestRunner with another and returns an integer indicating which one has a higher priority
      * to be executed. It pulls the priority from InputSerializer.priority (a higher priority goes first), and tiebreaks based on
-     * the queuedAt time (an older, or lower time, message goes first)
+     * the queuedAt time (an older, or lower time, message goes first).
      *
      * @param rr the request being compared with
-     * @return 0 if they deserve the same priority in the queue, a positive number if the deserves
+     * @return a negative number if myPriority is higher than rrPriority (which would put my value closer to the front of the queue than rr's).
+     *         a positive number if rrPriority is higher than myPriority
+     *         a negative number if my message is older than rr's but they have the same priority
+     *         a positive number if my message is newer than rr's but they have the same priority
+     *         0 if both messages have the same time and priority
      */
     @Override
     def compareTo(rr:RequestRunner[_,_]): Int = {

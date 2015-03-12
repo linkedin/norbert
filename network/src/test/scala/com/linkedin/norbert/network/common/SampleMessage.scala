@@ -42,8 +42,7 @@ trait SampleMessage {
   case class Ping(timestamp: Long = System.currentTimeMillis)
   val request = new Ping
 
-  // Added by HMC clinic
-  //a ping which has an increased priority for testing prioritization
+  // A Ping which has an increased priority for testing prioritization.
   object PriorityPing extends Ping{
     implicit case object PriorityPingSerializer extends Serializer[PriorityPing, PriorityPing] {
       def requestName = "ping"
@@ -54,7 +53,7 @@ trait SampleMessage {
         NorbertExampleProtos.Ping.newBuilder.setTimestamp(message.timestamp).build.toByteArray
 
       def requestFromBytes(bytes: Array[Byte]) = {
-         var timestamp = (NorbertExampleProtos.Ping.newBuilder.mergeFrom(bytes).build.getTimestamp)
+        val timestamp = (NorbertExampleProtos.Ping.newBuilder.mergeFrom(bytes).build.getTimestamp)
         PriorityPing(timestamp)
       }
 
