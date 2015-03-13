@@ -107,7 +107,7 @@ class NettyNetworkClient(config: NetworkClientConfig, loadBalancerFactory: LoadB
   def sendRequest[RequestMsg, ResponseMsg](requestMsg: RequestMsg, serializer: Serializer[RequestMsg, ResponseMsg], maxRetry: Int, capability: Long, persistentCapability: Long) =
     underlying.sendRequest(requestMsg, maxRetry, Some(capability), Some(persistentCapability))(serializer, serializer)
 
-  def sendRequest[RequestMsg, ResponseMsg](requestSpecification: RequestSpecification[RequestMsg],nodeSpecification: NodeSpecification,retrySpecification: RetrySpecification[ResponseMsg, Unit], serializer:Serializer[RequestMsg, ResponseMsg]) =
+  def sendRequest[RequestMsg, ResponseMsg](requestSpecification: RequestSpecification[RequestMsg],nodeSpecification: NodeSpecification,retrySpecification: RetrySpecification[ResponseMsg], serializer:Serializer[RequestMsg, ResponseMsg]) =
     underlying.sendRequest(requestSpecification, nodeSpecification, retrySpecification)(serializer, serializer)
 
 }

@@ -46,7 +46,7 @@ object RetrySpecification {
  * @throws IllegalArgumentException if the value for maxRetry is less than 0 and the callback is specified.
  */
 class RetrySpecification[ResponseMsg](val maxRetry: Int,
-                                                  val callback: Option[Either[Throwable, ResponseMsg] => Unit]) extends JRetrySpecification[ResponseMsg, Unit]{
+                                                  val callback: Option[Either[Throwable, ResponseMsg] => Unit]) extends JRetrySpecification[ResponseMsg]{
   // Returns Int that is unboxed to int
   def getMaxRetry() = maxRetry
   // Returns an optional anonymous function

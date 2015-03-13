@@ -9,11 +9,11 @@ import scala.Function1;
  * take java objects as arguments.  This file specifies getters for a RetrySpecification.
  */
 
-public interface RetrySpecification <ResponseMsg, Unit> {
+public interface RetrySpecification <ResponseMsg> {
    int getMaxRetry();
 
    // Returns an optional anonymous function
-   Option<Function1<Either<Throwable, ResponseMsg>, Unit>>  getCallback();
+   Option<Function1<Either<Throwable, ResponseMsg>, scala.Unit>>  getCallback();
 
 }
 
