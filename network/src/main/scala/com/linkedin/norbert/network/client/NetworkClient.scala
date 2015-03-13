@@ -23,9 +23,11 @@ import server.{MessageExecutorComponent, NetworkServer}
 import cluster._
 import netty.NettyNetworkClient
 import network.common._
+import runtime.BoxedUnit
 import com.linkedin.norbert.network.javaobjects.{NodeSpecification => JNodeSpecification, PartitionedNodeSpecification => JPartitionedNodeSpecification,
                                                 RetrySpecification => JRetrySpecification, PartitionedRetrySpecification => JPartitionedRetrySpecification,
                                                 RequestSpecification => JRequestSpecification, PartitionedRequestSpecification => JPartitionedRequestSpecification}
+import com.linkedin.norbert.network.UnitConversions
 
 
 object NetworkClientConfig {
@@ -278,10 +280,16 @@ trait NetworkClient extends BaseNetworkClient {
    * instead of adding new overloaded sendRequest methods, changes should be made to the
    * wrapper objects whenever possible.
    */
-  def sendRequest[RequestMsg, ResponseMsg](requestSpec: JRequestSpecification[RequestMsg], nodeSpec: JNodeSpecification, retrySpec: JRetrySpecification[ResponseMsg, Unit])
+
+
+  def sendRequest[RequestMsg, ResponseMsg](requestSpec: JRequestSpecification[RequestMsg], nodeSpec: JNodeSpecification, retrySpec: JRetrySpecification[ResponseMsg])
   (implicit is: InputSerializer[RequestMsg, ResponseMsg], os:OutputSerializer[RequestMsg, ResponseMsg]): Unit = doIfConnected {
     if (requestSpec.getMessage() == null) throw new NullPointerException
-    val callback = retrySpec.getCallback().getOrElse(throw new Exception("No callback and no default callback"));
+    // Convert return type of callback from BoxedUnit to Unit
+    val cb = retrySpec.getCallback();
+    val unitConversion = new UnitConversions[ResponseMsg]
+    val callback = unitConversion.uncurryImplicitly(cb)
+
 
     val loadBalancerReady = loadBalancer.getOrElse(throw new ClusterDisconnectedException("Client has no node information"))
 
