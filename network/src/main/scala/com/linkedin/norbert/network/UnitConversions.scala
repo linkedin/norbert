@@ -19,10 +19,10 @@ import runtime.BoxedUnit
 
 
 class UnitConversions[ResponseMsg] {
-  implicit def curryImplicitly[Either[Throwable, ResponseMsg]](f: Either[Throwable, ResponseMsg] => Unit) =
-    Some((a: Either[Throwable, ResponseMsg]) => BoxedUnit.UNIT)
+  implicit def curryImplicitly[A](f: A => Unit) =
+    (a: A) => BoxedUnit.UNIT
 
-  implicit def uncurryImplicitly[Either[Throwable, ResponseMsg]](f: Either[Throwable, ResponseMsg] => BoxedUnit) =
-    (a: Either[Throwable, ResponseMsg]) => ()
+  implicit def uncurryImplicitly[A](f: A => BoxedUnit) =
+    (a: A) => ()
 
 }

@@ -14,7 +14,7 @@ public interface RetrySpecification <ResponseMsg> {
    int getMaxRetry();
 
    // Returns an optional anonymous function
-   Option<Function1<Either<Throwable, ResponseMsg>, BoxedUnit>>  getCallback();
+   Function1<Either<Throwable, ResponseMsg>, BoxedUnit>  getCallback();
 
 }
 
