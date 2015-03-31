@@ -23,9 +23,11 @@ import server.{MessageExecutorComponent, NetworkServer}
 import cluster._
 import netty.NettyNetworkClient
 import network.common._
+import runtime.BoxedUnit
 import com.linkedin.norbert.network.javaobjects.{NodeSpecification => JNodeSpecification, PartitionedNodeSpecification => JPartitionedNodeSpecification,
                                                 RetrySpecification => JRetrySpecification, PartitionedRetrySpecification => JPartitionedRetrySpecification,
                                                 RequestSpecification => JRequestSpecification, PartitionedRequestSpecification => JPartitionedRequestSpecification}
+import com.linkedin.norbert.network.UnitConversions
 
 
 object NetworkClientConfig {
@@ -278,10 +280,15 @@ trait NetworkClient extends BaseNetworkClient {
    * instead of adding new overloaded sendRequest methods, changes should be made to the
    * wrapper objects whenever possible.
    */
+
+
   def sendRequest[RequestMsg, ResponseMsg](requestSpec: JRequestSpecification[RequestMsg], nodeSpec: JNodeSpecification, retrySpec: JRetrySpecification[ResponseMsg])
   (implicit is: InputSerializer[RequestMsg, ResponseMsg], os:OutputSerializer[RequestMsg, ResponseMsg]): Unit = doIfConnected {
     if (requestSpec.getMessage() == null) throw new NullPointerException
     val callback = retrySpec.getCallback().getOrElse(throw new Exception("No callback and no default callback"));
+
+    val unitConversion = new UnitConversions[ResponseMsg]
+
 
     val loadBalancerReady = loadBalancer.getOrElse(throw new ClusterDisconnectedException("Client has no node information"))
 
@@ -294,7 +301,7 @@ trait NetworkClient extends BaseNetworkClient {
         val node: Option[Node] = lb.nextNode(capability, persistentCapability)
         node.getOrElse(throw new NoNodesAvailableException("No node available that can handle the request: %s".format(requestSpec.getMessage())))
       })
-    doSendRequest(Request(requestSpec.getMessage(), node, is, os, if (retrySpec.getMaxRetry() == 0) Some(callback) else Some(retryCallback[RequestMsg, ResponseMsg](callback, retrySpec.getMaxRetry(), capability, persistentCapability) _)))
+    doSendRequest(Request(requestSpec.getMessage(), node, is, os, if (retrySpec.getMaxRetry() == 0) Some(unitConversion.uncurryImplicitly(callback)) else Some(retryCallback[RequestMsg, ResponseMsg](unitConversion.uncurryImplicitly(callback), retrySpec.getMaxRetry(), capability, persistentCapability) _)))
   }
 
 

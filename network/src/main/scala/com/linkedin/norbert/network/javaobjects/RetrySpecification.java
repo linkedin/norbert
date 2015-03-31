@@ -3,6 +3,7 @@ package com.linkedin.norbert.network.javaobjects;
 import scala.Option;
 import scala.Either;
 import scala.Function1;
+import scala.runtime.BoxedUnit;
 
 /**
  * A RetrySpecification interface is to be extended by RetrySpecification.scala so that sendRequest can
@@ -13,7 +14,7 @@ public interface RetrySpecification <ResponseMsg> {
    int getMaxRetry();
 
    // Returns an optional anonymous function
-   Option<Function1<Either<Throwable, ResponseMsg>, scala.Unit>>  getCallback();
+   Option<Function1<Either<Throwable, ResponseMsg>, BoxedUnit>>  getCallback();
 
 }
 
