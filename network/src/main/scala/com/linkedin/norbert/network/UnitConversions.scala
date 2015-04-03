@@ -20,9 +20,9 @@ import runtime.BoxedUnit
 
 class UnitConversions[ResponseMsg] {
   implicit def curryImplicitly[A](f: A => Unit) =
-    (a: A) => BoxedUnit.UNIT
+    (a: A) => { f(a); BoxedUnit.UNIT }
 
   implicit def uncurryImplicitly[A](f: A => BoxedUnit) =
-    (a: A) => ()
+    (a: A) => { f(a); () }
 
 }
