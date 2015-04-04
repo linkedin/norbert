@@ -17,12 +17,17 @@ package com.linkedin.norbert.network
 
 import runtime.BoxedUnit
 
-
+/**
+ * This class helps with converting the return type of callback between BoxedUnit and Unit for java/scala
+ * interoperability
+ */
 class UnitConversions[ResponseMsg] {
-  implicit def curryImplicitly[A](f: A => Unit) =
+  // Converts the return type from Unit to BoxedUnit.UNIT
+  def curryImplicitly[A](f: A => Unit) =
     (a: A) => { f(a); BoxedUnit.UNIT }
 
-  implicit def uncurryImplicitly[A](f: A => BoxedUnit) =
+  // Converts the return type from BoxedUnit to Unit
+  def uncurryImplicitly[A](f: A => BoxedUnit) =
     (a: A) => { f(a); () }
 
 }

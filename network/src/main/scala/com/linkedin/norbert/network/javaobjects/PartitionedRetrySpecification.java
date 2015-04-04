@@ -4,6 +4,7 @@ import com.linkedin.norbert.RoutingConfigs;
 import scala.Option;
 import scala.Either;
 import scala.Function1;
+import scala.runtime.BoxedUnit;
 import com.linkedin.norbert.network.common.RetryStrategy;
 import com.linkedin.norbert.RoutingConfigs;
 
@@ -15,8 +16,8 @@ import com.linkedin.norbert.RoutingConfigs;
 public interface PartitionedRetrySpecification <ResponseMsg, Unit> {
     int getMaxRetry();
 
-    // Returns an optional anonymous function
-    Option<Function1<Either<Throwable, ResponseMsg>, Unit>>  getCallback();
+    // Returns an anonymous function
+    Function1<Either<Throwable, ResponseMsg>, BoxedUnit>  getCallback();
 
     Option<RetryStrategy> getRetryStrategy();
     RoutingConfigs getRoutingConfigs();

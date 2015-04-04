@@ -285,9 +285,10 @@ trait NetworkClient extends BaseNetworkClient {
   def sendRequest[RequestMsg, ResponseMsg](requestSpec: JRequestSpecification[RequestMsg], nodeSpec: JNodeSpecification, retrySpec: JRetrySpecification[ResponseMsg])
   (implicit is: InputSerializer[RequestMsg, ResponseMsg], os:OutputSerializer[RequestMsg, ResponseMsg]): Unit = doIfConnected {
     if (requestSpec.getMessage() == null) throw new NullPointerException
-    val callback = retrySpec.getCallback();
-
+    // Convert return type of callback from BoxedUnit to Unit
+    val cb = retrySpec.getCallback();
     val unitConversion = new UnitConversions[ResponseMsg]
+    val callback = unitConversion.uncurryImplicitly(cb)
 
 
     val loadBalancerReady = loadBalancer.getOrElse(throw new ClusterDisconnectedException("Client has no node information"))
@@ -301,7 +302,7 @@ trait NetworkClient extends BaseNetworkClient {
         val node: Option[Node] = lb.nextNode(capability, persistentCapability)
         node.getOrElse(throw new NoNodesAvailableException("No node available that can handle the request: %s".format(requestSpec.getMessage())))
       })
-    doSendRequest(Request(requestSpec.getMessage(), node, is, os, if (retrySpec.getMaxRetry() == 0) Some(unitConversion.uncurryImplicitly(callback)) else Some(retryCallback[RequestMsg, ResponseMsg](unitConversion.uncurryImplicitly(callback), retrySpec.getMaxRetry(), capability, persistentCapability) _)))
+    doSendRequest(Request(requestSpec.getMessage(), node, is, os, if (retrySpec.getMaxRetry() == 0) Some(callback) else Some(retryCallback[RequestMsg, ResponseMsg](callback, retrySpec.getMaxRetry(), capability, persistentCapability) _)))
   }
 
 

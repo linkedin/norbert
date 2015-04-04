@@ -54,7 +54,7 @@ class RetrySpecification[ResponseMsg](val maxRetry: Int,
   // Returns an optional anonymous function
   def getCallback() = {
     val unitConversion = new UnitConversions[ResponseMsg]
-    unitConversion.curryImplicitly(callback.getOrElse(throw new Exception("No callback and no default callback")))
+    unitConversion.curryImplicitly(callback.getOrElse(Either => ()))
   }
 
 }
@@ -88,7 +88,10 @@ class PartitionedRetrySpecification[ResponseMsg](maxRetry: Int,
                                          var routingConfigs: RoutingConfigs = RoutingConfigs.defaultRoutingConfigs)
                                               extends JPartitionedRetrySpecification[ResponseMsg, Unit]{
   def getMaxRetry() = maxRetry
-  def getCallback() = callback
+  def getCallback() = {
+    val unitConversion = new UnitConversions[ResponseMsg]
+    unitConversion.curryImplicitly(callback.getOrElse(Either => ()))
+  }
   def getRetryStrategy() = retryStrategy
   def getRoutingConfigs() = routingConfigs
 

@@ -13,7 +13,7 @@ import scala.runtime.BoxedUnit;
 public interface RetrySpecification <ResponseMsg> {
    int getMaxRetry();
 
-   // Returns an optional anonymous function
+   // Returns an anonymous function
    Function1<Either<Throwable, ResponseMsg>, BoxedUnit>  getCallback();
 
 }
