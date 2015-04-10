@@ -67,6 +67,7 @@ class NetworkClientConfig {
   var darkCanaryResponseHandler: Option[DarkCanaryResponseHandler] = None
   var retryStrategy:Option[RetryStrategy] = None 
   var duplicatesOk:Boolean = false
+  var maxConcurrentRequests:Int = 0
 }
 
 object NetworkClient {
