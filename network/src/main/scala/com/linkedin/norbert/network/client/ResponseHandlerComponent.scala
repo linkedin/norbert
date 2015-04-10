@@ -98,5 +98,5 @@ class ResponseProcessorMBeanImpl(clientName: Option[String], serviceName: String
 
 abstract class DarkCanaryResponseHandler()
 {
-  def upstreamCallback(isDark: Boolean, requestId: UUID, request: Request[Any, Any], message: NorbertProtos.NorbertMessage);
+  def upstreamCallback(isDark: Boolean, requestId: UUID, request: Request[Any, Any], response: NorbertProtos.NorbertMessage);
 }
