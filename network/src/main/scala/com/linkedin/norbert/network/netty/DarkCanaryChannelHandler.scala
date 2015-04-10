@@ -58,6 +58,7 @@ import com.linkedin.norbert.network.client.NetworkClientConfig
  * work load.
  */
 
+
 class DarkCanaryChannelHandler extends Logging {
   private val hostToMirror = new JConcurrentHashMap[UUID, UUID]() 
   private val mirrorToHost = new JConcurrentHashMap[UUID, UUID]() 
@@ -69,13 +70,20 @@ class DarkCanaryChannelHandler extends Logging {
   private var clusterClient : Option[ClusterClient] = None
   private var staleRequestTimeoutMins : Int = 0
   private var staleRequestCleanupFrequencyMins : Int = 0
-  private var upstreamCallback: Option[(Boolean, UUID, Object)=>Unit] = None // Boolean: FromDark, UUID: RequestID, Object: Msg
+  private var upstreamCallback: Option[(Boolean, UUID, Request[Any,Any], NorbertProtos.NorbertMessage)=>Unit] = None // Boolean: FromDark, UUID: RequestID, Object: Msg
 
   class DarkCanaryException(message: String) extends Exception(message)
 
   def initialize(clientConfig : NetworkClientConfig, clusterIoClient_ : ClusterIoClientComponent#ClusterIoClient) = {
     clusterIoClient = Some(clusterIoClient_)
-    upstreamCallback = clientConfig.darkCanaryUpstreamCallback
+    clientConfig.darkCanaryResponseHandler match {
+      case None => {
+        upstreamCallback = None
+      }
+      case Some(darkCanaryResponseHandler) => {
+        upstreamCallback = Some(darkCanaryResponseHandler.upstreamCallback)
+      }
+    }
 
     // The configuration variables below determine the minimum age for cleaning up the Request objects in the
     // mirrorRequestMap. The clientConfig.{staleRequestTimeoutMins,staleRequestCleanupFrequenceMins} are the values used in
@@ -202,7 +210,7 @@ class DarkCanaryChannelHandler extends Logging {
                   case Some(callback) => {
                     mirrorToHost.remove(requestId) match {
                       case hostRequestId => {
-                        callback(true, hostRequestId, message)
+                        callback(true, hostRequestId, request, message)
                       }
                       case null => log.error("Could not find hostRequestId for darkCanaryRequestId: %s".format(requestId.toString))
                     }
@@ -235,7 +243,7 @@ class DarkCanaryChannelHandler extends Logging {
                     hostRequestMap.remove(requestId) match {
                       case request: Request[Any,Any] => {
                         hostToMirror.remove(requestId)
-                        callback(false, requestId, message)
+                        callback(false, requestId, request, message)
                       }
                       case null => // Not a request from a host with a mirror
                     }
