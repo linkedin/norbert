@@ -1594,6 +1594,10 @@ public final class NorbertProtos {
     // optional int64 persistentCapability = 4;
     boolean hasPersistentCapability();
     long getPersistentCapability();
+    
+    // optional int32 altPort = 5;
+    boolean hasAltPort();
+    int getAltPort();
   }
   public static final class Node extends
       com.google.protobuf.GeneratedMessage
@@ -1690,11 +1694,22 @@ public final class NorbertProtos {
       return persistentCapability_;
     }
     
+    // optional int32 altPort = 5;
+    public static final int ALTPORT_FIELD_NUMBER = 5;
+    private int altPort_;
+    public boolean hasAltPort() {
+      return ((bitField0_ & 0x00000008) == 0x00000008);
+    }
+    public int getAltPort() {
+      return altPort_;
+    }
+    
     private void initFields() {
       id_ = 0;
       url_ = "";
       partition_ = java.util.Collections.emptyList();;
       persistentCapability_ = 0L;
+      altPort_ = 0;
     }
     private byte memoizedIsInitialized = -1;
     public final boolean isInitialized() {
@@ -1728,6 +1743,9 @@ public final class NorbertProtos {
       if (((bitField0_ & 0x00000004) == 0x00000004)) {
         output.writeInt64(4, persistentCapability_);
       }
+      if (((bitField0_ & 0x00000008) == 0x00000008)) {
+        output.writeInt32(5, altPort_);
+      }
       getUnknownFields().writeTo(output);
     }
     
@@ -1757,6 +1775,10 @@ public final class NorbertProtos {
       if (((bitField0_ & 0x00000004) == 0x00000004)) {
         size += com.google.protobuf.CodedOutputStream
           .computeInt64Size(4, persistentCapability_);
+      }
+      if (((bitField0_ & 0x00000008) == 0x00000008)) {
+        size += com.google.protobuf.CodedOutputStream
+          .computeInt32Size(5, altPort_);
       }
       size += getUnknownFields().getSerializedSize();
       memoizedSerializedSize = size;
@@ -1890,6 +1912,8 @@ public final class NorbertProtos {
         bitField0_ = (bitField0_ & ~0x00000004);
         persistentCapability_ = 0L;
         bitField0_ = (bitField0_ & ~0x00000008);
+        altPort_ = 0;
+        bitField0_ = (bitField0_ & ~0x00000010);
         return this;
       }
       
@@ -1945,6 +1969,10 @@ public final class NorbertProtos {
           to_bitField0_ |= 0x00000004;
         }
         result.persistentCapability_ = persistentCapability_;
+        if (((from_bitField0_ & 0x00000010) == 0x00000010)) {
+          to_bitField0_ |= 0x00000008;
+        }
+        result.altPort_ = altPort_;
         result.bitField0_ = to_bitField0_;
         onBuilt();
         return result;
@@ -1979,6 +2007,9 @@ public final class NorbertProtos {
         }
         if (other.hasPersistentCapability()) {
           setPersistentCapability(other.getPersistentCapability());
+        }
+        if (other.hasAltPort()) {
+          setAltPort(other.getAltPort());
         }
         this.mergeUnknownFields(other.getUnknownFields());
         return this;
@@ -2046,6 +2077,11 @@ public final class NorbertProtos {
             case 32: {
               bitField0_ |= 0x00000008;
               persistentCapability_ = input.readInt64();
+              break;
+            }
+            case 40: {
+              bitField0_ |= 0x00000010;
+              altPort_ = input.readInt32();
               break;
             }
           }
@@ -2177,6 +2213,27 @@ public final class NorbertProtos {
         return this;
       }
       
+      // optional int32 altPort = 5;
+      private int altPort_ ;
+      public boolean hasAltPort() {
+        return ((bitField0_ & 0x00000010) == 0x00000010);
+      }
+      public int getAltPort() {
+        return altPort_;
+      }
+      public Builder setAltPort(int value) {
+        bitField0_ |= 0x00000010;
+        altPort_ = value;
+        onChanged();
+        return this;
+      }
+      public Builder clearAltPort() {
+        bitField0_ = (bitField0_ & ~0x00000010);
+        altPort_ = 0;
+        onChanged();
+        return this;
+      }
+      
       // @@protoc_insertion_point(builder_scope:norbert.Node)
     }
     
@@ -2220,10 +2277,11 @@ public final class NorbertProtos {
       "\r \001(\t\022.\n\006header\030\016 \003(\0132\036.norbert.NorbertM" +
       "essage.Header\032$\n\006Header\022\013\n\003key\030\001 \002(\t\022\r\n\005" +
       "value\030\002 \001(\t\"*\n\006Status\022\006\n\002OK\020\000\022\t\n\005ERROR\020\001" +
-      "\022\r\n\tHEAVYLOAD\020\002\"P\n\004Node\022\n\n\002id\030\001 \002(\005\022\013\n\003u" +
+      "\022\r\n\tHEAVYLOAD\020\002\"a\n\004Node\022\n\n\002id\030\001 \002(\005\022\013\n\003u" +
       "rl\030\002 \002(\t\022\021\n\tpartition\030\003 \003(\005\022\034\n\024persisten",
-      "tCapability\030\004 \001(\003B.\n\033com.linkedin.norber" +
-      "t.protosB\rNorbertProtosH\001"
+      "tCapability\030\004 \001(\003\022\017\n\007altPort\030\005 \001(\005B.\n\033co" +
+      "m.linkedin.norbert.protosB\rNorbertProtos" +
+      "H\001"
     };
     com.google.protobuf.Descriptors.FileDescriptor.InternalDescriptorAssigner assigner =
       new com.google.protobuf.Descriptors.FileDescriptor.InternalDescriptorAssigner() {
@@ -2251,7 +2309,7 @@ public final class NorbertProtos {
           internal_static_norbert_Node_fieldAccessorTable = new
             com.google.protobuf.GeneratedMessage.FieldAccessorTable(
               internal_static_norbert_Node_descriptor,
-              new java.lang.String[] { "Id", "Url", "Partition", "PersistentCapability", },
+              new java.lang.String[] { "Id", "Url", "Partition", "PersistentCapability", "AltPort", },
               com.linkedin.norbert.protos.NorbertProtos.Node.class,
               com.linkedin.norbert.protos.NorbertProtos.Node.Builder.class);
           return null;

@@ -717,6 +717,12 @@ class PartitionedNetworkClientSpec extends BaseNetworkClientSpecification {
                 def request = requestCtx
               })
             }
+            def sendAltMessage[RequestMsg](node: Node, requestCtx: BaseRequest[RequestMsg]) {
+              invocationCount += 1
+              requestCtx.onFailure(new Exception with RequestAccess[BaseRequest[RequestMsg]] {
+                def request = requestCtx
+              })
+            }
             def nodesChanged(nodes: Set[Node]) = {PartitionedNetworkClientSpec.this.endpoints}
             def shutdown {}
           }
@@ -761,6 +767,17 @@ class PartitionedNetworkClientSpec extends BaseNetworkClientSpecification {
             if (!succ) {
               succ = true
               requestCtx.onFailure(new RemoteException("FooBar", "ServerError") with RequestAccess[Request[RequestMsg, ResponseMsg]] {
+                def request = requestCtx
+              })
+            } else {
+              succ = false
+              requestCtx.onSuccess(requestCtx.outputSerializer.requestToBytes(requestCtx.message))
+            }
+          }
+          def sendAltMessage[RequestMsg](node: Node, requestCtx: BaseRequest[RequestMsg]) {
+            if (!succ) {
+              succ = true
+              requestCtx.onFailure(new RemoteException("FooBar", "ServerError") with RequestAccess[BaseRequest[RequestMsg]] {
                 def request = requestCtx
               })
             } else {
@@ -815,6 +832,16 @@ class PartitionedNetworkClientSpec extends BaseNetworkClientSpecification {
               requestCtx.onSuccess(requestCtx.outputSerializer.requestToBytes(requestCtx.message))
             }
           }
+          def sendAltMessage[RequestMsg](node: Node, requestCtx: BaseRequest[RequestMsg]) {
+            if (failOnce) {
+              failOnce = false
+              requestCtx.onFailure(new RemoteException("FooBar", "ServerError") with RequestAccess[BaseRequest[RequestMsg]] {
+                def request = requestCtx
+              })
+            } else {
+              requestCtx.onSuccess(requestCtx.outputSerializer.requestToBytes(requestCtx.message))
+            }
+          }
           def nodesChanged(nodes: Set[Node]) = {PartitionedNetworkClientSpec.this.endpoints}
           def shutdown {}
         }
@@ -860,6 +887,12 @@ class PartitionedNetworkClientSpec extends BaseNetworkClientSpecification {
               def request = requestCtx
             })
           }
+          def sendAltMessage[RequestMsg](node: Node, requestCtx: BaseRequest[RequestMsg]) {
+            invocationCount += 1
+            requestCtx.onFailure(new Exception with RequestAccess[BaseRequest[RequestMsg]] {
+              def request = requestCtx
+            })
+          }
           def nodesChanged(nodes: Set[Node]) = {PartitionedNetworkClientSpec.this.endpoints}
           def shutdown {}
         }
@@ -895,6 +928,12 @@ class PartitionedNetworkClientSpec extends BaseNetworkClientSpecification {
               def request = requestCtx
             })
           }
+          def sendAltMessage[RequestMsg](node: Node, requestCtx: BaseRequest[RequestMsg]) {
+            invocationCount += 1
+            requestCtx.onFailure(new Exception with RequestAccess[BaseRequest[RequestMsg]] {
+              def request = requestCtx
+            })
+          }
           def nodesChanged(nodes: Set[Node]) = {PartitionedNetworkClientSpec.this.endpoints}
           def shutdown {}
         }
@@ -926,6 +965,12 @@ class PartitionedNetworkClientSpec extends BaseNetworkClientSpecification {
           def sendMessage[RequestMsg, ResponseMsg](node: Node, requestCtx: Request[RequestMsg, ResponseMsg]) {
             invocationCount += 1
             requestCtx.onFailure(new Exception with RequestAccess[Request[RequestMsg, ResponseMsg]] {
+              def request = requestCtx
+            })
+          }
+          def sendAltMessage[RequestMsg](node: Node, requestCtx: BaseRequest[RequestMsg]) {
+            invocationCount += 1
+            requestCtx.onFailure(new Exception with RequestAccess[BaseRequest[RequestMsg]] {
               def request = requestCtx
             })
           }

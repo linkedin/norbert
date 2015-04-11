@@ -77,6 +77,20 @@ class NetworkClientSpec extends BaseNetworkClientSpecification {
 //      clusterIoClient.sendMessage(node, message, null) was called
     }
 
+    "send the provided message to the node specified by the load balancer for sendAltMessage via its altPort" in {
+      clusterClient.nodes returns nodeSet
+      clusterClient.isConnected returns true
+      networkClient.clusterIoClient.nodesChanged(nodeSet) returns endpoints
+      networkClient.loadBalancerFactory.newLoadBalancer(endpoints) returns networkClient.lb
+      networkClient.lb.nextNode(Some(0x1), Some(2L)) returns Some(nodes(1))
+
+      networkClient.start
+      networkClient.sendAltMessage(request, Some(1L), Some(2L)) must notBeNull
+
+      there was one(networkClient.lb).nextNode(Some(0x1), Some(2L))
+      there was no(networkClient.lb).nextNode(None, None)
+    }
+
     "send the provided message to the node specified by the load balancer for sendRequest with the requested capability " in {
       clusterClient.nodes returns nodeSet
       clusterClient.isConnected returns true
@@ -176,6 +190,12 @@ class NetworkClientSpec extends BaseNetworkClientSpecification {
             def sendMessage[RequestMsg, ResponseMsg](node: Node, requestCtx: Request[RequestMsg, ResponseMsg]) {
               invocationCount += 1
               requestCtx.onFailure(new Exception with RequestAccess[Request[RequestMsg, ResponseMsg]] {
+                def request = requestCtx
+              })
+            }
+            def sendAltMessage[RequestMsg](node: Node, requestCtx: BaseRequest[RequestMsg]) {
+              invocationCount += 1
+              requestCtx.onFailure(new Exception with RequestAccess[BaseRequest[RequestMsg]] {
                 def request = requestCtx
               })
             }

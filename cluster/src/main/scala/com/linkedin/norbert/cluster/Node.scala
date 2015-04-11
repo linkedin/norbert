@@ -42,9 +42,9 @@ object Node {
       val partitions = node.getPartitionList.asInstanceOf[java.util.List[Int]].foldLeft(Set[Int]()) { (set, i) => set + i }
 
       if(!node.hasPersistentCapability)
-        Node(node.getId, node.getUrl, available, partitions, capability, None)
+        Node(node.getId, node.getUrl, available, partitions, capability, None, Some(node.getAltPort))
       else
-        Node(node.getId, node.getUrl, available, partitions, capability, Some(node.getPersistentCapability))
+        Node(node.getId, node.getUrl, available, partitions, capability, Some(node.getPersistentCapability), Some(node.getAltPort))
     } catch {
       case ex: InvalidProtocolBufferException => throw new InvalidNodeException("Error deserializing node", ex)
     }
@@ -63,6 +63,12 @@ object Node {
       case None => builder.setId(node.id).setUrl(node.url)
       case Some(x) => builder.setId(node.id).setUrl(node.url).setPersistentCapability(x)
     }
+    node.altPort match {
+      // Only set altPort if we actually have an altPort.
+      case None => // Do nothing!
+      case Some(x) => builder.setAltPort(x)
+    }
+
     node.partitionIds.foreach(builder.addPartition(_))
 
     builder.build.toByteArray
@@ -78,7 +84,7 @@ object Node {
  * @param partitions the partitions for which the node can handle requests
  * @param capability the 64 bits Long representing up to 64 node capabilities
  */
-final case class Node(id: Int, url: String, available: Boolean, partitionIds: Set[Int] = Set.empty, capability: Option[Long] = None, persistentCapability: Option[Long] = None) {
+final case class Node(id: Int, url: String, available: Boolean, partitionIds: Set[Int] = Set.empty, capability: Option[Long] = None, persistentCapability: Option[Long] = None, altPort: Option[Int] = None) {
   if (url == null) throw new NullPointerException("url must not be null")
   if (partitionIds == null) throw new NullPointerException("partitions must not be null")
 
@@ -89,7 +95,7 @@ final case class Node(id: Int, url: String, available: Boolean, partitionIds: Se
     case _ => false
   }
 
-  override def toString = "Node(%d,%s,[%s],%b,0x%08X,0x%08X)".format(id, url, partitionIds.mkString(","), available, if (capability.isEmpty) 0L else capability.get, if (persistentCapability.isEmpty) 0L else persistentCapability.get)
+  override def toString = "Node(%d,%s,[%s],%b,0x%08X,0x%08X,%d)".format(id, url, partitionIds.mkString(","), available, if (capability.isEmpty) 0L else capability.get, if (persistentCapability.isEmpty) 0L else persistentCapability.get, if (altPort.isEmpty) 0 else altPort.get)
 
   def isCapableOf(c: Option[Long], pc: Option[Long]) : Boolean = {
     val capabilityMatch: Boolean = (capability, c) match {

@@ -156,7 +156,8 @@ class ChannelPoolSpec extends SpecificationWithJUnit with Mockito {
       }
     }
 
-    "not open a new channel if channel expiration is disabled" in {
+    "not open a new channel if channel expiration is di" +
+      "sabled" in {
       val channelPool = new ChannelPool(address, 1, 100, 100, bootstrap,
         channelGroup,
         closeChannelTimeMillis = -1L,

@@ -15,15 +15,22 @@
  */
 package com.linkedin.norbert.javacompat.network;
 
-import java.util.concurrent.Future;
-
 import com.linkedin.norbert.cluster.ClusterDisconnectedException;
 import com.linkedin.norbert.cluster.InvalidClusterException;
 import com.linkedin.norbert.network.NoNodesAvailableException;
 import com.linkedin.norbert.network.Serializer;
+import com.linkedin.norbert.network.javaobjects.*;
+
+import java.util.concurrent.Future;
 
 public interface NetworkClient extends BaseNetworkClient {
+
   /**
+   * TODO: comment new function
+   * TODO: mark the functions as deprecated (do we do that here or at the implementation?)
+   */
+
+    /**
    * Sends a request to a node in the cluster. The <code>NetworkClient</code> defers to the current
    * <code>LoadBalancer</code> to decide which <code>Node</code> the request should be sent to.
    *
@@ -44,4 +51,7 @@ public interface NetworkClient extends BaseNetworkClient {
 
   <RequestMsg, ResponseMsg> Future<ResponseMsg> sendRequest(RequestMsg request, Serializer<RequestMsg, ResponseMsg> serializer, int maxRetry, long capability) throws InvalidClusterException, NoNodesAvailableException, ClusterDisconnectedException;
   <RequestMsg, ResponseMsg> Future<ResponseMsg> sendRequest(RequestMsg request, Serializer<RequestMsg, ResponseMsg> serializer, int maxRetry, long capability, long persistentCapability) throws InvalidClusterException, NoNodesAvailableException, ClusterDisconnectedException;
+
+  <RequestMsg, ResponseMsg> void sendRequest(RequestSpecification<RequestMsg> requestSpecification,NodeSpecification nodeSpecification, RetrySpecification<ResponseMsg> retrySpecification,
+           Serializer<RequestMsg, ResponseMsg> serializer) throws InvalidClusterException, NoNodesAvailableException, ClusterDisconnectedException;
 }

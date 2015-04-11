@@ -7,5 +7,5 @@ package client
  */
 
 trait Filter {
-  def onRequest[RequestMsg, ResponseMsg](request: Request[RequestMsg, ResponseMsg]): Unit
+  def onRequest[RequestMsg](request: BaseRequest[RequestMsg]): Unit
 }
