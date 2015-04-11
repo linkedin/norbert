@@ -231,8 +231,6 @@ class RequestTimeTracker[KeyT](clock: Clock, interval: Long) {
 
   def endNetty(key: KeyT) {
     pendingNettyTimeTracker.getStartTime(key).foreach { startTime =>
-    //over time we will retire this since this does not account for the amount of time the request
-    //was stuck in the queue
       val queueTime = pendingNettyTimeTracker.getQueueTime(key)
       finishedNettyTimeTracker.addTime(queueTime + clock.getCurrentTimeOffsetMicroseconds - startTime)
     }

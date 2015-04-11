@@ -13,12 +13,13 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
-package com.linkedin.norbert.network
+package com.linkedin.norbert
+package network
 
 import java.util.UUID
 
-import com.linkedin.norbert.cluster.{ClusterException, Node}
-import com.linkedin.norbert.network.common.CachedNetworkStatistics
+import cluster.{ClusterException, Node}
+import common.CachedNetworkStatistics
 
 import scala.collection.mutable.Map
 
@@ -44,9 +45,14 @@ class BaseRequest[RequestMsg](val message: RequestMsg, val node: Node,
     inputSerializer.requestName
   }
 
+  // serializer
   def requestBytes: Array[Byte] = outputSerializer.requestToBytes(message)
 
   def addHeader(key: String, value: String) = headers += (key -> value)
+
+  def endNettyTiming(stats: CachedNetworkStatistics[Node, UUID]) = {
+    stats.endNetty(node, id)
+  }
 
   def startNettyTiming(stats : CachedNetworkStatistics[Node, UUID]) = {
     stats.beginNetty(node, id, 0)

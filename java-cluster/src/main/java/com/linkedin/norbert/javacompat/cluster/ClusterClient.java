@@ -46,6 +46,14 @@ public interface ClusterClient {
   Set<Node> getNodes() throws ClusterDisconnectedException;
 
   /**
+   * Returns the next node id that isn't taken
+   *
+   * @return the next available node ID
+   * @throws ClusterDisconnectedException thrown if the cluster is not connected when the method is called
+   */
+  int getNextNodeId() throws ClusterDisconnectedException;
+
+  /**
    * Looks up the node with the specified id.
    *
    * @param nodeId the id of the node to find

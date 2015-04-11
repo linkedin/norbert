@@ -117,6 +117,21 @@ trait ClusterClient extends Logging {
   }
 
   /**
+   * Returns the next node id that isn't taken
+   *
+   * @return the current list of nodes
+   * @throws ClusterDisconnectedException thrown if the cluster is not connected when the method is called
+   */
+  def nextNodeId: Int = {
+    val ns = nodes
+    if (ns.size == 0) {
+      0
+    } else {
+      ns.map(_.id).max + 1
+    }
+  }
+
+  /**
    * Looks up the node with the specified id.
    *
    * @param nodeId the id of the node to find
@@ -153,6 +168,40 @@ trait ClusterClient extends Logging {
    * @throws ClusterDisconnectedException thrown if the cluster is not connected when the method is called
    */
   def nodeByUrl(hostname:String, port:Int) = nodeWith(_.url == hostname + ":" + port)
+
+  /**
+   * Adds a node to the cluster metadata, picks an id above all other ids
+   *
+   * @param url the url to be used to send requests to the node
+   *
+   * @return the newly added node
+   * @throws ClusterDisconnectedException thrown if the cluster is disconnected when the method is called
+   * @throws InvalidNodeException thrown if there is an error adding the new node to the cluster metadata
+   */
+   def addNodeByUrl(hostname: String, port:Int, partitionBuilder:Option[Int => Set[Int]] = None): Node = {
+    val url = hostname + ":" + port
+    var id =  nextNodeId
+    var node: Node = null
+    val pbuilder = partitionBuilder match {
+      case Some(f) => f
+      case None => {_:Int => Set.empty[Int]}
+    }
+    while (node == null) {
+      try {
+        node = addNode(id, url, pbuilder(id))
+      } catch {
+        case _:InvalidNodeException =>
+      }
+      val nid = nextNodeId
+      if (nid == id) {
+        /* there was a problem with the id, try one last time and return that error */
+        node = addNode(id, url, pbuilder(id))
+      }
+      id = nid
+    }
+    node
+  }
+
 
   /**
    * Adds a node to the cluster metadata.

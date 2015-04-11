@@ -236,9 +236,9 @@ class ChannelPool(address: InetSocketAddress, maxConnections: Int, openTimeoutMi
           } else {
             openFuture.getCause match {
               case _:ConnectTimeoutException =>
-                log.warn(openFuture.getCause, "Timeout when opening channel to: %s, marking offline".format(address))
-              case _ =>
-                log.error(openFuture.getCause, "Error when opening channel to: %s, marking offline".format(address))
+                log.warn("Timeout when opening channel to: %s, marking offline".format(address))
+              case cause =>
+                log.error(cause, "Error when opening channel to: %s, marking offline".format(address))
             }
             errorStrategy.foreach(_.notifyFailure(request.node))
             poolSize.decrementAndGet
@@ -253,17 +253,18 @@ class ChannelPool(address: InetSocketAddress, maxConnections: Int, openTimeoutMi
   private def writeRequestToChannel(request: BaseRequest[_], channel: Channel) {
     log.debug("Writing to %s: %s".format(channel, request))
     requestsSent.incrementAndGet
+    request.startNettyTiming(stats)
     channel.write(request).addListener(new ChannelFutureListener {
-      def operationComplete(writeFuture: ChannelFuture) = if (!writeFuture.isSuccess) {
-        // Take the node out of rotation for a bit
-        log.warn("IO exception for " + request.node + ", marking node offline")
-        errorStrategy.foreach(_.notifyFailure(request.node))
-        channel.close
-        request.onFailure(writeFuture.getCause)
-      } else {
-        request.startNettyTiming(stats)
+      def operationComplete(writeFuture: ChannelFuture) = {
+        request.endNettyTiming(stats)
+        if (!writeFuture.isSuccess) {
+          // Take the node out of rotation for a bit
+          log.warn("IO exception for " + request.node + ", marking node offline")
+          errorStrategy.foreach(_.notifyFailure(request.node))
+          channel.close
+          request.onFailure(writeFuture.getCause)
+        }
       }
-
     })
   }
 

@@ -62,6 +62,8 @@ abstract class BaseClusterClient extends ClusterClient {
 
   def addNode(nodeId: Int, url: String) = underlying.addNode(nodeId, url)
 
+  def getNextNodeId: Int = underlying.nextNodeId
+
   def getNodeWithId(nodeId: Int) = underlying.nodeWithId(nodeId).getOrElse(null)
 
   def getNodes = underlying.nodes

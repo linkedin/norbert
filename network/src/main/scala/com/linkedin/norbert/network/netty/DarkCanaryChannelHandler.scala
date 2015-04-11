@@ -59,27 +59,32 @@ import com.linkedin.norbert.network.client.NetworkClientConfig
  */
 
 class DarkCanaryChannelHandler extends Logging {
-  private val requestMap = new JConcurrentHashMap[UUID, Request[Any,Any]]()
+  private val hostToMirror = new JConcurrentHashMap[UUID, UUID]() 
+  private val mirrorToHost = new JConcurrentHashMap[UUID, UUID]() 
+  private val hostRequestMap = new JConcurrentHashMap[UUID, Request[Any,Any]]()
+  private val mirrorRequestMap = new JConcurrentHashMap[UUID, Request[Any,Any]]()
   private val mirroredHosts= new JConcurrentHashMap[Int, Node]()
   private final val darkCanaryClientNameSuffix = "DarkCanary"
   private var clusterIoClient: Option[ClusterIoClientComponent#ClusterIoClient] = None
   private var clusterClient : Option[ClusterClient] = None
   private var staleRequestTimeoutMins : Int = 0
   private var staleRequestCleanupFrequencyMins : Int = 0
+  private var upstreamCallback: Option[(Boolean, UUID, Object)=>Unit] = None // Boolean: FromDark, UUID: RequestID, Object: Msg
 
   class DarkCanaryException(message: String) extends Exception(message)
 
   def initialize(clientConfig : NetworkClientConfig, clusterIoClient_ : ClusterIoClientComponent#ClusterIoClient) = {
     clusterIoClient = Some(clusterIoClient_)
+    upstreamCallback = clientConfig.darkCanaryUpstreamCallback
 
     // The configuration variables below determine the minimum age for cleaning up the Request objects in the
-    // requestMap. The clientConfig.{staleRequestTimeoutMins,staleRequestCleanupFrequenceMins} are the values used in
+    // mirrorRequestMap. The clientConfig.{staleRequestTimeoutMins,staleRequestCleanupFrequenceMins} are the values used in
     // the upstream ClientChannelHandler to clean up stale requests. Hence the dark canary channel handler is configured
     // by default to both clean its request map less frequently, and also clean request objects which are older than
     // their counterparts in the ClientChannelHandler.
     //
-    // This setup ensures request objects will be dropped from ClientChannelHandler.requestMap _before_ they are dropped
-    // from DarkCanaryChannelHandler.requestMap, hence ensuring that dark canary responses can never be propagated
+    // This setup ensures request objects will be dropped from ClientChannelHandler.mirrorRequestMap _before_ they are dropped
+    // from DarkCanaryChannelHandler.mirrorRequestMap, hence ensuring that dark canary responses can never be propagated
     // upstream.
     //
     // Do not change these configurations without careful thought.
@@ -114,6 +119,7 @@ class DarkCanaryChannelHandler extends Logging {
               nodes.foreach { node =>
                 mirroredHosts.put(node.id, node)
               }
+
             }
           }
         })
@@ -152,7 +158,16 @@ class DarkCanaryChannelHandler extends Logging {
                     None,
                     0)
 
-                  requestMap.put(newRequest.id, newRequest)
+                  upstreamCallback match {
+                    case Some(callback) => {
+                      hostRequestMap.put(request.id, request)
+                      hostToMirror.put(request.id, newRequest.id)
+                      mirrorToHost.put(newRequest.id, request.id)
+                    }
+                    case None =>
+                  }
+
+                  mirrorRequestMap.put(newRequest.id, newRequest)
                   clusterIoClient.get.sendMessage(newRequest.node, newRequest)
                 }
                 catch {
@@ -173,15 +188,28 @@ class DarkCanaryChannelHandler extends Logging {
 
   class UpstreamHandler extends SimpleChannelUpstreamHandler {
     override def messageReceived(ctx: ChannelHandlerContext, msg: MessageEvent) {
-      if (!requestMap.isEmpty) {
+      if (!mirrorRequestMap.isEmpty || !hostRequestMap.isEmpty) {
         msg.getMessage match {
           case message : NorbertProtos.NorbertMessage => {
             // Check if the request ID of the message corresponds to an existing mirrored request. If it does, then
             // just drop the message from the pipeline. This ensures that clients never see the message.
             val requestId = new UUID(message.getRequestIdMsb, message.getRequestIdLsb)
-            requestMap.get(requestId) match {
+            mirrorRequestMap.get(requestId) match {
               case request: Request[Any,Any] =>  {
-                requestMap.remove(requestId)
+                mirrorRequestMap.remove(requestId)
+                // Begin upstreamCallback
+                upstreamCallback match {
+                  case Some(callback) => {
+                    mirrorToHost.remove(requestId) match {
+                      case null => log.error("Could not find hostRequestId for darkCanaryRequestId: %s".format(requestId.toString))
+                      case hostRequestId => {
+                        callback(true, hostRequestId, message)
+                      }
+                    }
+                  }
+                  case None =>
+                }
+                // End upstreamCallback
                 if (message.getStatus == NorbertProtos.NorbertMessage.Status.OK) {
                   log.debug("Dropping successful response from %s".format(request.node.url))
                 } else {
@@ -201,6 +229,20 @@ class DarkCanaryChannelHandler extends Logging {
                 // This is a mirrored request. Don't propagate the response.
               }
               case _ => {
+                // Begin upstreamCallback
+                upstreamCallback match {
+                  case Some(callback) => {
+                    hostRequestMap.remove(requestId) match {
+                      case request: Request[Any,Any] => {
+                        hostToMirror.remove(requestId)
+                        callback(false, requestId, message)
+                      }
+                      case null => // Not a request from a host with a mirror
+                    }
+                  }
+                  case None =>
+                }
+                // End upstreamCallback
                 // This is not a mirrored request, Propagate the message upstream.
                 super.messageReceived(ctx, msg)  // will call ctx.sendUpstream(msg)
               }
@@ -223,21 +265,40 @@ class DarkCanaryChannelHandler extends Logging {
       if (staleRequestTimeoutMins > 0) {
         try {
           import collection.JavaConversions._
-          var expiredEntryCount = 0
+          var expiredEntryCountHost = 0
+          var expiredEntryCountDark = 0
 
-          requestMap.keySet.foreach { uuid =>
-            val request = Option(requestMap.get(uuid))
+          mirrorRequestMap.keySet.foreach { uuid =>
+            val request = Option(mirrorRequestMap.get(uuid))
             val now = System.currentTimeMillis
 
             request.foreach { r =>
               if ((now - r.timestamp) > staleRequestTimeoutMillis) {
-                requestMap.remove(uuid)
-                expiredEntryCount += 1
+                mirrorRequestMap.remove(uuid)
+                mirrorToHost.remove(uuid)
+                expiredEntryCountDark += 1
               }
             }
           }
-          if (expiredEntryCount > 0) {
-            log.info("Expired %d stale dark canary requests".format(expiredEntryCount))
+
+          hostRequestMap.keySet.foreach { uuid =>
+            val request = Option(hostRequestMap.get(uuid))
+            val now = System.currentTimeMillis
+
+            request.foreach { r =>
+              if ((now - r.timestamp) > staleRequestTimeoutMillis) {
+                hostRequestMap.remove(uuid)
+                hostToMirror.remove(uuid)
+                expiredEntryCountHost += 1
+              }
+            }
+          }
+
+          if (expiredEntryCountDark > 0) {
+            log.info("Expired %d stale dark canary requests".format(expiredEntryCountDark))
+          }
+          if (expiredEntryCountHost > 0) {
+            log.info("Expired %d stale host canary requests".format(expiredEntryCountHost))
           }
         } catch {
           case e: InterruptedException =>
@@ -253,5 +314,5 @@ class DarkCanaryChannelHandler extends Logging {
   // code.
   def addNode(n : Node) : Unit = mirroredHosts.put(n.id, n)
   def removeNode(id: Int) : Unit = mirroredHosts.remove(id)
-  def getInFlightRequestIds : Array[UUID] = requestMap.keySet().toArray.map { e => e.asInstanceOf[UUID]}
+  def getInFlightRequestIds : Array[UUID] = mirrorRequestMap.keySet().toArray.map { e => e.asInstanceOf[UUID]}
 }

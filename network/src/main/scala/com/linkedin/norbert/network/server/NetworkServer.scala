@@ -70,7 +70,7 @@ trait NetworkServer extends Logging {
    * @throws InvalidNodeException thrown if no <code>Node</code> with the specified machine's URL is configured in zookeeper
    * @throws NetworkingException thrown if unable to bind
    */
-  def bindByUrl(hostname: String, port: Int): Unit = {
+  def bindByUrl(hostname: String, port: Int, markAvailable: Boolean = true): Unit = {
     log.debug("Ensuring ClusterClient is started")
     clusterClient.start
     clusterClient.awaitConnectionUninterruptibly
@@ -78,7 +78,18 @@ trait NetworkServer extends Logging {
     val node = clusterClient.nodeByUrl(hostname, port).getOrElse(throw new InvalidNodeException("No node for URL: %s:%d exists".format(hostname, port)))
 
     //Bind with that node
-    bindNode(node, true)
+    bindNode(node, markAvailable)
+  }
+
+  def bindOrCreateByUrl(hostname: String, port: Int, partitionBuilder:Option[Int => Set[Int]] = None): Unit = {
+    try {
+      bindByUrl(hostname, port)
+    } catch {
+      case ex:InvalidNodeException =>
+        /* This node doesn't exist so we need to create it */
+        clusterClient.addNodeByUrl(hostname, port, partitionBuilder)
+        bindByUrl(hostname, port)
+    }
   }
 
   /**
