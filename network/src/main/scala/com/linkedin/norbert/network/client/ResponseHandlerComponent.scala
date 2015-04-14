@@ -24,7 +24,9 @@ import norbertutils.NamedPoolThreadFactory
 import jmx.JMX.MBean
 import jmx.JMX
 import java.util.concurrent._
+import java.util.UUID
 import util.ProtoUtils
+
 
 trait ResponseHandlerComponent {
   val responseHandler: ResponseHandler
@@ -92,4 +94,9 @@ trait ResponseProcessorMBean {
 class ResponseProcessorMBeanImpl(clientName: Option[String], serviceName: String, queue: ArrayBlockingQueue[Runnable])
   extends MBean(classOf[ResponseProcessorMBean], JMX.name(clientName, serviceName)) with ResponseProcessorMBean {
   def getQueueSize = queue.size
+}
+
+abstract class DarkCanaryResponseHandler()
+{
+  def upstreamCallback(isDark: Boolean, requestId: UUID, request: Request[Any, Any], response: NorbertProtos.NorbertMessage);
 }

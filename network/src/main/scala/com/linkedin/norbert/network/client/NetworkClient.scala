@@ -22,8 +22,9 @@ import java.util.concurrent.Future
 import loadbalancer.{LoadBalancerFactory, LoadBalancer, LoadBalancerFactoryComponent}
 import server.{MessageExecutorComponent, NetworkServer}
 import cluster._
-import netty.NettyNetworkClient
 import network.common._
+import network.client.DarkCanaryResponseHandler
+import netty.NettyNetworkClient
 import com.linkedin.norbert.network.javaobjects.{NodeSpecification => JNodeSpecification, PartitionedNodeSpecification => JPartitionedNodeSpecification,
                                                 RetrySpecification => JRetrySpecification, PartitionedRetrySpecification => JPartitionedRetrySpecification,
                                                 RequestSpecification => JRequestSpecification, PartitionedRequestSpecification => JPartitionedRequestSpecification}
@@ -67,7 +68,7 @@ class NetworkClientConfig {
 
   var avoidByteStringCopy = NetworkDefaults.AVOID_BYTESTRING_COPY
   var darkCanaryServiceName: Option[String] = None
-  var darkCanaryUpstreamCallback: Option[(Boolean, UUID, Object)=>Unit] = None
+  var darkCanaryResponseHandler: Option[DarkCanaryResponseHandler] = None
   var retryStrategy:Option[RetryStrategy] = None 
   var duplicatesOk:Boolean = false
 }
