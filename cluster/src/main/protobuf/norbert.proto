@@ -31,4 +31,5 @@ message Node {
   required string url = 2;
   repeated int32 partition = 3;
   optional int64 persistentCapability = 4;
+  optional int32 altPort = 5;
 }

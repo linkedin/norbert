@@ -155,6 +155,12 @@ trait BaseNetworkClient extends Logging {
     clusterIoClient.sendMessage(requestCtx.node, requestCtx)
   }
 
+  protected def doSendAltMessage[RequestMsg, ResponseMsg](requestCtx: BaseRequest[RequestMsg])
+  (implicit is: InputSerializer[RequestMsg, ResponseMsg], os: OutputSerializer[RequestMsg, ResponseMsg]): Unit = {
+    filters.foreach { filter => filter.onRequest(requestCtx) }
+    clusterIoClient.sendAltMessage(requestCtx.node, requestCtx)
+  }
+
   protected def doIfConnected[T](block: => T): T = {
     if (shutdownSwitch.get) throw new NetworkShutdownException
     else if (!startedSwitch.get) throw new NetworkNotStartedException

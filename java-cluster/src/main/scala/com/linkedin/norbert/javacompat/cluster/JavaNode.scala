@@ -27,12 +27,12 @@ object JavaNode {
       if (node.partitionIds != null) {
         node.partitionIds.foreach {id => s.add(id)}
       }
-      JavaNode(node.id, node.url, node.available, s, node.capability, node.persistentCapability)
+      JavaNode(node.id, node.url, node.available, s, node.capability, node.persistentCapability, node.altPort)
     }
   }
 }
 
-case class JavaNode(@BeanProperty id: Int, @BeanProperty url: String, @BeanProperty available: Boolean, @BeanProperty partitionIds: java.util.Set[java.lang.Integer], capability: Option[Long] = None, persistentCapability: Option[Long] = None) extends Node {
+case class JavaNode(@BeanProperty id: Int, @BeanProperty url: String, @BeanProperty available: Boolean, @BeanProperty partitionIds: java.util.Set[java.lang.Integer], capability: Option[Long] = None, persistentCapability: Option[Long] = None, altPort: Option[Int] = None) extends Node {
   def isAvailable = available
   def isCapableOf(c: java.lang.Long) : Boolean = isCapableOf(c, 0L)
   def isCapableOf(c: java.lang.Long, pc: java.lang.Long) : Boolean =
@@ -50,6 +50,11 @@ case class JavaNode(@BeanProperty id: Int, @BeanProperty url: String, @BeanPrope
   def getPersistentCapability() : java.lang.Long = 
     persistentCapability match {
       case Some(nc) => nc.longValue
+      case None => null
+    }
+  def getAltPort() : java.lang.Integer =
+    altPort match {
+      case Some(nc) => nc.intValue
       case None => null
     }
 }
