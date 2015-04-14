@@ -51,7 +51,7 @@ object JMX extends Logging {
 
   def unregister(mbean: ObjectInstance) = try {
     mbeanServer.unregisterMBean(mbean.getObjectName)
-    synchronized { map.remove(mbean.getObjectName.getCanonicalName) } //We treat the map as a mapping
+    //synchronized { map.remove(mbean.getObjectName.getCanonicalName) } //We treat the map as a mapping
     //from JMX value to a sequence number.
     //Overflow will result in negative values being used which should be fine.
   } catch {
