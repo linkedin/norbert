@@ -15,17 +15,24 @@
  */
 package com.linkedin.norbert.javacompat.network;
 
-import java.util.Set;
-import java.util.concurrent.Future;
-
 import com.linkedin.norbert.cluster.ClusterDisconnectedException;
 import com.linkedin.norbert.cluster.InvalidClusterException;
-import com.linkedin.norbert.javacompat.cluster.Node;
 import com.linkedin.norbert.network.NoNodesAvailableException;
 import com.linkedin.norbert.network.ResponseIterator;
 import com.linkedin.norbert.network.Serializer;
 
+import java.util.Set;
+import java.util.concurrent.Future;
+
 public interface PartitionedNetworkClient<PartitionedId> extends BaseNetworkClient {
+
+/**
+ * TODO: comment the new function
+ * TODO: mark the old functions as deprecated (do we do that here or at the implementation?)
+ */
+//  <RequestMsg, ResponseMsg> void sendRequest(PartitionedRequestSpecification<RequestMsg, PartitionedId> requestSpec, PartitionedNodeSpecification nodeSpec, PartitionedRetrySpecification<ResponseMsg> retrySpec, Serializer<RequestMsg, ResponseMsg> serializer) throws InvalidClusterException, NoNodesAvailableException, ClusterDisconnectedException;
+
+
   /**
    * Sends a <code>Message</code> to the specified <code>PartitionedId</code>. The <code>PartitionedNetworkClient</code>
    * will interact with the current <code>PartitionedLoadBalancer</code> to calculate which <code>Node</code> the message
