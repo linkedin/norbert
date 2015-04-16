@@ -26,7 +26,6 @@ import com.linkedin.norbert.network.partitioned.loadbalancer.{PartitionedLoadBal
 import com.linkedin.norbert.network.{ResponseIterator, Serializer}
 import com.linkedin.norbert.network.javaobjects.{NodeSpecification, RequestSpecification, RetrySpecification, PartitionedNodeSpecification, PartitionedRequestSpecification, PartitionedRetrySpecification}
 
-//TODO: add our new function definition from the interface to each class and make it call the underlying traits implementation
 
 abstract class BaseNettyNetworkClient extends BaseNetworkClient {
   val underlying: com.linkedin.norbert.network.common.BaseNetworkClient
