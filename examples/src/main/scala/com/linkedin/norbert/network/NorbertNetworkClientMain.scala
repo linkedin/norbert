@@ -79,7 +79,7 @@ object NorbertNetworkClientMain {
             println("Joined Norbert cluster")
 
           case nodeId :: url :: altPort :: partitions =>
-            cc.addNode(nodeId.toInt, url, Set() ++ Partitions.map(_.toInt), Some(altPort.toInt))
+            cc.addNode(nodeId.toInt, url, Set() ++ partitions.map(_.toInt), Some(altPort.toInt))
             println("Joined Norbert cluster")
 
           case _ => println("Error: Invalid syntax: join nodeId url altPort partition1 partition2...")
@@ -121,9 +121,9 @@ object NorbertNetworkClientMain {
           val node = cc.nodeWithId(args.head.toInt)
           node match {
             case Some(n) =>
-              nc.sendAltMessageToNode(Ping(System.currentTimeMiilis), n)
+              nc.sendAltMessageToNode(Ping(System.currentTimeMillis), n)
 
-            case Nond => println("No node with id: %d".format(args.head.toInt))
+            case None => println("No node with id: %d".format(args.head.toInt))
           }
         }
 

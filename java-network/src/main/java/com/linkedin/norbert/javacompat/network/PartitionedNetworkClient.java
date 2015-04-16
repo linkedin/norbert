@@ -20,17 +20,29 @@ import com.linkedin.norbert.cluster.InvalidClusterException;
 import com.linkedin.norbert.network.NoNodesAvailableException;
 import com.linkedin.norbert.network.ResponseIterator;
 import com.linkedin.norbert.network.Serializer;
+import com.linkedin.norbert.network.javaobjects.*;
 
 import java.util.Set;
 import java.util.concurrent.Future;
 
 public interface PartitionedNetworkClient<PartitionedId> extends BaseNetworkClient {
 
-/**
- * TODO: comment the new function
- * TODO: mark the old functions as deprecated (do we do that here or at the implementation?)
- */
-//  <RequestMsg, ResponseMsg> void sendRequest(PartitionedRequestSpecification<RequestMsg, PartitionedId> requestSpec, PartitionedNodeSpecification nodeSpec, PartitionedRetrySpecification<ResponseMsg> retrySpec, Serializer<RequestMsg, ResponseMsg> serializer) throws InvalidClusterException, NoNodesAvailableException, ClusterDisconnectedException;
+  /**
+   * Sends a <code>Message</code> to the specified <code>PartitionedId</code>. The <code>PartitionedNetworkClient</code>
+   * will interact with the current <code>PartitionedLoadBalancer</code> to calculate which <code>Node</code> the message
+   * must be sent to.  This method is asynchronous and will return immediately.
+   *
+   * @param requestSpecification the RequestSpecification object specifying the message
+   * @param nodeSpecification the NodeSpecification object specifying the number of replicas and clusterId
+   * @param retrySpecification the RetrySpecification object specifying the retry strategy and callback
+   *
+   * @return void
+   * @throws InvalidClusterException thrown if the cluster is currently in an invalid state
+   * @throws NoNodesAvailableException thrown if the <code>PartitionedLoadBalancer</code> was unable to provide a <code>Node</code>
+   * to send the request to
+   * @throws ClusterDisconnectedException thrown if the <code>PartitionedNetworkClient</code> is not connected to the cluster
+   */
+  <RequestMsg, ResponseMsg> void sendRequest(PartitionedRequestSpecification<RequestMsg, PartitionedId> requestSpecification, PartitionedNodeSpecification<PartitionedId> nodeSpecification, PartitionedRetrySpecification<ResponseMsg> retrySpecification, Serializer<RequestMsg, ResponseMsg> serializer) throws InvalidClusterException, NoNodesAvailableException, ClusterDisconnectedException;
 
 
   /**

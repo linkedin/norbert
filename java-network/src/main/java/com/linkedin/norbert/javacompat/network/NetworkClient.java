@@ -25,10 +25,6 @@ import java.util.concurrent.Future;
 
 public interface NetworkClient extends BaseNetworkClient {
 
-  /**
-   * TODO: comment new function
-   * TODO: mark the functions as deprecated (do we do that here or at the implementation?)
-   */
 
     /**
    * Sends a request to a node in the cluster. The <code>NetworkClient</code> defers to the current
@@ -52,6 +48,20 @@ public interface NetworkClient extends BaseNetworkClient {
   <RequestMsg, ResponseMsg> Future<ResponseMsg> sendRequest(RequestMsg request, Serializer<RequestMsg, ResponseMsg> serializer, int maxRetry, long capability) throws InvalidClusterException, NoNodesAvailableException, ClusterDisconnectedException;
   <RequestMsg, ResponseMsg> Future<ResponseMsg> sendRequest(RequestMsg request, Serializer<RequestMsg, ResponseMsg> serializer, int maxRetry, long capability, long persistentCapability) throws InvalidClusterException, NoNodesAvailableException, ClusterDisconnectedException;
 
+  /**
+   * Sends a request to a node in the cluster. The <code>NetworkClient</code> defers to the current
+   * <code>LoadBalancer</code> to decide which <code>Node</code> the request should be sent to.
+   *
+   * @param requestSpecification the RequestSpecification object specifying the message
+   * @param nodeSpecification the NodeSpecification object specifying the number of replicas and clusterId
+   * @param retrySpecification the RetrySpecification object specifying the retry strategy and callback
+   *
+   * @return void
+   * @throws InvalidClusterException thrown if the cluster is currently in an invalid state
+   * @throws NoNodesAvailableException thrown if the <code>LoadBalancer</code> was unable to provide a <code>Node</code>
+   * to send the request to
+   * @throws ClusterDisconnectedException thrown if the cluster is not connected when the method is called
+   */
   <RequestMsg, ResponseMsg> void sendRequest(RequestSpecification<RequestMsg> requestSpecification,NodeSpecification nodeSpecification, RetrySpecification<ResponseMsg> retrySpecification,
            Serializer<RequestMsg, ResponseMsg> serializer) throws InvalidClusterException, NoNodesAvailableException, ClusterDisconnectedException;
 }

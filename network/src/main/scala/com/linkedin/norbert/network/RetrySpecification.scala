@@ -86,7 +86,7 @@ class PartitionedRetrySpecification[ResponseMsg](maxRetry: Int,
                                          callback: Option[Either[Throwable, ResponseMsg] => Unit],
                                          var retryStrategy: Option[RetryStrategy],
                                          var routingConfigs: RoutingConfigs = RoutingConfigs.defaultRoutingConfigs)
-                                              extends JPartitionedRetrySpecification[ResponseMsg, Unit]{
+                                              extends JPartitionedRetrySpecification[ResponseMsg]{
   def getMaxRetry() = maxRetry
   def getCallback() = {
     val unitConversion = new UnitConversions[ResponseMsg]
