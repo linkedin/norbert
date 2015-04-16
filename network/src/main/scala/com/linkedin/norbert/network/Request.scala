@@ -79,6 +79,8 @@ class Request[RequestMsg, ResponseMsg](override val message: RequestMsg, overrid
                                        val callback: Option[Either[Throwable, ResponseMsg] => Unit], val retryAttempt: Int = 0)
   extends BaseRequest[RequestMsg](message, node, inputSerializer, outputSerializer){
 
+  override val expectsResponse = !callback.isEmpty
+
   override def onFailure(exception: Throwable) {
     callback match {
       case Some(fn) => fn(Left(exception))

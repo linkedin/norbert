@@ -120,6 +120,26 @@ trait BaseNetworkClient extends Logging {
   }
 
   /**
+   * Sends a request to the specified node in the cluster using the alternate channel.
+   *
+   *  @param request the message to send
+   *  @param node the node to send the message to
+   *
+   *  @return The second channel expects baseRequests and never returns responses
+   *  @throws InvalidNodeException thrown if the node specified is not currently available
+   *  @throws ClusterDisconnectedexception thrown if the cluster is not connected when the method is called
+   */
+  def sendAltMessageToNode[RequestMsg, ResponseMsg](request: RequestMsg, node: Node)
+    (implicit is: InputSerializer[RequestMsg, ResponseMsg], os: OutputSerializer[RequestMsg, ResponseMsg]): Unit = doIfConnected {
+    if (request == null || node == null) throw new NullPointerException
+
+    val candidate = currentNodes.filter(_ == node)
+    if (candidate.size == 0) throw new InvalidNodeException("Unable to send message, %s is not available".format(node))
+
+    doSendAltMessage(BaseRequest(request, node, is, os))
+  }
+
+  /**
    * Broadcasts a message to all the currently available nodes in the cluster.
    *
    * @param message the message to send

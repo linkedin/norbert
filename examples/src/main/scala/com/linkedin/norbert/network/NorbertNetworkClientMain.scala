@@ -74,11 +74,15 @@ object NorbertNetworkClientMain {
             cc.addNode(nodeId.toInt, url)
             println("Joined Norbert cluster")
 
-          case nodeId :: url :: partitions =>
-            cc.addNode(nodeId.toInt, url, Set() ++ partitions.map(_.toInt))
+          case nodeId :: url :: altPort :: Nil =>
+            cc.addNode(nodeId.toInt, url, altPort = Some(altPort.toInt))
             println("Joined Norbert cluster")
 
-          case _ => println("Error: Invalid syntax: join nodeId url partition1 partition2...")
+          case nodeId :: url :: altPort :: partitions =>
+            cc.addNode(nodeId.toInt, url, Set() ++ Partitions.map(_.toInt), Some(altPort.toInt))
+            println("Joined Norbert cluster")
+
+          case _ => println("Error: Invalid syntax: join nodeId url altPort partition1 partition2...")
         }
         println("Joined Norbert cluster")
 
@@ -107,6 +111,19 @@ object NorbertNetworkClientMain {
               }
 
             case None => println("No node with id: %d".format(args.head.toInt))
+          }
+        }
+
+      case "altPing" =>
+        if (args.length < 1) {
+          println("Invalid syntax: altPing nodeId")
+        } else {
+          val node = cc.nodeWithId(args.head.toInt)
+          node match {
+            case Some(n) =>
+              nc.sendAltMessageToNode(Ping(System.currentTimeMiilis), n)
+
+            case Nond => println("No node with id: %d".format(args.head.toInt))
           }
         }
 
