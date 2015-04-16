@@ -20,6 +20,7 @@ import com.linkedin.norbert.cluster.InvalidClusterException;
 import com.linkedin.norbert.network.NoNodesAvailableException;
 import com.linkedin.norbert.network.ResponseIterator;
 import com.linkedin.norbert.network.Serializer;
+import com.linkedin.norbert.network.javaobjects.*;
 
 import java.util.Set;
 import java.util.concurrent.Future;
@@ -30,7 +31,7 @@ public interface PartitionedNetworkClient<PartitionedId> extends BaseNetworkClie
  * TODO: comment the new function
  * TODO: mark the old functions as deprecated (do we do that here or at the implementation?)
  */
-//  <RequestMsg, ResponseMsg> void sendRequest(PartitionedRequestSpecification<RequestMsg, PartitionedId> requestSpec, PartitionedNodeSpecification nodeSpec, PartitionedRetrySpecification<ResponseMsg> retrySpec, Serializer<RequestMsg, ResponseMsg> serializer) throws InvalidClusterException, NoNodesAvailableException, ClusterDisconnectedException;
+  <RequestMsg, ResponseMsg> void sendRequest(PartitionedRequestSpecification<RequestMsg, PartitionedId> requestSpec, PartitionedNodeSpecification<PartitionedId> nodeSpec, PartitionedRetrySpecification<ResponseMsg> retrySpec, Serializer<RequestMsg, ResponseMsg> serializer) throws InvalidClusterException, NoNodesAvailableException, ClusterDisconnectedException;
 
 
   /**

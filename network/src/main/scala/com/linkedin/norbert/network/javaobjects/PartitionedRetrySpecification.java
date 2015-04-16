@@ -13,7 +13,7 @@ import com.linkedin.norbert.RoutingConfigs;
  * take java objects as arguments.  This file specifies getters for a PartitionedRetrySpecification.
  */
 
-public interface PartitionedRetrySpecification <ResponseMsg, Unit> {
+public interface PartitionedRetrySpecification <ResponseMsg> {
     int getMaxRetry();
 
     // Returns an anonymous function
