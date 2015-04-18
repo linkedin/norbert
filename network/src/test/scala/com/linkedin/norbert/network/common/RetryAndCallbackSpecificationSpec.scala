@@ -13,8 +13,6 @@ import scala.collection.mutable.MutableList
 import com.linkedin.norbert.network
 
 class RetryAndCallbackSpecificationSpec extends SpecificationWithJUnit {
-
-
   "RetryAndCallbackSpecification" should {
     "create a new retrySpecification object" in {
       val retrySpecificationTest: RetrySpecification[String] = RetrySpecification[String](9)
@@ -25,8 +23,5 @@ class RetryAndCallbackSpecificationSpec extends SpecificationWithJUnit {
       val partitionedRetrySpecificationTest: PartitionedRetrySpecification[String] = PartitionedRetrySpecification[String](9)
       partitionedRetrySpecificationTest.getMaxRetry() must be equalTo(9)
     }
-
-
   }
 }
-

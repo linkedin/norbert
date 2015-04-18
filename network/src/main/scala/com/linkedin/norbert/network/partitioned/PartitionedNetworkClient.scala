@@ -611,7 +611,7 @@ trait PartitionedNetworkClient[PartitionedId] extends BaseNetworkClient {
       val resIter = new NorbertDynamicResponseIterator[ResponseMsg](nodes.size, queue)
       nodes.foreach { case (node, idsForNode) =>
         try {
-        doSendRequest(PartitionedRequest(requestBuilder(node, idsForNode), node, idsForNode, requestBuilder, is, os, if (retrySpec.getMaxRetry() == 0) Some((a: Either[Throwable, ResponseMsg]) => {queue += a :Unit}) else Some(retryCallback[RequestMsg, ResponseMsg](queue.+=, retrySpec.getMaxRetry(), capability, persistentCapability)_), 0, Some(resIter)))
+          doSendRequest(PartitionedRequest(requestBuilder(node, idsForNode), node, idsForNode, requestBuilder, is, os, if (retrySpec.getMaxRetry() == 0) Some((a: Either[Throwable, ResponseMsg]) => {queue += a :Unit}) else Some(retryCallback[RequestMsg, ResponseMsg](queue.+=, retrySpec.getMaxRetry(), capability, persistentCapability)_), 0, Some(resIter)))
         } catch {
           case ex: Exception => queue += Left(ex)
         }

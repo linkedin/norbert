@@ -10,7 +10,7 @@ import scala.Function2;
  * take java objects as arguments.  This file specifies getters for a PartitionedRequestSpecification.
  */
 
-public interface PartitionedRequestSpecification <RequestMsg, PartitionedId>{
+public interface PartitionedRequestSpecification <RequestMsg, PartitionedId> {
     Option<RequestMsg> getMessage();
 
     // Returns an optional anonymous function that takes two arguments

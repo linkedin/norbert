@@ -94,7 +94,7 @@ public final class NorbertExampleProtos {
       return size;
     }
     
-    private static final long serialVersionUID = 0L;
+    private static final long serialVersionUID = 1L;
     @java.lang.Override
     protected java.lang.Object writeReplace()
         throws java.io.ObjectStreamException {
@@ -440,7 +440,7 @@ public final class NorbertExampleProtos {
       return size;
     }
     
-    private static final long serialVersionUID = 0L;
+    private static final long serialVersionUID = 1L;
     @java.lang.Override
     protected java.lang.Object writeReplace()
         throws java.io.ObjectStreamException {

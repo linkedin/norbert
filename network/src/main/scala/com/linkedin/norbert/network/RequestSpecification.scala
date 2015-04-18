@@ -57,7 +57,6 @@ class PartitionedRequestSpecification[RequestMsg, PartitionedId](val message: Op
                                              var requestBuilder: Option[(Node, Set[PartitionedId]) => RequestMsg]) extends JPartitionedRequestSpecification[RequestMsg, PartitionedId]{
   if (requestBuilder == None) {
     if (message == None) {
-      
       /* error if both message and requestBuilder are none */
       throw new IllegalArgumentException("You must specify either message or requestBuilder")
     }
@@ -68,7 +67,4 @@ class PartitionedRequestSpecification[RequestMsg, PartitionedId](val message: Op
 
   // Returns an optional anonymous function
   def getRequestBuilder() = requestBuilder
-
 }
-
-
