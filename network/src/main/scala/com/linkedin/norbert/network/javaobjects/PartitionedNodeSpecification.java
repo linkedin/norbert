@@ -8,6 +8,7 @@ import scala.collection.immutable.Set;
  */
 
 public interface PartitionedNodeSpecification<PartitionedId> extends NodeSpecification {
+    Integer getAltPort();
     int getNumberOfReplicas();
     Integer getClusterId();
     Set<PartitionedId> getIds();

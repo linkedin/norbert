@@ -23,11 +23,12 @@ import runtime.BoxedUnit
  */
 class UnitConversions[ResponseMsg] {
   // Converts the return type from Unit to BoxedUnit.UNIT
-  def curryImplicitly[A](f: A => Unit) =
+  def curryImplicitly[A](f: A => Unit): (A => BoxedUnit) =
     (a: A) => { f(a); BoxedUnit.UNIT }
 
+
   // Converts the return type from BoxedUnit to Unit
-  def uncurryImplicitly[A](f: A => BoxedUnit) =
+  def uncurryImplicitly[A](f: A => BoxedUnit): (A => Unit) =
     (a: A) => { f(a); () }
 
 }

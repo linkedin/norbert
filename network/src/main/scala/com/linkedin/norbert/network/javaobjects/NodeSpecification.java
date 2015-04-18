@@ -9,5 +9,6 @@ package com.linkedin.norbert.network.javaobjects;
 public interface NodeSpecification {
     Long getCapability();
     Long getPersistentCapability();
+    Integer getAltPort();
 }
 

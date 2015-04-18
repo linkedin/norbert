@@ -68,7 +68,7 @@ trait NodeTrait[NodeType] {
 class NodeSpecification extends NodeTrait[NodeSpecification] with JNodeSpecification {
 
   // Converts Option[Long] to java.lang.Long
-  def getCapability() = {
+  def getCapability(): java.lang.Long = {
     capability match {
       case Some(cap) => cap
       case None => null
@@ -76,7 +76,7 @@ class NodeSpecification extends NodeTrait[NodeSpecification] with JNodeSpecifica
   }
 
   // Converts Option[Long] to java.lang.Long
-  def getPersistentCapability = {
+  def getPersistentCapability: java.lang.Long= {
     persistentCapability match {
       case Some(pc) => pc
       case None => null
@@ -84,7 +84,7 @@ class NodeSpecification extends NodeTrait[NodeSpecification] with JNodeSpecifica
   }
 
   // Converts Option[Int] to java.lang.Integer
-  def getAltPort = {
+  def getAltPort: java.lang.Integer = {
     altPort match {
       case Some(ap) => ap
       case None => null
@@ -111,7 +111,7 @@ class PartitionedNodeSpecification[PartitionedId](val ids: Set[PartitionedId]) e
   }
 
   // Converts Option[Long] to java.lang.Long
-  def getCapability() = {
+  def getCapability(): java.lang.Long = {
     capability match {
       case Some(cap) => cap
       case None => null
@@ -119,7 +119,7 @@ class PartitionedNodeSpecification[PartitionedId](val ids: Set[PartitionedId]) e
   }
 
   // Converts Option[Long] to java.lang.Long
-  def getPersistentCapability = {
+  def getPersistentCapability: java.lang.Long = {
     persistentCapability match {
       case Some(pc) => pc
       case None => null
@@ -127,7 +127,7 @@ class PartitionedNodeSpecification[PartitionedId](val ids: Set[PartitionedId]) e
   }
 
   // Converts Option[Int] to java.lang.Integer
-  def getAltPort = {
+  def getAltPort: java.lang.Integer = {
     altPort match {
       case Some(ap) => ap
       case None => null
@@ -135,10 +135,11 @@ class PartitionedNodeSpecification[PartitionedId](val ids: Set[PartitionedId]) e
   }
 
   // Returns Int that is unboxed to int
-  def getNumberOfReplicas() = numberOfReplicas
+  def getNumberOfReplicas(): Int = numberOfReplicas
+
 
   // Converts Option[Int] to java.lang.Int
-  def getClusterId() = {
+  def getClusterId(): java.lang.Integer = {
     clusterId match {
       case Some(cid) => cid
       case None => null
@@ -146,7 +147,7 @@ class PartitionedNodeSpecification[PartitionedId](val ids: Set[PartitionedId]) e
   }
 
   // Returns Set[PartitionedId]
-  def getIds() = ids
+  def getIds(): Set[PartitionedId] = ids
 }
 
 
