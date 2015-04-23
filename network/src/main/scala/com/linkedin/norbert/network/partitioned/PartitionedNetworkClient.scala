@@ -17,7 +17,7 @@ package com.linkedin.norbert
 package network
 package partitioned
 
-import java.util.concurrent.Future
+import java.util.concurrent.{Semaphore, Future}
 import common._
 import loadbalancer.{PartitionedLoadBalancer, PartitionedLoadBalancerFactoryComponent, PartitionedLoadBalancerFactory}
 import server.{MessageExecutorComponent, NetworkServer}
@@ -66,10 +66,12 @@ trait PartitionedNetworkClient[PartitionedId] extends BaseNetworkClient {
 
   var duplicatesOk:Boolean = false
   var retryStrategy:Option[RetryStrategy] = None
+  var maxConcurrentRequests:Int = 0
   def setConfig(config:NetworkClientConfig): Unit = {
     duplicatesOk = config.duplicatesOk
     if(retryStrategy != null)
       retryStrategy = config.retryStrategy
+    maxConcurrentRequests = config.maxConcurrentRequests
   }
 
   @volatile private var loadBalancer: Option[Either[InvalidClusterException, PartitionedLoadBalancer[PartitionedId]]] = None
@@ -327,6 +329,17 @@ trait PartitionedNetworkClient[PartitionedId] extends BaseNetworkClient {
       routingConfigs: RoutingConfigs,
       retryStrategy: Option[RetryStrategy])
     (implicit is: InputSerializer[RequestMsg, ResponseMsg],
+        os: OutputSerializer[RequestMsg, ResponseMsg]): ResponseIterator[ResponseMsg] =
+    sendRequest(ids, numberOfReplicas, None, requestBuilder, maxRetry, capability, persistentCapability, routingConfigs,
+        retryStrategy, maxConcurrentRequests)
+
+  def sendRequest[RequestMsg, ResponseMsg](ids: Set[PartitionedId], numberOfReplicas: Int, clusterId: Option[Int],
+      requestBuilder: (Node, Set[PartitionedId]) => RequestMsg, maxRetry: Int, capability: Option[Long],
+      persistentCapability: Option[Long],
+      routingConfigs: RoutingConfigs,
+      retryStrategy: Option[RetryStrategy],
+      maxConcurrentRequests: Int)
+    (implicit is: InputSerializer[RequestMsg, ResponseMsg],
         os: OutputSerializer[RequestMsg, ResponseMsg]): ResponseIterator[ResponseMsg] = doIfConnected
   {
     if (ids == null || requestBuilder == null) throw new NullPointerException
@@ -345,11 +358,34 @@ trait PartitionedNetworkClient[PartitionedId] extends BaseNetworkClient {
     if (nodes.size <= 1 || !routingConfigs.selectiveRetry || retryStrategy == None) {
       val queue = new ResponseQueue[ResponseMsg]
       val resIter = new NorbertDynamicResponseIterator[ResponseMsg](nodes.size, queue)
+      lazy val sem = new Semaphore(maxConcurrentRequests)
+
+      val addResult = (res: Either[Throwable, ResponseMsg]) => {
+        queue += res
+        if (maxConcurrentRequests > 0) {
+          sem.release()
+        }
+      }
+      val callback = if (maxRetry == 0) {
+        Some(addResult)
+      } else {
+        Some(retryCallback[RequestMsg, ResponseMsg](addResult, maxRetry, capability, persistentCapability) _)
+      }
+
       nodes.foreach { case (node, idsForNode) =>
         try {
-          doSendRequest(PartitionedRequest(requestBuilder(node, idsForNode), node, idsForNode, requestBuilder, is, os, if (maxRetry == 0) Some((a: Either[Throwable, ResponseMsg]) => {queue += a :Unit}) else Some(retryCallback[RequestMsg, ResponseMsg](queue.+=, maxRetry, capability, persistentCapability)_), 0, Some(resIter)))
+          if (maxConcurrentRequests > 0) {
+            sem.acquire()
+          }
+          doSendRequest(PartitionedRequest(requestBuilder(node, idsForNode), node, idsForNode, requestBuilder, is, os,
+              callback, 0, Some(resIter)))
         } catch {
-          case ex: Exception => queue += Left(ex)
+          case ex: Exception => {
+            queue += Left(ex)
+            if (maxConcurrentRequests > 0) {
+              sem.release()
+            }
+          }
         }
       }
       return resIter
