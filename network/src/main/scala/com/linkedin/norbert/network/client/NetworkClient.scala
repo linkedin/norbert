@@ -43,6 +43,8 @@ class NetworkClientConfig {
   var zooKeeperConnectString: String = _
   var zooKeeperSessionTimeoutMillis = ClusterDefaults.ZOOKEEPER_SESSION_TIMEOUT_MILLIS
 
+  var receiveBufferSize:Int = 0
+  var sendBufferSize:Int = 0
   var connectTimeoutMillis = NetworkDefaults.CONNECT_TIMEOUT_MILLIS
   var writeTimeoutMillis = NetworkDefaults.WRITE_TIMEOUT_MILLIS
   var maxConnectionsPerNode = NetworkDefaults.MAX_CONNECTIONS_PER_NODE

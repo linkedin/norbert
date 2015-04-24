@@ -43,6 +43,8 @@ abstract class BaseNettyNetworkClient(clientConfig: NetworkClientConfig) extends
   private val executor = Executors.newCachedThreadPool(new NamedPoolThreadFactory("norbert-client-pool-%s".format(clusterClient.serviceName)))
   private val bootstrap = new ClientBootstrap(new NioClientSocketChannelFactory(executor, executor))
   private val connectTimeoutMillis = clientConfig.connectTimeoutMillis
+  private val receiveBufferSize = clientConfig.receiveBufferSize
+  private val sendBufferSize = clientConfig.sendBufferSize
 
   val responseHandler = new ThreadPoolResponseHandler(
     clientName = clusterClient.clientName,
@@ -73,6 +75,12 @@ abstract class BaseNettyNetworkClient(clientConfig: NetworkClientConfig) extends
   bootstrap.setOption("connectTimeoutMillis", connectTimeoutMillis)
   bootstrap.setOption("tcpNoDelay", true)
   bootstrap.setOption("reuseAddress", true)
+  if (receiveBufferSize > 0) {
+    bootstrap.setOption("receiveBufferSize", receiveBufferSize)
+  }
+  if (sendBufferSize > 0) {
+    bootstrap.setOption("sendBufferSize", sendBufferSize)
+  }
   bootstrap.setPipelineFactory(new ChannelPipelineFactory {
     private val loggingHandler = new LoggingHandler
     private val protobufDecoder = new ProtobufDecoder(NorbertProtos.NorbertMessage.getDefaultInstance)
