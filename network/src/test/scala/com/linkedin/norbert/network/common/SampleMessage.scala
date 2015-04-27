@@ -41,4 +41,30 @@ trait SampleMessage {
 
   case class Ping(timestamp: Long = System.currentTimeMillis)
   val request = new Ping
+
+  // A Ping which has an increased priority for testing prioritization.
+  object PriorityPing extends Ping{
+    implicit case object PriorityPingSerializer extends Serializer[PriorityPing, PriorityPing] {
+      def requestName = "ping"
+      def responseName = "pong"
+      override def priority = 5
+
+      def requestToBytes(message: PriorityPing) =
+        NorbertExampleProtos.Ping.newBuilder.setTimestamp(message.timestamp).build.toByteArray
+
+      def requestFromBytes(bytes: Array[Byte]) = {
+        val timestamp = (NorbertExampleProtos.Ping.newBuilder.mergeFrom(bytes).build.getTimestamp)
+        PriorityPing(timestamp)
+      }
+
+      def responseToBytes(message: PriorityPing) =
+        requestToBytes(message)
+
+      def responseFromBytes(bytes: Array[Byte]) =
+        requestFromBytes(bytes)
+    }
+  }
+
+  case class PriorityPing(timestamp: Long = System.currentTimeMillis)
+  val priorityRequest = new PriorityPing
 }
