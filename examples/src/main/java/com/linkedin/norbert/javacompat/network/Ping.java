@@ -36,8 +36,6 @@ class PingSerializer implements Serializer<Ping, Ping> {
       return "pong";
     }
 
-    public int priority() {return 0;}
-
     public byte[] requestToBytes(Ping message) {
       return NorbertExampleProtos.Ping.newBuilder().setTimestamp(message.timestamp).build().toByteArray();
     }

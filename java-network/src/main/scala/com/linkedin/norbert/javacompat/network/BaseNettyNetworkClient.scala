@@ -17,15 +17,14 @@ package com.linkedin.norbert
 package javacompat
 package network
 
-import com.linkedin.norbert.EndpointConversions._
+import cluster.{Node, BaseClusterClient}
 import com.linkedin.norbert.cluster.{Node => SNode}
-import com.linkedin.norbert.javacompat.cluster.{BaseClusterClient, Node}
-import com.linkedin.norbert.network.client.loadbalancer.{LoadBalancer => SLoadBalancer, LoadBalancerFactory => SLoadBalancerFactory}
-import com.linkedin.norbert.network.common.{Endpoint => SEndpoint}
-import com.linkedin.norbert.network.partitioned.loadbalancer.{PartitionedLoadBalancer => SPartitionedLoadBalancer, PartitionedLoadBalancerFactory => SPartitionedLoadBalancerFactory}
 import com.linkedin.norbert.network.{ResponseIterator, Serializer}
-import com.linkedin.norbert.network.javaobjects.{NodeSpecification, RequestSpecification, RetrySpecification, PartitionedNodeSpecification, PartitionedRequestSpecification, PartitionedRetrySpecification}
+import com.linkedin.norbert.network.client.loadbalancer.{LoadBalancerFactory => SLoadBalancerFactory, LoadBalancer => SLoadBalancer}
+import com.linkedin.norbert.network.partitioned.loadbalancer.{PartitionedLoadBalancerFactory => SPartitionedLoadBalancerFactory, PartitionedLoadBalancer => SPartitionedLoadBalancer}
+import com.linkedin.norbert.network.common.{Endpoint => SEndpoint}
 
+import EndpointConversions._
 
 abstract class BaseNettyNetworkClient extends BaseNetworkClient {
   val underlying: com.linkedin.norbert.network.common.BaseNetworkClient
@@ -106,9 +105,6 @@ class NettyNetworkClient(config: NetworkClientConfig, loadBalancerFactory: LoadB
   def sendRequest[RequestMsg, ResponseMsg](requestMsg: RequestMsg, serializer: Serializer[RequestMsg, ResponseMsg], maxRetry: Int, capability: Long, persistentCapability: Long) =
     underlying.sendRequest(requestMsg, maxRetry, Some(capability), Some(persistentCapability))(serializer, serializer)
 
-  def sendRequest[RequestMsg, ResponseMsg](requestSpecification: RequestSpecification[RequestMsg],nodeSpecification: NodeSpecification,retrySpecification: RetrySpecification[ResponseMsg], serializer:Serializer[RequestMsg, ResponseMsg]) =
-    underlying.sendRequest(requestSpecification, nodeSpecification, retrySpecification)(serializer, serializer)
-
 }
 
 class NettyPartitionedNetworkClient[PartitionedId](config: NetworkClientConfig, loadBalancerFactory: PartitionedLoadBalancerFactory[PartitionedId],
@@ -133,6 +129,7 @@ class NettyPartitionedNetworkClient[PartitionedId](config: NetworkClientConfig, 
     underlying.sendRequest(ids: Set[PartitionedId], request)(serializer, serializer)
 
   def sendRequest[RequestMsg, ResponseMsg](ids: java.util.Set[PartitionedId], requestBuilder: RequestBuilder[PartitionedId, RequestMsg], serializer: Serializer[RequestMsg, ResponseMsg]): ResponseIterator[ResponseMsg] = {
+    import collection.JavaConversions._
     underlying.sendRequest(ids: java.util.Set[PartitionedId], (node: SNode, ids: Set[PartitionedId]) => requestBuilder(node, ids))(serializer, serializer)
   }
 
@@ -145,9 +142,6 @@ class NettyPartitionedNetworkClient[PartitionedId](config: NetworkClientConfig, 
                            (responseIterator: ResponseIterator[ResponseMsg]) => scatterGather.gatherResponses(responseIterator))(serializer, serializer)
   }
 
-
-  def sendRequest[RequestMsg, ResponseMsg](requestSpecification: PartitionedRequestSpecification[RequestMsg, PartitionedId], nodeSpecification: PartitionedNodeSpecification[PartitionedId], retrySpecification:PartitionedRetrySpecification[ResponseMsg], serializer:Serializer[RequestMsg, ResponseMsg]) =
-    underlying.sendRequest(requestSpecification, nodeSpecification, retrySpecification)(serializer, serializer)
 
   def sendRequestToPartitions[RequestMsg, ResponseMsg](id: PartitionedId, partitions: java.util.Set[java.lang.Integer], requestBuilder: RequestBuilder[Integer, RequestMsg], serializer: Serializer[RequestMsg, ResponseMsg]) = {
     val sPartitions = partitions.foldLeft(Set.empty[Int])(_ + _.intValue())

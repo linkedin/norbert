@@ -28,10 +28,9 @@ import cluster.Node
 trait NettyClusterIoServerComponent extends ClusterIoServerComponent {
   class NettyClusterIoServer(bootstrap: ServerBootstrap, channelGroup: ChannelGroup) extends ClusterIoServer with UrlParser with Logging {
     private var serverChannel: Channel = _
-    private var serverAltChannel: Channel = _
 
     def bind(node: Node, wildcard: Boolean) = {
-      var (_, port) = parseUrl(node.url)
+      val (_, port) = parseUrl(node.url)
       try {
         val address = new InetSocketAddress(port)
         log.debug("Binding server socket to %s".format(address))
@@ -39,28 +38,12 @@ trait NettyClusterIoServerComponent extends ClusterIoServerComponent {
       } catch {
         case ex: ChannelException => throw new NetworkingException("Unable to bind to %s".format(node), ex)
       }
-      if(!node.altPort.isEmpty) {
-        port = node.altPort.get
-        try {
-          val address = new InetSocketAddress(port)
-          log.debug("Binding server socket to %s".format(address))
-          serverAltChannel = bootstrap.bind(address)
-        } catch {
-          case ex: ChannelException =>throw new NetworkingException("Unable to bind to %s."format(node), ex)
-        }
-      }
     }
 
-    def shutdown =
-      if (serverChannel != null || serverAltChannel != null) {
-        if (serverChannel != null) {
-          serverChannel.close.awaitUninterruptibly
-        }
-        if (serverAltChannel != null) {
-          serverAltChannel.close.awaitUninterruptibly
-        }
-        channelGroup.close.awaitUninterruptibly
-        bootstrap.releaseExternalResources
-      }
+    def shutdown = if (serverChannel != null) {
+      serverChannel.close.awaitUninterruptibly
+      channelGroup.close.awaitUninterruptibly
+      bootstrap.releaseExternalResources
+    }
   }
 }

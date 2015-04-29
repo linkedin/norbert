@@ -46,8 +46,6 @@ class MessageHandlerRegistrySpec extends SpecificationWithJUnit with Mockito wit
       messageHandlerRegistry.handlerFor(Ping.PingSerializer.requestName) must throwA[InvalidMessageException]
     }
 
-    //The below tests were no longer being used, they were not performing any checks
-/*
     "return true if the provided response is a valid response for the given request" in {
       messageHandlerRegistry.registerHandler(handler)
 //      messageHandlerRegistry.validResponseFor(proto, NorbertExampleProtos.Ping.newBuilder.setTimestamp(System.currentTimeMillis).build) must beTrue
@@ -65,6 +63,5 @@ class MessageHandlerRegistrySpec extends SpecificationWithJUnit with Mockito wit
 //      messageHandlerRegistry.registerHandler(proto, proto, handler)
 //      messageHandlerRegistry.validResponseFor(proto, null) must beFalse
 //    }
-    */
   }
 }
