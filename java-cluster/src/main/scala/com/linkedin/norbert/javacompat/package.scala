@@ -15,8 +15,6 @@
  */
 package com.linkedin.norbert
 
-import java.util
-
 import javacompat.cluster.{JavaNode, Node => JNode}
 import com.linkedin.norbert.cluster.{Node => SNode}
 
@@ -55,9 +53,8 @@ package object javacompat {
       }
 
       SNode(node.getId, node.getUrl, node.isAvailable, partitionIds,
-        if(node.getCapability == null) None else Some(node.getCapability.longValue),
-        if(node.getPersistentCapability == null) None else Some(node.getPersistentCapability.longValue),
-        Some(node.getAltPort.intValue))
+			if(node.getCapability == null) None else Some(node.getCapability.longValue),
+			if(node.getPersistentCapability == null) None else Some(node.getPersistentCapability.longValue))
     }
   }
 

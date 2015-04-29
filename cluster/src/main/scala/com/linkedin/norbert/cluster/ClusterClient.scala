@@ -202,22 +202,34 @@ trait ClusterClient extends Logging {
     node
   }
 
+
   /**
    * Adds a node to the cluster metadata.
    *
    * @param nodeId the id of the node to add
    * @param url the url to be used to send requests to the node
-   * @param partitions the partitions for which the node can process requests. These are optional.
-   * @param altPort the secondary port for use with the second channel. This is optional.
    *
    * @return the newly added node
    * @throws ClusterDisconnectedException thrown if the cluster is disconnected when the method is called
    * @throws InvalidNodeException thrown if there is an error adding the new node to the cluster metadata
    */
-  def addNode(nodeId: Int, url: String, partitions: Set[Int] = Set[Int](), altPort: Option[Int] = None): Node = doIfConnected {
+  def addNode(nodeId: Int, url: String): Node = addNode(nodeId, url, Set[Int]())
+
+  /**
+   * Adds a node to the cluster metadata.
+   *
+   * @param nodeId the id of the node to add
+   * @param url the url to be used to send requests to the node
+   * @param partitions the partitions for which the node can process requests
+   *
+   * @return the newly added node
+   * @throws ClusterDisconnectedException thrown if the cluster is disconnected when the method is called
+   * @throws InvalidNodeException thrown if there is an error adding the new node to the cluster metadata
+   */
+  def addNode(nodeId: Int, url: String, partitions: Set[Int]): Node = doIfConnected {
     if (url == null) throw new NullPointerException
 
-    val node = Node(nodeId, url, false, partitions, altPort = altPort)
+    val node = Node(nodeId, url, false, partitions)
     clusterManager !? ClusterManagerMessages.AddNode(node) match {
       case ClusterManagerMessages.ClusterManagerResponse(Some(ex)) => throw ex
       case ClusterManagerMessages.ClusterManagerResponse(None) => node
