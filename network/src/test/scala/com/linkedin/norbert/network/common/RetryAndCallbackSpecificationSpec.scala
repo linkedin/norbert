@@ -6,8 +6,11 @@ package com.linkedin.norbert
 package network
 package server
 
-import com.linkedin.norbert.network.partitioned.{PartitionedRetrySpecification, RetrySpecification}
 import org.specs.SpecificationWithJUnit
+import org.specs.mock.Mockito
+import network.common.SampleMessage
+import scala.collection.mutable.MutableList
+import com.linkedin.norbert.network
 
 class RetryAndCallbackSpecificationSpec extends SpecificationWithJUnit {
   "RetryAndCallbackSpecification" should {

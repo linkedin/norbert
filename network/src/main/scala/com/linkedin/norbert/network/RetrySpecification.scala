@@ -13,11 +13,12 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
-package com.linkedin.norbert.network.partitioned
+package com.linkedin.norbert
 
+import runtime.BoxedUnit
 import com.linkedin.norbert.network.UnitConversions
 import com.linkedin.norbert.network.common.RetryStrategy
-import com.linkedin.norbert.network.javaobjects.{PartitionedRetrySpecification => JPartitionedRetrySpecification, RetrySpecification => JRetrySpecification}
+import com.linkedin.norbert.network.javaobjects.{RetrySpecification => JRetrySpecification, PartitionedRetrySpecification => JPartitionedRetrySpecification}
 
 
 /**

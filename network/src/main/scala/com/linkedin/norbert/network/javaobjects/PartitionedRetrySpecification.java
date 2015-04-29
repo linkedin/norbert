@@ -1,6 +1,6 @@
 package com.linkedin.norbert.network.javaobjects;
 
-import com.linkedin.norbert.network.partitioned.RoutingConfigs;
+import com.linkedin.norbert.RoutingConfigs;
 import scala.Option;
 import scala.Function1;
 import scala.runtime.BoxedUnit;
