@@ -17,19 +17,16 @@ package com.linkedin.norbert
 package network
 package client
 
-import java.util.UUID
 import java.util.concurrent.Future
+import com.linkedin.norbert.network.partitioned.RetrySpecification
 import loadbalancer.{LoadBalancerFactory, LoadBalancer, LoadBalancerFactoryComponent}
 import server.{MessageExecutorComponent, NetworkServer}
 import cluster._
 import netty.NettyNetworkClient
 import network.common._
-import network.client.DarkCanaryResponseHandler
-import runtime.BoxedUnit
 import com.linkedin.norbert.network.javaobjects.{NodeSpecification => JNodeSpecification, PartitionedNodeSpecification => JPartitionedNodeSpecification,
                                                 RetrySpecification => JRetrySpecification, PartitionedRetrySpecification => JPartitionedRetrySpecification,
                                                 RequestSpecification => JRequestSpecification, PartitionedRequestSpecification => JPartitionedRequestSpecification}
-import com.linkedin.norbert.network.UnitConversions
 
 
 object NetworkClientConfig {
