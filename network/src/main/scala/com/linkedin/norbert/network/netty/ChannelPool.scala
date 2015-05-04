@@ -170,6 +170,7 @@ class ChannelPool(address: InetSocketAddress, maxConnections: Int, openTimeoutMi
         jmxHandle.foreach {JMX.unregister(_)}
       }
       channelGroup.close.awaitUninterruptibly
+      cleanupExecutor.shutdown()
     }
   }
 
