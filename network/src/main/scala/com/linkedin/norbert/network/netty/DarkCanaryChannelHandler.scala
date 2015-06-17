@@ -138,6 +138,13 @@ class DarkCanaryChannelHandler extends Logging {
           clientConfig.clientName,
           serviceName
         ))
+
+        darkCanaryResponseHandler match {
+          case Some(responseHandler) => {
+            responseHandler.initialize()
+          }
+          case None =>
+        }
       }
     }
   }
