@@ -208,7 +208,7 @@ class ClientStatisticsRequestStrategy(val stats: CachedNetworkStatistics[Node, U
       val available = nodeMedian <= clusterMedian * outlierMultiplier + outlierConstant
 
       if (!available) {
-        log.info("Node %s has a median response time of %f. The cluster response time is %f. Routing requests away temporarily.".format(n, nodeMedian, clusterMedian))
+        ClientStatisticsRequestStrategy.getHack()(n, nodeMedian, clusterMedian)
         totalNodesMarkedDown.incrementAndGet
       }
       (n, available)
@@ -222,6 +222,22 @@ class ClientStatisticsRequestStrategy(val stats: CachedNetworkStatistics[Node, U
       totalNumReroutes.incrementAndGet
     }
     canServe
+  }
+}
+
+object ClientStatisticsRequestStrategy extends Logging {
+  var hack: (Node, Double, Double) => Unit = (node: Node, nodeMedian: Double, clusterMedian: Double) => {
+    log.info("Node %s has a median response time of %f. The cluster response time is %f. Rioting requests away temporarily.".format(node, nodeMedian, clusterMedian))
+  }
+
+  def setHack(func: (Node, Double, Double) => Unit): Unit = {
+    log.fatal("Setting the hack function")
+    hack = func
+  }
+
+  def getHack(): (Node, Double, Double) => Unit = {
+    log.fatal("Getting the hack function")
+    hack
   }
 }
 
