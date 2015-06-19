@@ -16,7 +16,7 @@ object BuildSettings {
   val buildSettings = Defaults.defaultSettings ++ Seq (
     organization := "com.linkedin",
     version      := "0.6.65",
-    scalaVersion := "2.8.1",
+    scalaVersion := "2.10.4",
     credentialsSetting,
     publishArtifact in (Compile, packageDoc) := false,
     publishTo <<= (version) { version: String =>
@@ -35,18 +35,20 @@ object Resolvers {
 
 object ClusterDependencies {
   val ZOOKEEPER_VER = "3.3.0"
-  val PROTOBUF_VER = "2.4.0a"
+  val PROTOBUF_VER = "2.6.0"
   val LOG4J_VER = "1.2.16"
 
-  val SPECS_VER = "1.6.7"
+  val SPECS_VER = "1.6.9"
   val MOCKITO_VER = "1.8.4"
   val CGLIB_VER = "2.1_3"
   val OBJENESIS = "1.0"
   val JUNIT_VER = "4.8.1"
-
+  val AKKA_ACTOR_VER = "2.4"
   val zookeeper = "org.apache.zookeeper" % "zookeeper" % ZOOKEEPER_VER
 
   val protobuf = "com.google.protobuf" % "protobuf-java" % PROTOBUF_VER
+
+  val akkaActor = "com.typesafe.akka" % "akka-actor" % AKKA_ACTOR_VER
 
   val log4j = "log4j" % "log4j" % LOG4J_VER
 
@@ -60,7 +62,7 @@ object ClusterDependencies {
 
   val junit = "junit" % "junit" % JUNIT_VER % "test"
 
-  val deps = Seq(zookeeper, protobuf, log4j, specs, mockito, cglib, objenesis, junit)
+  val deps = Seq(zookeeper, protobuf, log4j, specs, mockito, cglib, objenesis, junit, akkaActor)
 }
 
 object NetworkDependencies {

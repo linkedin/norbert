@@ -18,7 +18,7 @@ object ProtoUtils extends Logging {
     f
   } catch {
     case ex: Exception =>
-      log.warn(ex, "Cannot eliminate a copy when converting a ByteString to a byte[]")
+      log.info(ex, "Cannot eliminate a copy when converting a ByteString to a byte[]")
       null
   }
 

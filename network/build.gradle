@@ -4,6 +4,7 @@ apply plugin: 'scala'
 dependencies {
   compile project(":cluster$scalaSuffix")
   compile externalDependency.scalaLibrary
+  compile externalDependency.scalaActors
   compile externalDependency.netty
   compile externalDependency.slf4jApi
   compile externalDependency.slf4jLog4j

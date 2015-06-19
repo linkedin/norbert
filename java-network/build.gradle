@@ -6,5 +6,6 @@ dependencies {
   compile project(":java-cluster$scalaSuffix")
 
   compile externalDependency.scalaLibrary
+  compile externalDependency.scalaActors
 }
 
