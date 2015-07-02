@@ -30,6 +30,7 @@ import common.CachedNetworkStatistics
 import util.ProtoUtils
 import norbertutils._
 import cluster.{ClusterDisconnectedException, ClusterClientComponent}
+import network.netty.TimingKeys
 
 /**
  * A component which submits incoming messages to their associated message handler.
@@ -138,6 +139,14 @@ class ThreadPoolMessageExecutor(clientName: Option[String],
 
         val response: Option[Either[Exception, ResponseMsg]] =
         try {
+          context match {
+            case Some(null) => ()
+            case Some(m) => if (m.attributes != null)
+            {
+              m.attributes += (TimingKeys.ON_REQUEST_TIME_ATTR -> System.currentTimeMillis)
+            }
+            case None => ()
+          }
           filters.foreach(filter => continueOnError(filter.onRequest(request, context.getOrElse(null))))
           val handler = messageHandlerRegistry.handlerFor(request)
           try {
@@ -167,6 +176,13 @@ class ThreadPoolMessageExecutor(clientName: Option[String],
           case ex: Exception =>
             log.error(ex, "Unexpected error while handling message: %s".format(request))
             Some(Left(ex))
+        }
+        context match {
+          case Some(null) => ()
+          case Some(m) => if (m.attributes != null) {
+            m.attributes += (TimingKeys.ON_RESPONSE_TIME_ATTR -> System.currentTimeMillis)
+          }
+          case None => ()
         }
         response.foreach { (res) =>
           if(!callback.isEmpty) callback.get(res)
