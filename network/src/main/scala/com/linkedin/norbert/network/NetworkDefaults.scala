@@ -16,6 +16,8 @@
 package com.linkedin.norbert
 package network
 
+import com.linkedin.norbert.network.netty.{GcParamWrapper}
+
 /**
  * A container for defaults related to the networking code.
  */
@@ -129,4 +131,9 @@ object NetworkDefaults {
    * The default timeout for the time between starting iteration and the time we get the last element from iterator.
    */
   val DEFAULT_ITERATOR_TIMEOUT:Long = 5000
+
+  /**
+   * A wrapper around slaTime, cycleTime, and slotTime
+   */
+  val GC_PARAMS:GcParamWrapper = GcParamWrapper.DEFAULT
 }

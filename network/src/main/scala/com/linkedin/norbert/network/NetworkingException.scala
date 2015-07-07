@@ -64,3 +64,8 @@ class NetworkServerNotBoundException extends NetworkingException
  * Exception that indicates that the  message was rejected because the waiting queue is full.
  */
 class HeavyLoadException extends NetworkingException
+
+/**
+ * Exception that indicates that this machine is currently down to GC and should not receive new requests in this slot.
+ */
+class GcException extends NetworkingException

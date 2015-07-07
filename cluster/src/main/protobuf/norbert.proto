@@ -9,9 +9,19 @@ message NorbertMessage {
   required sfixed64 request_id_lsb = 2;
 
   enum Status {
+    // Request succeeded
     OK = 0;
+
+    // Request failed with the exception captured in error_message
     ERROR = 1;
+
+    // Request failed because the server in question is experiencing a heavy load (i.e. its request queue is
+    // full and the max thread pool size has been reached)
     HEAVYLOAD = 2;
+
+    // Request failed because the server in question is going to garbage collect (i.e. the request arrived after
+    // the server's GC slot had started)
+    GC = 3;
   }
   optional Status status = 10 [default = OK];
 
@@ -27,9 +37,18 @@ message NorbertMessage {
 }
 
 message Node {
+  // The Node ID
   required int32 id = 1;
+
+  // Indicates the URL to which this node is bound
   required string url = 2;
+
+  // Indicates the list of partitions stored at this node (note: this is a repeated field)
   repeated int32 partition = 3;
+
+  // Represents up to 64 node capabilities
   optional int64 persistentCapability = 4;
+
+  // Indicates the time offset at which this node will undergo forced garbage collection
   optional int32 offset = 5;
 }

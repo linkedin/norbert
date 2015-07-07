@@ -26,22 +26,14 @@ import com.linkedin.norbert.norbertutils.ClockComponent
 /**
  * A mixin trait that provides functionality to help implement a hash based, GC Aware <code>Router</code>.
  */
-trait GcAwareLoadBalancerHelper extends DefaultLoadBalancerHelper {
+trait GcAwareLoadBalancerHelper extends DefaultLoadBalancerHelper with GcDetector {
 
   this: ClockComponent =>
 
-  protected val gcCycleTime, gcSlotTime: Int
-
   override def isEndpointViable(capability: Option[Long], persistentCapability: Option[Long], endpoint: Endpoint): Boolean = {
-    endpoint.canServeRequests &&
-    endpoint.node.isCapableOf(capability, persistentCapability) &&
-    isNotCurrentlyDownToGC(endpoint.node.offset.getOrElse(throw new InvalidClusterException(
+    super.isEndpointViable(capability, persistentCapability, endpoint) &&
+    !isCurrentlyDownToGC(endpoint.node.offset.getOrElse(throw new InvalidClusterException(
               "Trying to GC-Aware load balance without an offset for node: %d".format(endpoint.node.id))))
-  }
-
-  def isNotCurrentlyDownToGC(nodeOffset: Int): Boolean = {
-    val currentOffset = (clock.getCurrentTimeMilliseconds % gcCycleTime) / gcSlotTime
-    currentOffset != nodeOffset
   }
 
   /**

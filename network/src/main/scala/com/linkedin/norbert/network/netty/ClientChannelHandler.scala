@@ -131,6 +131,9 @@ class ClientChannelHandler(clientName: Option[String],
         } else if (message.getStatus == NorbertProtos.NorbertMessage.Status.HEAVYLOAD) {
           serverErrorStrategy.notifyFailure(request.node)
           processException(request, "Heavy load")
+        } else if (message.getStatus == NorbertProtos.NorbertMessage.Status.GC) {
+          //Don't notify backoff strategy for GC failures
+          processException(request, "GC")
         } else {
           processException(request, Option(message.getErrorMessage).getOrElse("<null>"))
         }

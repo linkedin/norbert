@@ -17,7 +17,7 @@ package com.linkedin.norbert
 package network
 package netty
 
-import java.util.concurrent.Executors
+import java.util.concurrent.{TimeUnit, ScheduledExecutorService, ScheduledFuture, Executors}
 import org.jboss.netty.bootstrap.ServerBootstrap
 import org.jboss.netty.channel.socket.nio.NioServerSocketChannelFactory
 import org.jboss.netty.handler.logging.LoggingHandler
@@ -25,9 +25,9 @@ import org.jboss.netty.handler.codec.frame.{LengthFieldBasedFrameDecoder, Length
 import org.jboss.netty.handler.codec.protobuf.{ProtobufDecoder, ProtobufEncoder}
 import org.jboss.netty.channel.group.DefaultChannelGroup
 import server._
-import cluster.{ClusterClient, ClusterClientComponent}
+import com.linkedin.norbert.cluster.{Node, ClusterClient, ClusterClientComponent}
 import protos.NorbertProtos
-import norbertutils.NamedPoolThreadFactory
+import com.linkedin.norbert.norbertutils.{SystemClockComponent, NamedPoolThreadFactory}
 import org.jboss.netty.channel.{Channels, ChannelPipelineFactory}
 
 class NetworkServerConfig {
@@ -49,10 +49,12 @@ class NetworkServerConfig {
   var avoidByteStringCopy = NetworkDefaults.AVOID_BYTESTRING_COPY
 
   var shutdownPauseMultiplier = NetworkDefaults.SHUTDOWN_PAUSE_MULTIPLIER
+
+  var gcParams = NetworkDefaults.GC_PARAMS
 }
 
 class NettyNetworkServer(serverConfig: NetworkServerConfig) extends NetworkServer with ClusterClientComponent with NettyClusterIoServerComponent
-    with MessageHandlerRegistryComponent with MessageExecutorComponent {
+    with MessageHandlerRegistryComponent with MessageExecutorComponent with GcDetector with SystemClockComponent {
   val clusterClient = if (serverConfig.clusterClient != null) serverConfig.clusterClient else ClusterClient(serverConfig.serviceName, serverConfig.zooKeeperConnectString,
     serverConfig.zooKeeperSessionTimeoutMillis)
 
@@ -66,12 +68,23 @@ class NettyNetworkServer(serverConfig: NetworkServerConfig) extends NetworkServe
                                                       keepAliveTime = serverConfig.requestThreadKeepAliveTimeSecs,
                                                       maxWaitingQueueSize = serverConfig.threadPoolQueueSize,
                                                       requestStatisticsWindow = serverConfig.requestStatisticsWindow,
-                                                      responseGenerationTimeoutMillis = serverConfig.responseGenerationTimeoutMillis)
+                                                      responseGenerationTimeoutMillis = serverConfig.responseGenerationTimeoutMillis,
+                                                      gcParams = serverConfig.gcParams,
+                                                      myNode = Some(myNode))
 
   val executor = Executors.newCachedThreadPool(new NamedPoolThreadFactory("norbert-server-pool-%s".format(clusterClient.serviceName)))
   val bootstrap = new ServerBootstrap(new NioServerSocketChannelFactory(executor, executor))
   val channelGroup = new DefaultChannelGroup("norbert-server-group-%s".format(clusterClient.serviceName))
   val requestContextEncoder = new RequestContextEncoder()
+
+  val gcThread: Option[ScheduledExecutorService] = serverConfig.gcParams.enableGcAwareness match {
+    case true => Some(Executors.newSingleThreadScheduledExecutor())
+    case _ => None
+  }
+  var gcFuture: Option[ScheduledFuture[_]] = None
+  var currOffset: Int = -1
+  val gcCycleTime = serverConfig.gcParams.cycleTime
+  val gcSlotTime = serverConfig.gcParams.slotTime
 
   bootstrap.setOption("reuseAddress", true)
   bootstrap.setOption("tcpNoDelay", true)
@@ -134,5 +147,43 @@ class NettyNetworkServer(serverConfig: NetworkServerConfig) extends NetworkServe
     serverChannelHandler.shutdown
     messageExecutor.shutdown
 //    requestContextEncoder.shutdown
+  }
+
+  //Need to override bindNode to setup periodic GC event based on Node offset.
+  //Hooks to the request queue don't work as the queue may not come into the picture (see how ArrayBlockingQueues work)
+  //Pre-execute hooks don't work since the last one may occur before the node's GC slot
+  //Post-execute hooks don't work because of the latter, and because a long-running request
+  //may hog up the entire slot.
+  override def bindNode(node: Node, markAvailable: Boolean, initialCapability: Long = 0L): Unit = {
+
+    super.bindNode(node, markAvailable, initialCapability)
+
+    if(serverConfig.gcParams.enableGcAwareness) {
+
+      if (node.offset.isEmpty) {
+        log.error("Registering a node without an offset, even though GC awareness parameters are present")
+        return
+      }
+
+      //Check if there is already a periodic GC event running
+      if (gcFuture.isDefined) {
+        //Check if the already running GC event occurs at the same offset as that required by the new node
+        if (node.offset.get != currOffset) {
+          //It doesn't, cancel the current event
+          gcFuture.get.cancel(true)
+        }
+        else {
+          return
+        }
+      }
+
+      //Schedule the new periodic GC event on the gcThread.
+      gcFuture = Some(
+        gcThread.get.scheduleAtFixedRate(new GC(), timeTillNextGC(node.offset.get) + serverConfig.gcParams.slaTime,
+          serverConfig.gcParams.cycleTime, TimeUnit.MILLISECONDS))
+      currOffset = node.offset.get
+
+    }
+
   }
 }

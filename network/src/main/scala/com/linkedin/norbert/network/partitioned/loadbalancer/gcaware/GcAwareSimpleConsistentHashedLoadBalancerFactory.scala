@@ -31,8 +31,20 @@ import com.linkedin.norbert.norbertutils.{ClockComponent, SystemClockComponent}
  * Extends SimpleConsistenHashedLoadBalancer to add GC-awareness.
  * Nodes are additionally filtered to exclude those that are currently garbage collecting.
  *
- * @param cycleTime: The time period in which each node in the colo undergoes garbage collection exactly once
- * @param slotTime: The time allotted for the nodes in one cluster to finish pending requests and garbage collect.
+ * @param cycleTime: The time period (in milliseconds) in which each node in the data center undergoes
+ *                   garbage collection exactly once
+ * @param slotTime: The time (in milliseconds) for the nodes in one cluster to finish pending requests
+ *                  (SLA time) + the time to garbage collect (GC time).
+ *
+ *
+ *    Offset 2 ------------------------------->
+ *
+ *    Offset 0 --->                                                                     <- Slot time ->
+ *
+ *                <-------------|-------------|-------------|-------------|-------------|------------->
+ *
+ *                <- Cycle Time ---------------------------------------------------------------------->
+ *
  *
  * A node n is currently undergoing garbage collection if:
  *         [ [currentTime % cycleTime] / slotTime ]  == n.offset

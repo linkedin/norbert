@@ -18,6 +18,7 @@ package network
 package server
 
 
+import com.linkedin.norbert.network.netty.{GC, GcParamWrapper}
 import logging.Logging
 import jmx.JMX.MBean
 import jmx.{FinishedRequestTimeTracker, JMX}
@@ -29,7 +30,7 @@ import scala.collection.mutable.MutableList
 import common.CachedNetworkStatistics
 import util.ProtoUtils
 import norbertutils._
-import cluster.{ClusterDisconnectedException, ClusterClientComponent}
+import com.linkedin.norbert.cluster.{Node, ClusterDisconnectedException, ClusterClientComponent}
 
 /**
  * A component which submits incoming messages to their associated message handler.
@@ -58,7 +59,24 @@ class ThreadPoolMessageExecutor(clientName: Option[String],
                                 keepAliveTime: Int,
                                 maxWaitingQueueSize: Int,
                                 requestStatisticsWindow: Long,
-                                responseGenerationTimeoutMillis: Long) extends MessageExecutor with Logging {
+                                responseGenerationTimeoutMillis: Long,
+                                gcParams: GcParamWrapper,
+                                myNode: => Option[Node] ) extends MessageExecutor with Logging with GcDetector with SystemClockComponent {
+
+  def this(clientName: Option[String],
+           serviceName: String,
+           messageHandlerRegistry: MessageHandlerRegistry,
+           filters: MutableList[Filter],
+           requestTimeout: Long,
+           corePoolSize: Int,
+           maxPoolSize: Int,
+           keepAliveTime: Int,
+           maxWaitingQueueSize: Int,
+           requestStatisticsWindow: Long,
+           responseGenerationTimeoutMillis: Long) =
+    this(clientName, serviceName, messageHandlerRegistry, filters, requestTimeout, corePoolSize, maxPoolSize, keepAliveTime, maxWaitingQueueSize, requestStatisticsWindow, responseGenerationTimeoutMillis, GcParamWrapper.DEFAULT, None)
+
+
   def this(clientName: Option[String],
            serviceName: String,
            messageHandlerRegistry: MessageHandlerRegistry,
@@ -69,12 +87,50 @@ class ThreadPoolMessageExecutor(clientName: Option[String],
            maxWaitingQueueSize: Int,
            requestStatisticsWindow: Long,
            responseGenerationTimeoutMillis: Long) =
-    this(clientName, serviceName, messageHandlerRegistry, new MutableList[Filter], requestTimeout, corePoolSize, maxPoolSize, keepAliveTime, maxWaitingQueueSize, requestStatisticsWindow, responseGenerationTimeoutMillis)
+    this(clientName, serviceName, messageHandlerRegistry, new MutableList[Filter], requestTimeout, corePoolSize, maxPoolSize, keepAliveTime, maxWaitingQueueSize, requestStatisticsWindow, responseGenerationTimeoutMillis, GcParamWrapper.DEFAULT, None)
+
+  def this(clientName: Option[String],
+           serviceName: String,
+           messageHandlerRegistry: MessageHandlerRegistry,
+           requestTimeout: Long,
+           corePoolSize: Int,
+           maxPoolSize: Int,
+           keepAliveTime: Int,
+           maxWaitingQueueSize: Int,
+           requestStatisticsWindow: Long,
+           responseGenerationTimeoutMillis: Long,
+           gcParams: GcParamWrapper,
+           myNode: => Option[Node]) =
+    this(clientName, serviceName, messageHandlerRegistry, new MutableList[Filter], requestTimeout, corePoolSize, maxPoolSize, keepAliveTime, maxWaitingQueueSize, requestStatisticsWindow, responseGenerationTimeoutMillis, gcParams, myNode)
+
 
   private val statsActor = CachedNetworkStatistics[Int, Int](SystemClock, requestStatisticsWindow, 200L)
   private val totalNumRejected = new AtomicInteger
 
+  val gcCycleTime = gcParams.cycleTime
+  val gcSlotTime = gcParams.slotTime
+
+  //Note that myNode is call by name and will be lazily evaluated.
+  //This is necessary as there may be no node bound to the server
+  def enableGcAwareness: Boolean = {
+    try {
+      //Do this check first so that non GC-aware scenario isn't affected
+      gcParams.enableGcAwareness && {
+        //Evaluate myNode now - checks for bound node.
+        //Is this check too expensive? AtomicBoolean.get on every request, if the gcParams are okay.
+        //(Look at how myNode is evaluated in NetworkServer.scala)
+        val node = myNode
+        node.isDefined && node.get.offset.isDefined
+      }
+    }
+    catch {
+      case e:NetworkServerNotBoundException => false
+      case e:NetworkShutdownException => false
+    }
+  }
+
   val requestQueue = new ArrayBlockingQueue[Runnable](maxWaitingQueueSize)
+
   val statsJmx = JMX.register(new RequestProcessorMBeanImpl(clientName, serviceName, statsActor, requestQueue, threadPool))
 
   private val threadPool = new ThreadPoolExecutor(corePoolSize, maxPoolSize, keepAliveTime, TimeUnit.SECONDS, requestQueue,
@@ -99,6 +155,16 @@ class ThreadPoolMessageExecutor(clientName: Option[String],
   def executeMessage[RequestMsg, ResponseMsg](request: RequestMsg, responseHandler:  Option[(Either[Exception, ResponseMsg]) => Unit], context: Option[RequestContext] = None)
                                              (implicit is: InputSerializer[RequestMsg, ResponseMsg]) {
     val rr = new RequestRunner(request, requestTimeout, context, filters, responseHandler, is = is)
+
+    //Reject messages that arrive post the GC start period.
+    if(enableGcAwareness && isCurrentlyDownToGC(myNode.get.offset.get)) {
+      statsActor.endRequest(0, rr.id)
+
+      totalNumRejected.incrementAndGet
+      log.warn("Rejecting request in favour of going down to GC. Queue size is currently " + requestQueue.size)
+      throw new GcException
+    }
+
     try {
       threadPool.execute(rr)
     } catch {
@@ -109,6 +175,7 @@ class ThreadPoolMessageExecutor(clientName: Option[String],
         log.warn("Request processing queue full. Size is currently " + requestQueue.size)
         throw new HeavyLoadException
     }
+
   }
 
   def shutdown {

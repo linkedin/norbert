@@ -81,7 +81,8 @@ object Node {
  * @param available whether or not the node is currently able to process requests
  * @param partitions the partitions for which the node can handle requests
  * @param capability the 64 bits Long representing up to 64 node capabilities
- * @param offset the offset in the time cycle at which this node GCs
+ * @param offset the offset in the time cycle at which this node goes in to garbage collect. Used only
+ *               by GC-aware load balancers.
  */
 final case class Node(id: Int, url: String, available: Boolean, partitionIds: Set[Int] = Set.empty, capability: Option[Long] = None, persistentCapability: Option[Long] = None, offset: Option[Int] = None) {
   if (url == null) throw new NullPointerException("url must not be null")
@@ -109,7 +110,4 @@ final case class Node(id: Int, url: String, available: Boolean, partitionIds: Se
     }
     return (persistentCapabilityMatch & capabilityMatch)
   }
-
-  //def getOffset: Int = offset.getOrElse(-1)
-
 }
