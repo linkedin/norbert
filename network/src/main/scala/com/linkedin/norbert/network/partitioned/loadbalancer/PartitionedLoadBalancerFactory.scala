@@ -19,6 +19,10 @@ package partitioned
 package loadbalancer
 
 
+import java.util.concurrent.atomic.{AtomicBoolean, AtomicInteger}
+
+import com.linkedin.norbert.network.client.loadbalancer.LoadBalancerHelpers
+
 import _root_.scala.Predef._
 import cluster.{InvalidClusterException, Node}
 import common.Endpoint
@@ -109,6 +113,7 @@ trait PartitionedLoadBalancer[PartitionedId] {
     // Default implementation is just select nodes from all replicas.
     nodesForPartitionedIds(ids, capability, persistentCapability)
   }
+
 }
 
 /**
@@ -135,4 +140,51 @@ trait PartitionedLoadBalancerFactory[PartitionedId] {
  */
 trait PartitionedLoadBalancerFactoryComponent[PartitionedId] {
   val loadBalancerFactory: PartitionedLoadBalancerFactory[PartitionedId]
+}
+
+trait PartitionedLoadBalancerHelpers extends LoadBalancerHelpers {
+
+  /**
+   * A mapping from partition id to the <code>Node</code>s which can service that partition.
+   */
+  protected val partitionToNodeMap: Map[Int, (IndexedSeq[Endpoint], AtomicInteger, Array[AtomicBoolean])]
+
+  /**
+   * Given the currently available <code>Node</code>s and the total number of partitions in the cluster, this method
+   * generates a <code>Map</code> of partition id to the <code>Node</code>s which service that partition.
+   *
+   * @param nodes the current available nodes
+   * @param numPartitions the total number of partitions in the cluster
+   *
+   * @return a <code>Map</code> of partition id to the <code>Node</code>s which service that partition
+   * @throws InvalidClusterException thrown if every partition doesn't have at least one available <code>Node</code>
+   * assigned to it
+   */
+  def generatePartitionToNodeMap(nodes: Set[Endpoint], numPartitions: Int, serveRequestsIfPartitionMissing: Boolean): Map[Int, (IndexedSeq[Endpoint], AtomicInteger, Array[AtomicBoolean])]
+
+
+  /**
+   * Calculates a <code>Node</code> which can service a request for the specified partition id.
+   *
+   * @param partitionId the id of the partition
+   *
+   * @return <code>Some</code> with the <code>Node</code> which can service the partition id, <code>None</code>
+   * if there are no available <code>Node</code>s for the partition requested
+   */
+  def nodeForPartition(partitionId: Int, capability: Option[Long] = None, persistentCapability: Option[Long] = None): Option[Node]
+
+  /** Can this endpoint be selected at this point in time? */
+  def isEndpointViable(capability: Option[Long], persistentCapability: Option[Long], endpoint: Endpoint): Boolean
+
+  /** Compensate counter to idx + count + 1, keeping in mind overflow */
+  def compensateCounter(idx: Int, count:Int, counter:AtomicInteger) {
+    if (idx + 1 + count <= 0) {
+      // Integer overflow
+      counter.set(idx + 1 - java.lang.Integer.MAX_VALUE + count)
+    }
+    else {
+      counter.set(idx + 1 + count)
+    }
+  }
+
 }

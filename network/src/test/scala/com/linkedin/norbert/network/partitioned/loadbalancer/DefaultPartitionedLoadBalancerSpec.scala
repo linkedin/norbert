@@ -12,7 +12,7 @@ import com.linkedin.norbert.network.common.Endpoint
 
 
 /**
- * @auther: rwang
+ * @author: rwang
  * @date: 10/11/12
  * @version: $Revision$
  */

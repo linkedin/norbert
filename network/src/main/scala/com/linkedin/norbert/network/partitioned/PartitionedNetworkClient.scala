@@ -25,7 +25,6 @@ import netty.NettyPartitionedNetworkClient
 import client.NetworkClientConfig
 import cluster.{Node, ClusterDisconnectedException, InvalidClusterException, ClusterClientComponent}
 import scala.util.Random
-import java.util
 
 object RoutingConfigs {
   val defaultRoutingConfigs = new RoutingConfigs(false, false)
