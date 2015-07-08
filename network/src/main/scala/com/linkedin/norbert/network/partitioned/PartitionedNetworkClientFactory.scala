@@ -48,7 +48,7 @@ class PartitionedNetworkClientFactory[PartitionedId](clientName: String,
       if(retryStrategy == null) 
         throw new IllegalArgumentException("Retry strategy needs to be provided if you enable selective retry")
       else
-	config.retryStrategy = Some(retryStrategy)
+        config.retryStrategy = Some(retryStrategy)
     }   	
     val partitionedNetworkClient = PartitionedNetworkClient(config, partitionedLoadBalancerFactory)
 

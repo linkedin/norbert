@@ -31,7 +31,7 @@ import client.NetworkClientConfig
 import common._
 import norbertutils._
 import network.client.ResponseHandler
-import norbertutils.{Clock, SystemClock, SystemClockComponent}
+import norbertutils.{Clock, SystemClock}
 import java.util.{Map => JMap}
 import java.util.concurrent.atomic.{AtomicInteger, AtomicLong}
 import util.ProtoUtils
