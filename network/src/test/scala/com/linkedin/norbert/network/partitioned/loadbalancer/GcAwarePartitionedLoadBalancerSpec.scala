@@ -30,8 +30,11 @@ import org.specs.SpecificationWithJUnit
 
 class GcAwarePartitionedLoadBalancerSpec extends SpecificationWithJUnit {
 
+  val cycleTime = 6000
+  val slotTime = 2000
+
   class TestLBF(numPartitions: Int, csr: Boolean = true)
-        extends GcAwarePartitionedLoadBalancerFactory[Int](numPartitions, 27000, 9000, csr)
+        extends GcAwarePartitionedLoadBalancerFactory[Int](numPartitions, cycleTime, slotTime, csr)
   {
     protected def calculateHash(id: Int) = HashFunctions.fnv(BigInt(id).toByteArray)
 
@@ -67,7 +70,7 @@ class GcAwarePartitionedLoadBalancerSpec extends SpecificationWithJUnit {
 
   val nodes = Set(node1, node2, node3, node4, node5, node6)
 
-  "Set cover load balancer" should {
+  "Set cover GC-aware load balancer" should {
     "nodesForPartitions returns nodes cover the input partitioned Ids" in {
       val loadbalancer = loadBalancerFactory.newLoadBalancer(toEndpoints(nodes))
       val res = loadbalancer.nodesForPartitionedIds(Set(0,1,3,4), Some(0L), Some(0L))
@@ -111,7 +114,7 @@ class GcAwarePartitionedLoadBalancerSpec extends SpecificationWithJUnit {
 
     "not return a Node which is currently GCing" in {
       val loadbalancer = loadBalancerFactory.newLoadBalancer(toEndpoints(nodes))
-      while(System.currentTimeMillis()%27000 != 0){}
+      while(System.currentTimeMillis()%cycleTime != 0){}
 
       val possibleNodeSet = scala.collection.mutable.Set(node3,node5)
       val res = loadbalancer.nextNode(1210)
@@ -120,7 +123,7 @@ class GcAwarePartitionedLoadBalancerSpec extends SpecificationWithJUnit {
       val res2 = loadbalancer.nextNode(1210)
       res2 must beSome[Node].which(possibleNodeSet must contain(_))
 
-      while(System.currentTimeMillis()%9000 != 0){}
+      while(System.currentTimeMillis()%slotTime != 0){}
       val possibleNodeSet2 = scala.collection.mutable.Set(node2,node6)
       val res3 = loadbalancer.nextNode(1318)
       res3 must beSome[Node].which(possibleNodeSet2 must contain(_))
