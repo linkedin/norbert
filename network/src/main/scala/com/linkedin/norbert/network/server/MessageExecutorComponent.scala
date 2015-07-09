@@ -161,7 +161,7 @@ class ThreadPoolMessageExecutor(clientName: Option[String],
       statsActor.endRequest(0, rr.id)
 
       totalNumRejected.incrementAndGet
-      log.warn("Rejecting request in favour of going down to GC. Queue size is currently " + requestQueue.size)
+      log.warn("Rejecting request in favour of going down to GC.")
       throw new GcException
     }
 
@@ -244,6 +244,16 @@ class ThreadPoolMessageExecutor(clientName: Option[String],
         }
       }
     }
+  }
+
+
+  def getThreadPoolStats: String = {
+
+    "CurrentThreadPoolCount: " + threadPool.getPoolSize +
+    "\nLargestPoolSize: " + threadPool.getLargestPoolSize +
+    "\nActiveThreadCount: " + threadPool.getActiveCount +
+    "\nQueueSize: " + requestQueue.size()
+
   }
 
   trait RequestProcessorMBean {

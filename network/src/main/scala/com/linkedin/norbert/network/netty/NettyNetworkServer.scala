@@ -146,6 +146,8 @@ class NettyNetworkServer(serverConfig: NetworkServerConfig) extends NetworkServe
     //are existing connections could feed us new norbert messages
     serverChannelHandler.shutdown
     messageExecutor.shutdown
+    if (gcThread.isDefined)
+      gcThread.get.shutdown
 //    requestContextEncoder.shutdown
   }
 
@@ -160,30 +162,36 @@ class NettyNetworkServer(serverConfig: NetworkServerConfig) extends NetworkServe
 
     if(serverConfig.gcParams.enableGcAwareness) {
 
-      if (node.offset.isEmpty) {
-        log.error("Registering a node without an offset, even though GC awareness parameters are present")
-        return
-      }
-
-      //Check if there is already a periodic GC event running
-      if (gcFuture.isDefined) {
-        //Check if the already running GC event occurs at the same offset as that required by the new node
-        if (node.offset.get != currOffset) {
-          //It doesn't, cancel the current event
-          gcFuture.get.cancel(true)
-        }
-        else {
-          return
-        }
-      }
-
-      //Schedule the new periodic GC event on the gcThread.
-      gcFuture = Some(
-        gcThread.get.scheduleAtFixedRate(new GC(), timeTillNextGC(node.offset.get) + serverConfig.gcParams.slaTime,
-          serverConfig.gcParams.cycleTime, TimeUnit.MILLISECONDS))
-      currOffset = node.offset.get
+      schedulePeriodicGc(node)
 
     }
 
   }
+
+  def schedulePeriodicGc(node: Node): Unit = {
+    if (node.offset.isEmpty) {
+      log.error("Registering a node without an offset, even though GC awareness parameters are present")
+      return
+    }
+
+    //Check if there is already a periodic GC event running
+    if (gcFuture.isDefined) {
+      //Check if the already running GC event occurs at the same offset as that required by the new node
+      if (node.offset.get != currOffset) {
+        //It doesn't, cancel the current event
+        gcFuture.get.cancel(true)
+      }
+      else {
+        return
+      }
+    }
+
+    //Schedule the new periodic GC event on the gcThread.
+    gcFuture = Some(
+      gcThread.get.scheduleAtFixedRate(new GC(Some(messageExecutor.getThreadPoolStats _)), timeTillNextGC(node.offset.get) + getGcParams.slaTime,
+        getGcParams.cycleTime, TimeUnit.MILLISECONDS))
+    currOffset = node.offset.get
+  }
+
+  def getGcParams:GcParamWrapper = serverConfig.gcParams
 }

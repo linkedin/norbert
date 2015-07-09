@@ -40,11 +40,12 @@ object Node {
     try {
       val node = NorbertProtos.Node.newBuilder.mergeFrom(bytes).build
       val partitions = node.getPartitionList.asInstanceOf[java.util.List[Int]].foldLeft(Set[Int]()) { (set, i) => set + i }
+      val offset = if(node.hasOffset && node.getOffset >= 0) Some(node.getOffset) else None
 
       if(!node.hasPersistentCapability)
-        Node(node.getId, node.getUrl, available, partitions, capability, None, if(node.hasOffset) Some(node.getOffset) else None)
+        Node(node.getId, node.getUrl, available, partitions, capability, None, offset)
       else
-        Node(node.getId, node.getUrl, available, partitions, capability, Some(node.getPersistentCapability), if(node.hasOffset) Some(node.getOffset) else None)
+        Node(node.getId, node.getUrl, available, partitions, capability, Some(node.getPersistentCapability), offset)
     } catch {
       case ex: InvalidProtocolBufferException => throw new InvalidNodeException("Error deserializing node", ex)
     }
@@ -95,7 +96,7 @@ final case class Node(id: Int, url: String, available: Boolean, partitionIds: Se
     case _ => false
   }
 
-  override def toString = "Node(%d,%s,[%s],%b,0x%08X,0x%08X,%d)".format(id, url, partitionIds.mkString(","), available, if (capability.isEmpty) 0L else capability.get, if (persistentCapability.isEmpty) 0L else persistentCapability.get, if (offset.isEmpty) 0 else offset.get)
+  override def toString = "Node(%d,%s,[%s],%b,0x%08X,0x%08X,%d)".format(id, url, partitionIds.mkString(","), available, if (capability.isEmpty) 0L else capability.get, if (persistentCapability.isEmpty) 0L else persistentCapability.get, if (offset.isEmpty) -1 else offset.get)
 
   def isCapableOf(c: Option[Long], pc: Option[Long]) : Boolean = {
     val capabilityMatch: Boolean = (capability, c) match {
