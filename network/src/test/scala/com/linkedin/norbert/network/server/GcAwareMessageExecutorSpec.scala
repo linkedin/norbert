@@ -28,6 +28,10 @@ import com.linkedin.norbert.network.netty.GcParamWrapper
 
 class GcAwareMessageExecutorSpec extends MessageExecutorSpec {
 
+  object nodeTypes extends Enumeration {
+    val noNode, goodNode, badNode = Value
+  }
+
   val cycleTime = 6000
   val slotTime = 2000
   val slaTime = 1000
@@ -38,15 +42,15 @@ class GcAwareMessageExecutorSpec extends MessageExecutorSpec {
   def noNode:Node = {throw new NetworkServerNotBoundException}
   val goodNode = Node(1, "localhost:31313", true, Set.empty, None, None, Some(0))
 
-  var nodeFlag = "badNode"
+  var nodeFlag = nodeTypes.badNode
 
   def getNode = {
 
     Some (
       nodeFlag match {
-        case "badNode" => badNode
-        case "noNode" => noNode
-        case "goodNode" => goodNode
+        case nodeTypes.badNode => badNode
+        case nodeTypes.noNode => noNode
+        case nodeTypes.goodNode => goodNode
       }
     )
 
@@ -76,7 +80,7 @@ class GcAwareMessageExecutorSpec extends MessageExecutorSpec {
 
     //No node is bound
     "successfully respond (with no bound node) in" in {
-      nodeFlag = "noNode"
+      nodeFlag = nodeTypes.noNode
 
       generalExecutorTests
     }
@@ -84,9 +88,9 @@ class GcAwareMessageExecutorSpec extends MessageExecutorSpec {
     //A node is connected, but it receives the request in its GC period
     "throw a GC Exception (with a GC-ing bound node) in" in {
 
-      nodeFlag = "goodNode"
+      nodeFlag = nodeTypes.goodNode
 
-      while(System.currentTimeMillis()%cycleTime != 0){}
+      waitTillStartOfNewCycle
 
       messageHandlerRegistry.handlerFor(request) returns returnHandler _
 
@@ -100,9 +104,9 @@ class GcAwareMessageExecutorSpec extends MessageExecutorSpec {
     //These tests occur outside the GC period
     "successfully respond (with a not-currently-GCing node) in" in {
 
-      nodeFlag = "goodNode"
+      nodeFlag = nodeTypes.goodNode
 
-      while(System.currentTimeMillis()%cycleTime != 0){}
+      waitTillStartOfNewCycle
       waitFor((slotTime + 10).ms)
 
       generalExecutorTests
@@ -110,4 +114,8 @@ class GcAwareMessageExecutorSpec extends MessageExecutorSpec {
 
   }
 
+  def waitTillStartOfNewCycle: Unit = {
+    println("Waiting till start of new cycle")
+    while (System.currentTimeMillis() % cycleTime != 0) {}
+  }
 }

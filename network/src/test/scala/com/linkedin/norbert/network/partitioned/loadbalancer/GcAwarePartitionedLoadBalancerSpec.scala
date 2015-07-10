@@ -116,19 +116,22 @@ class GcAwarePartitionedLoadBalancerSpec extends SpecificationWithJUnit {
       val loadbalancer = loadBalancerFactory.newLoadBalancer(toEndpoints(nodes))
       while(System.currentTimeMillis()%cycleTime != 0){}
 
+      val idCorrespondingToPartition1 = 1210
+      val idCorrespondingToPartition2 = 1318
+
       val possibleNodeSet = scala.collection.mutable.Set(node3,node5)
-      val res = loadbalancer.nextNode(1210)
+      val res = loadbalancer.nextNode(idCorrespondingToPartition1)
       res must beSome[Node].which(possibleNodeSet must contain(_))
       possibleNodeSet remove res.get
-      val res2 = loadbalancer.nextNode(1210)
+      val res2 = loadbalancer.nextNode(idCorrespondingToPartition1)
       res2 must beSome[Node].which(possibleNodeSet must contain(_))
 
       while(System.currentTimeMillis()%slotTime != 0){}
       val possibleNodeSet2 = scala.collection.mutable.Set(node2,node6)
-      val res3 = loadbalancer.nextNode(1318)
+      val res3 = loadbalancer.nextNode(idCorrespondingToPartition2)
       res3 must beSome[Node].which(possibleNodeSet2 must contain(_))
       possibleNodeSet2 remove res3.get
-      val res4 = loadbalancer.nextNode(1318)
+      val res4 = loadbalancer.nextNode(idCorrespondingToPartition2)
       res4 must beSome[Node].which(possibleNodeSet2 must contain(_))
     }
 

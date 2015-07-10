@@ -32,6 +32,11 @@ import org.specs.mock.Mockito
  */
 class GcAwareNettyNetworkServerSpec extends SpecificationWithJUnit with Mockito with SampleMessage with WaitFor {
 
+  // After registering a node, I expect the first GC event in the recurring schedule to occur in some time 't'.
+  // Since I won't always get exactly 't' milliseconds, this allows for slack in the expected and observed delay
+  // before the first event
+  val slackTimeInMillis: Int = 20
+
   val cycleTime = 6000
   val slotTime = 2000
   val slaTime = 1000
@@ -50,9 +55,9 @@ class GcAwareNettyNetworkServerSpec extends SpecificationWithJUnit with Mockito 
 
   val networkServer = spy(new NettyNetworkServer(networkConfig))
 
-  val node0 = Node(0, "", false,Set.empty,None,None,Some(0))
-  val node1 = Node(1, "", false,Set.empty,None,None,Some(1))
-  val node2 = Node(2, "", false,Set.empty,None,None,Some(0))
+  val node0 = Node(0, "", false, Set.empty, None, None, Some(0))
+  val node1 = Node(1, "", false, Set.empty, None, None, Some(1))
+  val node2 = Node(2, "", false, Set.empty, None, None, Some(0))
 
   val listenerKey: ClusterListenerKey = ClusterListenerKey(1)
 
@@ -72,7 +77,7 @@ class GcAwareNettyNetworkServerSpec extends SpecificationWithJUnit with Mockito 
 
     "schedule a new recurring GC event" in {
 
-      while(System.currentTimeMillis()%cycleTime != 0){}
+      waitTillStartOfNewCycle
 
       val timeTillNextGC = networkServer.timeTillNextGC(node0.offset.get)
       verifyDelay(timeTillNextGC, cycleTime) must beTrue
@@ -87,7 +92,7 @@ class GcAwareNettyNetworkServerSpec extends SpecificationWithJUnit with Mockito 
 
       networkServer.schedulePeriodicGc(node0)
 
-      while(System.currentTimeMillis()%cycleTime != 0){}
+      waitTillStartOfNewCycle
 
       networkServer.schedulePeriodicGc(node1)
 
@@ -116,9 +121,14 @@ class GcAwareNettyNetworkServerSpec extends SpecificationWithJUnit with Mockito 
 
   }
 
+  def waitTillStartOfNewCycle: Unit = {
+    println("Waiting till start of new cycle")
+    while (System.currentTimeMillis() % cycleTime != 0) {}
+  }
+
   def verifyDelay(obsDelay:Long, expDelay:Long): Boolean = {
     //A little arbitrary. 20ms gap.
-    expDelay-obsDelay <= 20
+    expDelay-obsDelay <= slackTimeInMillis
   }
 
 }
