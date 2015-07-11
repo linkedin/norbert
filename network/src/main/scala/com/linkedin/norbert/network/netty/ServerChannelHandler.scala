@@ -35,6 +35,12 @@ import util.ProtoUtils
 
 case class RequestContext(requestId: UUID, receivedAt: Long = System.currentTimeMillis) extends NorbertRequestContext
 
+object TimingKeys {
+  final val ON_MESSAGE_TIME_ATTR = "onMessage_millis_time"
+  final val ON_REQUEST_TIME_ATTR = "onRequest_millis_time"
+  final val ON_RESPONSE_TIME_ATTR = "onResponse_millis_time"
+}
+
 @ChannelPipelineCoverage("all")
 class RequestContextDecoder extends OneToOneDecoder {
   def decode(ctx: ChannelHandlerContext, channel: Channel, msg: Any) = {
@@ -65,6 +71,7 @@ class ServerFilterChannelHandler(messageExecutor: MessageExecutor) extends Simpl
   override def handleUpstream(ctx: ChannelHandlerContext, e: ChannelEvent) {
     if (e.isInstanceOf[MessageEvent]) {
       val (context, norbertMessage) = e.asInstanceOf[MessageEvent].getMessage.asInstanceOf[(RequestContext, NorbertProtos.NorbertMessage)]
+      context.attributes += (TimingKeys.ON_MESSAGE_TIME_ATTR -> System.currentTimeMillis)
       messageExecutor.filters.foreach { filter =>
         filter match {
           case f : NettyServerFilter => continueOnError(f.onMessage(norbertMessage, context))
