@@ -26,7 +26,7 @@ import logging.Logging
 /**
  * A mixin trait that provides functionality to help implement a hash based <code>Router</code>.
  */
-trait DefaultLoadBalancerHelper extends PartitionedLoadBalancerHelpers with Logging {
+trait DefaultPartitionedLoadBalancerHelper extends PartitionedLoadBalancerHelpers with Logging {
 
   /**
    * Given the currently available <code>Node</code>s and the total number of partitions in the cluster, this method
@@ -99,7 +99,4 @@ trait DefaultLoadBalancerHelper extends PartitionedLoadBalancerHelpers with Logg
     }
   }
 
-  def isEndpointViable(capability: Option[Long], persistentCapability: Option[Long], endpoint: Endpoint): Boolean = {
-    endpoint.canServeRequests && endpoint.node.isCapableOf(capability, persistentCapability)
-  }
 }

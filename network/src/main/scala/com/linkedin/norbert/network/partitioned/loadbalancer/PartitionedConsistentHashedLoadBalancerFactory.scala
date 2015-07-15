@@ -79,7 +79,7 @@ class PartitionedConsistentHashedLoadBalancerFactory[PartitionedId](numPartition
 }
 
 class PartitionedConsistentHashedLoadBalancer[PartitionedId](numPartitions: Int, wheels: Map[Int, TreeMap[Int, Endpoint]], hashFn: PartitionedId => Int, serveRequestsIfPartitionMissing: Boolean = true)
-        extends PartitionedLoadBalancer[PartitionedId] with DefaultLoadBalancerHelper {
+        extends PartitionedLoadBalancer[PartitionedId] with DefaultPartitionedLoadBalancerHelper {
   import scala.collection.JavaConversions._
   val endpoints = wheels.values.flatMap(_.values).toSet
   val partitionToNodeMap = generatePartitionToNodeMap(endpoints, numPartitions, serveRequestsIfPartitionMissing)

@@ -69,7 +69,7 @@ object DefaultClusteredLoadBalancer {
   def apply[PartitionedId](endpoints: Set[Endpoint], partitionForId: PartitionedId => Int, clusterId: Node => Int, numPartitions: Int, serveRequestsIfPartitionMissing: Boolean) = {
 
     //generatePartitionToNodeMap requires the Logging constructor to be called, and so must be evaluated lazily.
-    new DefaultClusteredLoadBalancer[PartitionedId] (endpoints, partitionForId, clusterId, numPartitions, serveRequestsIfPartitionMissing) with DefaultLoadBalancerHelper {
+    new DefaultClusteredLoadBalancer[PartitionedId] (endpoints, partitionForId, clusterId, numPartitions, serveRequestsIfPartitionMissing) with DefaultPartitionedLoadBalancerHelper {
       val partitionToNodeMap = generatePartitionToNodeMap(endpoints, numPartitions, serveRequestsIfPartitionMissing)
       val clusterToNodeMap = generateClusterToNodeMap(endpoints)
     }

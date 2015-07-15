@@ -67,6 +67,6 @@ object GcAwarePartitionedLoadBalancer {
 }
 
 abstract class GcAwarePartitionedLoadBalancer[PartitionedId](endpoints: Set[Endpoint], partitionForId: PartitionedId => Int, numPartitions: Int, cycleTime: Int, slotTime: Int, serveRequestsIfPartitionMissing: Boolean)
-        extends DefaultPartitionedLoadBalancer[PartitionedId](endpoints, partitionForId, numPartitions, serveRequestsIfPartitionMissing) with GcAwareLoadBalancerHelper with SystemClockComponent {
+        extends DefaultPartitionedLoadBalancer[PartitionedId](endpoints, partitionForId, numPartitions, serveRequestsIfPartitionMissing) with GcAwarePartitionedLoadBalancerHelper with SystemClockComponent {
 
 }

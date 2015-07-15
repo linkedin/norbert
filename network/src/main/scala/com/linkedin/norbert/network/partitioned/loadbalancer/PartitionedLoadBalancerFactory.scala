@@ -173,9 +173,6 @@ trait PartitionedLoadBalancerHelpers extends LoadBalancerHelpers {
    */
   def nodeForPartition(partitionId: Int, capability: Option[Long] = None, persistentCapability: Option[Long] = None): Option[Node]
 
-  /** Can this endpoint be selected at this point in time? */
-  def isEndpointViable(capability: Option[Long], persistentCapability: Option[Long], endpoint: Endpoint): Boolean
-
   /** Compensate counter to idx + count + 1, keeping in mind overflow */
   def compensateCounter(idx: Int, count:Int, counter:AtomicInteger) {
     if (idx + 1 + count <= 0) {

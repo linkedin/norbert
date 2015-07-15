@@ -20,6 +20,7 @@ import com.linkedin.norbert.network.NoNodesAvailableException
 import com.linkedin.norbert.network.common.Endpoint
 import com.linkedin.norbert.network.partitioned.loadbalancer.gcaware.GcAwarePartitionedLoadBalancerFactory
 import org.specs.SpecificationWithJUnit
+import org.specs.util.WaitFor
 
 
 /**
@@ -28,7 +29,7 @@ import org.specs.SpecificationWithJUnit
  * @version: 1.0
  */
 
-class GcAwarePartitionedLoadBalancerSpec extends SpecificationWithJUnit {
+class GcAwarePartitionedLoadBalancerSpec extends SpecificationWithJUnit with WaitFor {
 
   val cycleTime = 6000
   val slotTime = 2000
@@ -100,16 +101,25 @@ class GcAwarePartitionedLoadBalancerSpec extends SpecificationWithJUnit {
       loadbalancer.nodesForPartitionedIds(Set(1,3,4,5), Some(0L), Some(0L)) must throwA[NoNodesAvailableException]
     }
 
-    "throw InvalidClusterException if a node doesn't have an offset" in {
-      val badNodeSet = Set(new Node(1, "node 1", true, Set(0,1,2), None, None, Some(1)),
-        new Node(2, "node 2", true, Set(3,4,5)),
-        new Node(3, "node 3", true, Set(1,2,3), None, None, Some(2)),
-        new Node(4, "node 4", true, Set(4,5,0), None, None, Some(2)),
-        new Node(5, "node 5", true, Set(1,2,3), None, None, Some(3)),
-        new Node(6, "node 6", true, Set(4,5,0), None, None, Some(3)))
+    "not throw InvalidClusterException if a node doesn't have an offset" in {
+      val badNode = new Node(2, "node 2", true, Set(3,4,5))
+
+      val badNodeSet = Set(new Node(1, "node 1", true, Set(0,1,2), None, None, Some(0)),
+        badNode,
+        new Node(3, "node 3", true, Set(1,2,3), None, None, Some(1)),
+        new Node(4, "node 4", true, Set(4,5,0), None, None, Some(1)))
 
       val endpoints = toEndpoints(badNodeSet)
-      loadBalancerFactory.newLoadBalancer(endpoints) must throwA[InvalidClusterException]
+      loadBalancerFactory.newLoadBalancer(endpoints) mustNot throwA[InvalidClusterException]
+      val loadbalancer = loadBalancerFactory.newLoadBalancer(endpoints)
+
+      while(System.currentTimeMillis()%cycleTime != 0){}
+      waitFor((slotTime + 10).ms)
+
+      val idCorrespondingToPartition4 = 1318
+      val res = loadbalancer.nextNode(idCorrespondingToPartition4)
+      res must beSome(badNode)
+
     }
 
     "not return a Node which is currently GCing" in {
@@ -117,7 +127,7 @@ class GcAwarePartitionedLoadBalancerSpec extends SpecificationWithJUnit {
       while(System.currentTimeMillis()%cycleTime != 0){}
 
       val idCorrespondingToPartition1 = 1210
-      val idCorrespondingToPartition2 = 1318
+      val idCorrespondingToPartition4 = 1318
 
       val possibleNodeSet = scala.collection.mutable.Set(node3,node5)
       val res = loadbalancer.nextNode(idCorrespondingToPartition1)
@@ -128,10 +138,10 @@ class GcAwarePartitionedLoadBalancerSpec extends SpecificationWithJUnit {
 
       while(System.currentTimeMillis()%slotTime != 0){}
       val possibleNodeSet2 = scala.collection.mutable.Set(node2,node6)
-      val res3 = loadbalancer.nextNode(idCorrespondingToPartition2)
+      val res3 = loadbalancer.nextNode(idCorrespondingToPartition4)
       res3 must beSome[Node].which(possibleNodeSet2 must contain(_))
       possibleNodeSet2 remove res3.get
-      val res4 = loadbalancer.nextNode(idCorrespondingToPartition2)
+      val res4 = loadbalancer.nextNode(idCorrespondingToPartition4)
       res4 must beSome[Node].which(possibleNodeSet2 must contain(_))
     }
 

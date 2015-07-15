@@ -70,6 +70,6 @@ object GcAwareClusteredLoadBalancer {
 }
 
 abstract class GcAwareClusteredLoadBalancer[PartitionedId](endpoints: Set[Endpoint], partitionForId: PartitionedId => Int, clusterId: Node => Int, cycleTime: Int, slotTime: Int, numPartitions: Int, serveRequestsIfPartitionMissing: Boolean)
-        extends DefaultClusteredLoadBalancer[PartitionedId](endpoints, partitionForId, clusterId, numPartitions, serveRequestsIfPartitionMissing) with GcAwareLoadBalancerHelper with SystemClockComponent {
+        extends DefaultClusteredLoadBalancer[PartitionedId](endpoints, partitionForId, clusterId, numPartitions, serveRequestsIfPartitionMissing) with GcAwarePartitionedLoadBalancerHelper with SystemClockComponent {
 
 }

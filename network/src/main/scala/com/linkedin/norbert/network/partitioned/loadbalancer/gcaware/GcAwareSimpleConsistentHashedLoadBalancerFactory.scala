@@ -53,8 +53,6 @@ class GcAwareSimpleConsistentHashedLoadBalancerFactory[PartitionedId](numReplica
   @throws(classOf[InvalidClusterException])
   def newLoadBalancer(endpoints: Set[Endpoint]): SimpleConsistentHashedLoadBalancer[PartitionedId] = {
 
-    validateOffsets(endpoints)
-
     val wheel = new TreeMap[Int, Endpoint]
 
     endpoints.foreach { endpoint =>
@@ -67,14 +65,10 @@ class GcAwareSimpleConsistentHashedLoadBalancerFactory[PartitionedId](numReplica
       }
     }
 
-    GcAwareSimpleConsistentHashedLoadBalancer(wheel, hashFn, cycleTime, slotTime)
+    GcAwareSimpleConsistentHashedLoadBalancer(endpoints, wheel, hashFn, cycleTime, slotTime)
   }
 
-  private def validateOffsets(nodes: Set[Endpoint]): Unit = {
 
-    for(n <- nodes) if (n.node.offset.isEmpty) throw new InvalidClusterException("Node %d doesn't have a GC offset".format(n.node.id))
-
-  }
 
   def getNumPartitions(endpoints: Set[Endpoint]) = {
     endpoints.flatMap(_.node.partitionIds).size
@@ -83,30 +77,24 @@ class GcAwareSimpleConsistentHashedLoadBalancerFactory[PartitionedId](numReplica
 
 object GcAwareSimpleConsistentHashedLoadBalancer {
 
-  def apply[PartitionedId](wheel: TreeMap[Int, Endpoint], hashFn: PartitionedId => Int, cycleTime: Int, slotTime: Int) = {
+  def apply[PartitionedId](endpoints: Set[Endpoint], wheel: TreeMap[Int, Endpoint], hashFn: PartitionedId => Int, cycleTime: Int, slotTime: Int) = {
 
-    new GcAwareSimpleConsistentHashedLoadBalancer[PartitionedId](wheel,hashFn,cycleTime,slotTime) with SystemClockComponent
+    new GcAwareSimpleConsistentHashedLoadBalancer[PartitionedId](endpoints, wheel,hashFn,cycleTime,slotTime) with SystemClockComponent
 
   }
 
 
 }
 
-abstract class GcAwareSimpleConsistentHashedLoadBalancer[PartitionedId](wheel: TreeMap[Int, Endpoint], hashFn: PartitionedId => Int, cycleTime: Int, slotTime: Int)
-        extends SimpleConsistentHashedLoadBalancer[PartitionedId](wheel, hashFn) {
+abstract class GcAwareSimpleConsistentHashedLoadBalancer[PartitionedId](endpoints: Set[Endpoint], wheel: TreeMap[Int, Endpoint], hashFn: PartitionedId => Int, cycleTime: Int, slotTime: Int)
+        extends SimpleConsistentHashedLoadBalancer[PartitionedId](wheel, hashFn) with GcAwareLoadBalancerHelper {
 
   this: ClockComponent =>
 
-  override def isEndpointViable(capability: Option[Long], persistentCapability: Option[Long], endpoint: Endpoint): Boolean = {
-    endpoint.canServeRequests &&
-            endpoint.node.isCapableOf(capability, persistentCapability) &&
-            isNotCurrentlyDownToGC(endpoint.node.offset.getOrElse(throw new InvalidClusterException(
-              "Trying to GC-Aware load balance without an offset for node: %d".format(endpoint.node.id))))
-  }
+  val gcCycleTime = cycleTime
+  val gcSlotTime = slotTime
 
-  def isNotCurrentlyDownToGC(nodeOffset: Int): Boolean = {
-    val currentOffset = (clock.getCurrentTimeMilliseconds % cycleTime) / slotTime
-    currentOffset != nodeOffset
-  }
+  validateOffsets(endpoints)
+
 }
 

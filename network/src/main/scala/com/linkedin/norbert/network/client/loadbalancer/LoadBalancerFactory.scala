@@ -72,6 +72,11 @@ trait LoadBalancerHelpers {
   import java.util.concurrent.atomic.AtomicInteger
   import math._
 
+  /** Can this endpoint be selected at this point in time? */
+  def isEndpointViable(capability: Option[Long], permanentCapability: Option[Long], endpoint: Endpoint): Boolean = {
+    endpoint.canServeRequests && endpoint.node.isCapableOf(capability, permanentCapability)
+  }
+
   def chooseNext[T](items: Seq[T], counter: AtomicInteger): T =
     items(abs(counter.getAndIncrement) % items.size)
 

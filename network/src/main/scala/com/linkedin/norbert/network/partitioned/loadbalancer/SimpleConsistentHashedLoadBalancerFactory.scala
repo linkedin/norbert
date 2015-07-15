@@ -19,6 +19,7 @@ package network
 package partitioned
 package loadbalancer
 
+import com.linkedin.norbert.network.client.loadbalancer.LoadBalancerHelpers
 import common.Endpoint
 import java.util.TreeMap
 import cluster.{Node, InvalidClusterException}
@@ -52,7 +53,7 @@ class SimpleConsistentHashedLoadBalancerFactory[PartitionedId](numReplicas: Int,
   }
 }
 
-class SimpleConsistentHashedLoadBalancer[PartitionedId](wheel: TreeMap[Int, Endpoint], hashFn: PartitionedId => Int) extends PartitionedLoadBalancer[PartitionedId] {
+class SimpleConsistentHashedLoadBalancer[PartitionedId](wheel: TreeMap[Int, Endpoint], hashFn: PartitionedId => Int) extends PartitionedLoadBalancer[PartitionedId] with LoadBalancerHelpers {
 
   def nodesForOneReplica(id: PartitionedId, capability: Option[Long] = None, persistentCapability: Option[Long] = None) = throw new UnsupportedOperationException
 
@@ -62,9 +63,5 @@ class SimpleConsistentHashedLoadBalancer[PartitionedId](wheel: TreeMap[Int, Endp
 
   def nextNode(id: PartitionedId, capability: Option[Long], persistentCapability: Option[Long]): Option[Node] = {
     PartitionUtil.searchWheel(wheel, hashFn(id), (e: Endpoint) => isEndpointViable(capability, persistentCapability, e)).map(_.node)
-  }
-
-  def isEndpointViable(capability: Option[Long], persistentCapability: Option[Long], endpoint: Endpoint): Boolean = {
-    endpoint.canServeRequests && endpoint.node.isCapableOf(capability, persistentCapability)
   }
 }
