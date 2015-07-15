@@ -171,7 +171,12 @@ class NettyNetworkServer(serverConfig: NetworkServerConfig) extends NetworkServe
   def schedulePeriodicGc(node: Node): Unit = {
 
     if (node.offset.isEmpty) {
-      log.error("Registering a node without an offset, even though GC awareness parameters are present")
+      log.error("Registering node " + node.id + " without an offset, even though GC awareness parameters are present")
+      if (gcFuture.isDefined) {
+        // Cancel the current event, if there is one
+        log.info("Cancelling the periodic GC")
+        gcFuture.get.cancel(true)
+      }
       return
     }
 
