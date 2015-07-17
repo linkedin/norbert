@@ -46,7 +46,10 @@ class ClientChannelHandler(clientName: Option[String],
                            outlierConstant: Double,
                            responseHandler: ResponseHandler,
                            avoidByteStringCopy: Boolean,
-                           stats : CachedNetworkStatistics[Node, UUID]) extends SimpleChannelHandler with Logging {
+                           stats : CachedNetworkStatistics[Node, UUID],
+                           routeAway: Option[ClientStatisticsRequestStrategy.RoutingAwayCallback] = None)
+    extends SimpleChannelHandler with Logging {
+
   private val requestMap = new ConcurrentHashMap[UUID, Request[_, _]]
 
   val cleanupTask = new Runnable() {
@@ -85,7 +88,7 @@ class ClientChannelHandler(clientName: Option[String],
 
   val cleanupExecutor = new ScheduledThreadPoolExecutor(1)
   cleanupExecutor.scheduleAtFixedRate(cleanupTask, staleRequestCleanupFrequencyMins, staleRequestCleanupFrequencyMins, TimeUnit.MINUTES)
-  val clientStatsStrategy = new ClientStatisticsRequestStrategy(stats, outlierMultiplier, outlierConstant, clock)
+  val clientStatsStrategy = new ClientStatisticsRequestStrategy(stats, outlierMultiplier, outlierConstant, clock, routeAway)
   val serverErrorStrategy = new SimpleBackoffStrategy(clock)
 
   val clientStatsStrategyJMX = JMX.register(new ClientStatisticsRequestStrategyMBeanImpl(clientName, serviceName, clientStatsStrategy))
@@ -188,7 +191,8 @@ trait HealthScoreCalculator extends Logging {
 class ClientStatisticsRequestStrategy(val stats: CachedNetworkStatistics[Node, UUID],
                                       @volatile var outlierMultiplier: Double,
                                       @volatile var outlierConstant: Double,
-                                      clock: Clock)
+                                      clock: Clock,
+                                      routeAway: Option[ClientStatisticsRequestStrategy.RoutingAwayCallback] = None)
   extends CanServeRequestStrategy with Logging with HealthScoreCalculator {
   // Must be more than outlierMultiplier * average + outlierConstant ms the others by default
 
@@ -208,6 +212,11 @@ class ClientStatisticsRequestStrategy(val stats: CachedNetworkStatistics[Node, U
       val available = nodeMedian <= clusterMedian * outlierMultiplier + outlierConstant
 
       if (!available) {
+        routeAway match {
+          case Some(callback) => routeAway(n, nodeMedian, clusterMedian)
+          case None =>
+            log.info("Node %s has a median response time of %f. The cluster response time is %f. Routing requests away temporarily.".format(node, nodeMedian, clusterMedian))
+        }
         ClientStatisticsRequestStrategy.getHack()(n, nodeMedian, clusterMedian)
         totalNodesMarkedDown.incrementAndGet
       }
@@ -226,19 +235,9 @@ class ClientStatisticsRequestStrategy(val stats: CachedNetworkStatistics[Node, U
 }
 
 object ClientStatisticsRequestStrategy extends Logging {
-  var hack: (Node, Double, Double) => Unit = (node: Node, nodeMedian: Double, clusterMedian: Double) => {
-    log.info("Node %s has a median response time of %f. The cluster response time is %f. Rioting requests away temporarily.".format(node, nodeMedian, clusterMedian))
-  }
 
-  def setHack(func: (Node, Double, Double) => Unit): Unit = {
-    log.fatal("Setting the hack function")
-    hack = func
-  }
-
-  def getHack(): (Node, Double, Double) => Unit = {
-    log.fatal("Getting the hack function")
-    hack
-  }
+  /* receiver node, receiver median, cluster median */
+  type RoutingAwayCallback = (Node, Double, Double) => Unit
 }
 
 trait ClientStatisticsRequestStrategyMBean extends CanServeRequestStrategyMBean {
