@@ -70,7 +70,7 @@ class NetworkClientConfig {
   var retryStrategy:Option[RetryStrategy] = None 
   var duplicatesOk:Boolean = false
 
-  var routingAwayCallback: ClientStatisticsRequestStrategy.RoutingAwayCallback = None
+  var routingAwayCallback: Option[ClientStatisticsRequestStrategy.RoutingAwayCallback] = None
 }
 
 object NetworkClient {

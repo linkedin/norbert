@@ -213,11 +213,10 @@ class ClientStatisticsRequestStrategy(val stats: CachedNetworkStatistics[Node, U
 
       if (!available) {
         routeAway match {
-          case Some(callback) => routeAway(n, nodeMedian, clusterMedian)
+          case Some(callback) => callback(n, nodeMedian, clusterMedian)
           case None =>
-            log.info("Node %s has a median response time of %f. The cluster response time is %f. Routing requests away temporarily.".format(node, nodeMedian, clusterMedian))
+            log.info("Node %s has a median response time of %f. The cluster response time is %f. Routing requests away temporarily.".format(n, nodeMedian, clusterMedian))
         }
-        ClientStatisticsRequestStrategy.getHack()(n, nodeMedian, clusterMedian)
         totalNodesMarkedDown.incrementAndGet
       }
       (n, available)
