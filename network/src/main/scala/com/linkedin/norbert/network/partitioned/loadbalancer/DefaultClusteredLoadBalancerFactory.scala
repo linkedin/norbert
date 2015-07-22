@@ -162,7 +162,7 @@ abstract class DefaultClusteredLoadBalancer[PartitionedId](endpoints: Set[Endpoi
     clusterToNodeMap
   }
 
-  private def nodeForPartitionInCluster(partitionId: Int, cluster: Set[Int], capability: Option[Long] = None,
+  protected def nodeForPartitionInCluster(partitionId: Int, cluster: Set[Int], capability: Option[Long] = None,
                                         persistentCapability: Option[Long] = None): Node =
     nodeForPartitionInCluster(partitionId, cluster, false, capability, persistentCapability)
 
@@ -180,10 +180,10 @@ abstract class DefaultClusteredLoadBalancer[PartitionedId](endpoints: Set[Endpoi
         var loopCount = 0
         do {
           val endpoint = endpoints(i % es)
-          // Filter the node with the given cluster id. Then, check whether the isOneCluster flag. If this call is for
-          // only one cluster, we should not check the node status since it can cause selecting nodes from other
-          // clusters.
-          if(cluster.contains(clusterId(endpoint.node)) && (isOneCluster || isEndpointViable(capability,persistentCapability,endpoint))) {
+          // Filter the node with the given cluster id. Then, check whether the isOneCluster flag is set.
+          // If this call is for only one cluster, we should not check the node status since it can cause
+          // selecting nodes from other clusters.
+          if(cluster.contains(clusterId(endpoint.node)) && checkIfOneClusterOrEndpointViable(isOneCluster, capability, persistentCapability, endpoint)) {
             compensateCounter(idx, loopCount, counter)
             return endpoint.node
           }
@@ -191,12 +191,36 @@ abstract class DefaultClusteredLoadBalancer[PartitionedId](endpoints: Set[Endpoi
           i = i + 1
           if (i < 0) i = 0
           loopCount = loopCount + 1
-        } while (loopCount <= es)
+        } while (loopCount < es)
         compensateCounter(idx, loopCount, counter)
         if (isOneCluster)
           throw new NoNodesAvailableException("Unable to satisfy single cluster request, no node available for id %s"
                   .format(partitionId))
-        return endpoints(idx % es).node
+
+        val anyNodeServingPartition = nodeForPartition(partitionId, capability, persistentCapability)
+
+        // To REVIEW: Earlier, this only returned the next node in endpoints. Now, unless things go disastrously wrong,
+        //            this will always return anyNodeServingPartition, since it will never be empty. If it was, it would
+        //            be highly unlikely that we would be in this branch, and we would have gone to the None branch above.
+        //            anyNodeServingPartition is cluster agnostic. If it can't find a node that has the partition AND
+        //            is capable of serving request, it returns the next node (in round-robin fashion) that has that partition.
+        //            This continues the trend of load balancers ignoring the canServeRequestsIfPartitionMissing flag
+        //            in only those functions that are actually used, while using it in functions that are never called.
+        //            This part only affects 'nodesForPartitionedIdsInNReplicas'
+        if (anyNodeServingPartition.nonEmpty) {
+          log.info("Couldn't find a node in that cluster. Returning node " + anyNodeServingPartition.get.id)
+          anyNodeServingPartition.get
+        }
+        else {
+          nodeToReturnWhenNothingViableFound(endpoints, idx).get
+        }
     }
+  }
+
+  // Checks whether the isOneCluster flag is set, and if not, checks for the node status.
+  // If this call is for only one cluster, we should not check the node status since it can cause
+  // selecting nodes from other clusters.
+  def checkIfOneClusterOrEndpointViable(isOneCluster: Boolean, capability: Option[Long], persistentCapability: Option[Long], endpoint: Endpoint): Boolean = {
+    isOneCluster || isEndpointViable(capability, persistentCapability, endpoint)
   }
 }

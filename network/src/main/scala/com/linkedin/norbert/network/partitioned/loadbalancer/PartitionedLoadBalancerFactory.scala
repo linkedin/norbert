@@ -173,6 +173,15 @@ trait PartitionedLoadBalancerHelpers extends LoadBalancerHelpers {
    */
   def nodeForPartition(partitionId: Int, capability: Option[Long] = None, persistentCapability: Option[Long] = None): Option[Node]
 
+  /**
+   * Defines the logic used to return a node when the load balancer is unable to find one that holds a partition
+   * AND is available. 'endpoints' represents the list of endpoints that have the partition and 'idx' is the
+   * current(updated) counter value for that partition. Separate implementations exist for the GC-aware and
+   * default load balancers
+   *
+   */
+  def nodeToReturnWhenNothingViableFound(endpoints: IndexedSeq[Endpoint], idx: Int): Some[Node]
+
   /** Compensate counter to idx + count + 1, keeping in mind overflow */
   def compensateCounter(idx: Int, count:Int, counter:AtomicInteger) {
     if (idx + 1 + count <= 0) {

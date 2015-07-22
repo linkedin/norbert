@@ -92,11 +92,23 @@ trait DefaultPartitionedLoadBalancerHelper extends PartitionedLoadBalancerHelper
           i = i + 1
           if (i < 0) i = 0
           loopCount = loopCount + 1
-        } while (loopCount <= es)
+        } while (loopCount < es)
 
-        compensateCounter(idx, loopCount, counter)
-        Some(endpoints(idx % es).node)
+        // To REVIEW: I don't think the compensate counter below is needed. The counter is already incremented when get
+        //            is called the first time, and if no node was found (which is the case when the code below is hit),
+        //            that behaviour should suffice. The below would do the same mod es, and this way we prevent the counter
+        //            hurrying its way to MAX_VALUE. Additionally, I changed the while loop above to < es from <= es, as
+        //            this does one redundant cycle (es + 1 times instead of es times).
+
+//        compensateCounter(idx, loopCount, counter)
+        nodeToReturnWhenNothingViableFound(endpoints, idx)
     }
   }
 
+  // Returns the next node in round-robin fashion. Takes in the list of endpoints and the original counter value for that
+  // set of endpoints
+  def nodeToReturnWhenNothingViableFound(endpoints: IndexedSeq[Endpoint], idx: Int): Some[Node] = {
+    val es = endpoints.size
+    Some(endpoints(idx % es).node)
+  }
 }

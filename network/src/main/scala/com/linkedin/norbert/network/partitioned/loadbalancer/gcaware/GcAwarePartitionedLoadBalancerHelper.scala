@@ -1,5 +1,5 @@
 /*
- * Copyright 2009-2010 LinkedIn, Inc
+ * Copyright 2009-2015 LinkedIn, Inc
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
@@ -19,16 +19,30 @@ package partitioned
 package loadbalancer
 package gcaware
 
-import com.linkedin.norbert.cluster.{Node, InvalidClusterException}
+import com.linkedin.norbert.cluster.Node
 import com.linkedin.norbert.network.common.Endpoint
 import com.linkedin.norbert.norbertutils.ClockComponent
 
 /**
- * A mixin trait that provides functionality to help implement a hash based, GC Aware <code>Router</code>.
+ * A mixin trait that provides functionality to help implement a hash based, GC AND partition aware <code>Router</code>.
  */
 trait GcAwarePartitionedLoadBalancerHelper extends DefaultPartitionedLoadBalancerHelper with GcAwareLoadBalancerHelper {
 
   this: ClockComponent =>
 
+  // This needs to be overridden here, as the default implementation just returns the next node in round-robin order.
+  // This returns the next node in round robin order that IS NOT GCing
+  override def nodeToReturnWhenNothingViableFound(endpoints: IndexedSeq[Endpoint], idx: Int): Some[Node] = {
+    val es = endpoints.size
+    var i = idx
+    for(j <- 1 to es ) {
+      if (endpoints(i % es).node.offset.isEmpty || !isCurrentlyDownToGC(endpoints(i % es).node.offset.get))
+        Some(endpoints(i % es).node)
+
+      i = i + 1
+    }
+
+    Some(endpoints(idx % es).node)
+  }
 
 }
