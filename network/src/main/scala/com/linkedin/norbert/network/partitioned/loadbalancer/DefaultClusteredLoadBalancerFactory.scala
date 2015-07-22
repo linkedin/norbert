@@ -174,7 +174,6 @@ abstract class DefaultClusteredLoadBalancer[PartitionedId](endpoints: Set[Endpoi
                 .format(partitionId))
       case Some((endpoints, counter, states)) =>
         val es = endpoints.size
-        counter.compareAndSet(java.lang.Integer.MAX_VALUE, 0)
         val idx = counter.getAndIncrement
         var i = idx
         var loopCount = 0
@@ -184,7 +183,7 @@ abstract class DefaultClusteredLoadBalancer[PartitionedId](endpoints: Set[Endpoi
           // If this call is for only one cluster, we should not check the node status since it can cause
           // selecting nodes from other clusters.
           if(cluster.contains(clusterId(endpoint.node)) && checkIfOneClusterOrEndpointViable(isOneCluster, capability, persistentCapability, endpoint)) {
-            compensateCounter(idx, loopCount, counter)
+            counter.compensate(idx, loopCount)
             return endpoint.node
           }
 
@@ -192,7 +191,7 @@ abstract class DefaultClusteredLoadBalancer[PartitionedId](endpoints: Set[Endpoi
           if (i < 0) i = 0
           loopCount = loopCount + 1
         } while (loopCount < es)
-        compensateCounter(idx, loopCount, counter)
+        counter.compensate(idx, loopCount)
         if (isOneCluster)
           throw new NoNodesAvailableException("Unable to satisfy single cluster request, no node available for id %s"
                   .format(partitionId))
@@ -205,7 +204,8 @@ abstract class DefaultClusteredLoadBalancer[PartitionedId](endpoints: Set[Endpoi
         //            anyNodeServingPartition is cluster agnostic. If it can't find a node that has the partition AND
         //            is capable of serving request, it returns the next node (in round-robin fashion) that has that partition.
         //            This continues the trend of load balancers ignoring the canServeRequestsIfPartitionMissing flag
-        //            in only those functions that are actually used, while using it in functions that are never called.
+        //            in only those functions that are actually used, while using it in functions that are never called
+        //            (and while building the original partitionToNode map).
         //            This part only affects 'nodesForPartitionedIdsInNReplicas'
         if (anyNodeServingPartition.nonEmpty) {
           log.info("Couldn't find a node in that cluster. Returning node " + anyNodeServingPartition.get.id)

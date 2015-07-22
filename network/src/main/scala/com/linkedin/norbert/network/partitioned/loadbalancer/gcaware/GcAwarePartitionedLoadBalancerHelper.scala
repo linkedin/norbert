@@ -37,7 +37,7 @@ trait GcAwarePartitionedLoadBalancerHelper extends DefaultPartitionedLoadBalance
     var i = idx
     for(j <- 1 to es ) {
       if (endpoints(i % es).node.offset.isEmpty || !isCurrentlyDownToGC(endpoints(i % es).node.offset.get))
-        Some(endpoints(i % es).node)
+        return Some(endpoints(i % es).node)
 
       i = i + 1
     }

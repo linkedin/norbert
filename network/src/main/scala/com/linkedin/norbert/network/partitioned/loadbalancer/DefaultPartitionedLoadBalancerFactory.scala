@@ -18,10 +18,11 @@ package network
 package partitioned
 package loadbalancer
 
+import com.linkedin.norbert.network.util.ConcurrentCyclicCounter
 import logging.Logging
 import cluster.{Node, InvalidClusterException}
 import common.Endpoint
-import java.util.concurrent.atomic.{AtomicBoolean, AtomicInteger}
+import java.util.concurrent.atomic.AtomicBoolean
 import scala.util.control.Breaks._
 
 /**
@@ -76,7 +77,7 @@ abstract class DefaultPartitionedLoadBalancer[PartitionedId](endpoints: Set[Endp
   def nextNode(id: PartitionedId, capability: Option[Long] = None, persistentCapability: Option[Long] = None) = nodeForPartition(partitionForId(id), capability, persistentCapability)
 
   def nodesForPartitionedId(id: PartitionedId, capability: Option[Long] = None, persistentCapability: Option[Long] = None) = {
-    partitionToNodeMap.getOrElse(partitionForId(id), (Vector.empty[Endpoint], new AtomicInteger(0), new Array[AtomicBoolean](0)))._1.filter(_.node.isCapableOf(capability, persistentCapability)).toSet.map
+    partitionToNodeMap.getOrElse(partitionForId(id), (Vector.empty[Endpoint], new ConcurrentCyclicCounter, new Array[AtomicBoolean](0)))._1.filter(_.node.isCapableOf(capability, persistentCapability)).toSet.map
     { (endpoint: Endpoint) => endpoint.node }
   }
 
@@ -88,7 +89,7 @@ abstract class DefaultPartitionedLoadBalancer[PartitionedId](endpoints: Set[Endp
     nodesForPartitions(id, partitionToNodeMap.filterKeys(partitions contains _), capability, persistentCapability)
   }
 
-  def nodesForPartitions(id: PartitionedId, partitionToNodeMap: Map[Int, (IndexedSeq[Endpoint], AtomicInteger, Array[AtomicBoolean])], capability: Option[Long], persistentCapability: Option[Long]) = {
+  def nodesForPartitions(id: PartitionedId, partitionToNodeMap: Map[Int, (IndexedSeq[Endpoint], ConcurrentCyclicCounter, Array[AtomicBoolean])], capability: Option[Long], persistentCapability: Option[Long]) = {
     partitionToNodeMap.keys.foldLeft(Map.empty[Node, Set[Int]]) { (map, partition) =>
       val nodeOption = nodeForPartition(partition, capability, persistentCapability)
       if(nodeOption.isDefined) {
@@ -127,25 +128,24 @@ abstract class DefaultPartitionedLoadBalancer[PartitionedId](endpoints: Set[Endp
       while (!partitionIds.isEmpty) {
         var intersect = Set.empty[Int]
         var endpoint : Endpoint =  null
+        var loopCount: Int =  0
 
         // take one element in the set, locate only nodes that serving this partition
         partitionToNodeMap.get(partitionIds.head) match {
           case None =>
             break
           case Some((endpoints, counter, states)) =>
-            import math._
             val es = endpoints.size
-            counter.compareAndSet(java.lang.Integer.MAX_VALUE, 0)
-            val idx = counter.getAndIncrement % es
-            var i = idx
+            val idx = counter.getAndIncrement
+            val i = idx
 
             // This is a modified version of greedy set cover algorithm, instead of finding the node that covers most of
             // the partitionIds set, we only check it across nodes that serving the selected partition. This guarantees
             // we will pick a node at least cover 1 more partition, but also in case of multiple replicas of partitions,
             // this helps to locate nodes long to the same replica.
             breakable {
-              do {
-                val ep = endpoints(i)
+              for(j <- i until (i+es)) {
+                val ep = endpoints(j % es)
 
                 // perform intersection between the set to be covered and the set the node is covering
                 val s = ep.node.partitionIds intersect partitionIds
@@ -155,12 +155,14 @@ abstract class DefaultPartitionedLoadBalancer[PartitionedId](endpoints: Set[Endp
                 {
                   intersect = s
                   endpoint = ep
+                  loopCount = j - i
                   if (partitionIds.size == s.size)
                     break
                 }
-                i = (i+1 ) % es
-              } while(i != idx)
+              }
             }
+
+            counter.compensate(idx, loopCount)
         }
 
         if (endpoint == null)

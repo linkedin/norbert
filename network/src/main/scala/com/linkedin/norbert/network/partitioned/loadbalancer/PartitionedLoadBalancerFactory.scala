@@ -19,9 +19,10 @@ package partitioned
 package loadbalancer
 
 
-import java.util.concurrent.atomic.{AtomicBoolean, AtomicInteger}
+import java.util.concurrent.atomic.AtomicBoolean
 
 import com.linkedin.norbert.network.client.loadbalancer.LoadBalancerHelpers
+import com.linkedin.norbert.network.util.ConcurrentCyclicCounter
 
 import _root_.scala.Predef._
 import cluster.{InvalidClusterException, Node}
@@ -147,7 +148,7 @@ trait PartitionedLoadBalancerHelpers extends LoadBalancerHelpers {
   /**
    * A mapping from partition id to the <code>Node</code>s which can service that partition.
    */
-  protected val partitionToNodeMap: Map[Int, (IndexedSeq[Endpoint], AtomicInteger, Array[AtomicBoolean])]
+  protected val partitionToNodeMap: Map[Int, (IndexedSeq[Endpoint], ConcurrentCyclicCounter, Array[AtomicBoolean])]
 
   /**
    * Given the currently available <code>Node</code>s and the total number of partitions in the cluster, this method
@@ -160,7 +161,7 @@ trait PartitionedLoadBalancerHelpers extends LoadBalancerHelpers {
    * @throws InvalidClusterException thrown if every partition doesn't have at least one available <code>Node</code>
    * assigned to it
    */
-  def generatePartitionToNodeMap(nodes: Set[Endpoint], numPartitions: Int, serveRequestsIfPartitionMissing: Boolean): Map[Int, (IndexedSeq[Endpoint], AtomicInteger, Array[AtomicBoolean])]
+  def generatePartitionToNodeMap(nodes: Set[Endpoint], numPartitions: Int, serveRequestsIfPartitionMissing: Boolean): Map[Int, (IndexedSeq[Endpoint], ConcurrentCyclicCounter, Array[AtomicBoolean])]
 
 
   /**
@@ -181,16 +182,5 @@ trait PartitionedLoadBalancerHelpers extends LoadBalancerHelpers {
    *
    */
   def nodeToReturnWhenNothingViableFound(endpoints: IndexedSeq[Endpoint], idx: Int): Some[Node]
-
-  /** Compensate counter to idx + count + 1, keeping in mind overflow */
-  def compensateCounter(idx: Int, count:Int, counter:AtomicInteger) {
-    if (idx + 1 + count <= 0) {
-      // Integer overflow
-      counter.set(idx + 1 - java.lang.Integer.MAX_VALUE + count)
-    }
-    else {
-      counter.set(idx + 1 + count)
-    }
-  }
 
 }

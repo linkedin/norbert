@@ -19,8 +19,9 @@ package partitioned
 package loadbalancer
 
 import cluster.{InvalidClusterException, Node}
+import com.linkedin.norbert.network.util.ConcurrentCyclicCounter
 import common.Endpoint
-import java.util.concurrent.atomic.{AtomicBoolean, AtomicInteger}
+import java.util.concurrent.atomic.AtomicBoolean
 import logging.Logging
 
 /**
@@ -39,7 +40,7 @@ trait DefaultPartitionedLoadBalancerHelper extends PartitionedLoadBalancerHelper
    * @throws InvalidClusterException thrown if every partition doesn't have at least one available <code>Node</code>
    * assigned to it
    */
-  def generatePartitionToNodeMap(nodes: Set[Endpoint], numPartitions: Int, serveRequestsIfPartitionMissing: Boolean): Map[Int, (IndexedSeq[Endpoint], AtomicInteger, Array[AtomicBoolean])] = {
+  def generatePartitionToNodeMap(nodes: Set[Endpoint], numPartitions: Int, serveRequestsIfPartitionMissing: Boolean): Map[Int, (IndexedSeq[Endpoint], ConcurrentCyclicCounter, Array[AtomicBoolean])] = {
     val partitionToNodeMap = (for (n <- nodes; p <- n.node.partitionIds) yield(p, n)).foldLeft(Map.empty[Int, IndexedSeq[Endpoint]]) {
       case (map, (partitionId, node)) => map + (partitionId -> (node +: map.get(partitionId).getOrElse(Vector.empty[Endpoint])))
     }
@@ -60,7 +61,7 @@ trait DefaultPartitionedLoadBalancerHelper extends PartitionedLoadBalancerHelper
     partitionToNodeMap.map { case (pId, endPoints) =>
       val states = new Array[AtomicBoolean](endPoints.size)
       (0 to endPoints.size -1).foreach(states(_) = new AtomicBoolean(true))
-      pId -> (endPoints, new AtomicInteger(0), states) 
+      pId -> (endPoints, new ConcurrentCyclicCounter, states)
     }
   }
 
@@ -78,14 +79,13 @@ trait DefaultPartitionedLoadBalancerHelper extends PartitionedLoadBalancerHelper
         None
       case Some((endpoints, counter, states)) =>
         val es = endpoints.size
-        counter.compareAndSet(java.lang.Integer.MAX_VALUE, 0)
         val idx = counter.getAndIncrement
         var i = idx
         var loopCount = 0
         do {
           val endpoint = endpoints(i % es)
           if(isEndpointViable(capability, persistentCapability, endpoint)) {
-            compensateCounter(idx, loopCount, counter)
+            counter.compensate(idx, loopCount)
             return Some(endpoint.node)
           }
 

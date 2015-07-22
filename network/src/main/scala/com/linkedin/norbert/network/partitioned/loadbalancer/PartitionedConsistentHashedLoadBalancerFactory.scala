@@ -3,9 +3,9 @@ package com.linkedin.norbert.network.partitioned.loadbalancer
 import com.linkedin.norbert.network.common.Endpoint
 import java.util.TreeMap
 import com.linkedin.norbert.cluster.{Node, InvalidClusterException}
-import com.linkedin.norbert.logging.Logging
-import com.linkedin.norbert.network.client.loadbalancer.LoadBalancerHelpers
-import java.util.concurrent.atomic.{AtomicBoolean, AtomicInteger}
+import java.util.concurrent.atomic.AtomicBoolean
+
+import com.linkedin.norbert.network.util.ConcurrentCyclicCounter
 
 /*
 * Copyright 2009-2015 LinkedIn, Inc
@@ -128,7 +128,7 @@ class PartitionedConsistentHashedLoadBalancer[PartitionedId](numPartitions: Int,
     }
   }  
   
-  private def nodesForPartitions0(partitionToNodeMap: Map[Int, (IndexedSeq[Endpoint], AtomicInteger, Array[AtomicBoolean])], capability: Option[Long], persistentCapability: Option[Long] = None) = {
+  private def nodesForPartitions0(partitionToNodeMap: Map[Int, (IndexedSeq[Endpoint], ConcurrentCyclicCounter, Array[AtomicBoolean])], capability: Option[Long], persistentCapability: Option[Long] = None) = {
     partitionToNodeMap.keys.foldLeft(Map.empty[Node, Set[Int]]) { (map, partition) =>
       val nodeOption = nodeForPartition(partition, capability, persistentCapability)
       if(nodeOption isDefined) {
