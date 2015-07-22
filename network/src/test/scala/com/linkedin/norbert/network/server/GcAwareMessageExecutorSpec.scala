@@ -24,7 +24,7 @@ package network
 package server
 
 import com.linkedin.norbert.cluster.Node
-import com.linkedin.norbert.network.netty.GcParamWrapper
+import com.linkedin.norbert.network.garbagecollection.GcParamWrapper
 
 class GcAwareMessageExecutorSpec extends MessageExecutorSpec {
 
@@ -35,6 +35,10 @@ class GcAwareMessageExecutorSpec extends MessageExecutorSpec {
   val cycleTime = 6000
   val slotTime = 2000
   val slaTime = 1000
+
+  // Buffer time, in milliseconds, to prevent test cases failing at slot transition boundaries.
+  // i.e. we wait this amount of time into a particular slot before testing
+  val slackTime = 10
 
   val goodGcParams = new GcParamWrapper(slaTime, cycleTime, slotTime)
 
@@ -85,29 +89,13 @@ class GcAwareMessageExecutorSpec extends MessageExecutorSpec {
       generalExecutorTests
     }
 
-    //A node is connected, but it receives the request in its GC period
-    "throw a GC Exception (with a GC-ing bound node) in" in {
-
-      nodeFlag = nodeTypes.goodNode
-
-      waitTillStartOfNewCycle
-
-      messageHandlerRegistry.handlerFor(request) returns returnHandler _
-
-      messageExecutor.executeMessage(request, Some((either: Either[Exception, Ping]) => null:Unit), None) must throwA[GcException]
-
-      waitFor(50.ms)
-
-      there was no(messageHandlerRegistry).handlerFor(request)
-    }
-
     //These tests occur outside the GC period
     "successfully respond (with a not-currently-GCing node) in" in {
 
       nodeFlag = nodeTypes.goodNode
 
       waitTillStartOfNewCycle
-      waitFor((slotTime + 10).ms)
+      waitFor((slotTime + slackTime).ms)
 
       generalExecutorTests
     }

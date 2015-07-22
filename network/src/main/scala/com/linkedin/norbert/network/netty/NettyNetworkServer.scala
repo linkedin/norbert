@@ -18,6 +18,7 @@ package network
 package netty
 
 import java.util.concurrent.{TimeUnit, ScheduledExecutorService, ScheduledFuture, Executors}
+import com.linkedin.norbert.network.garbagecollection.{GcParamWrapper, GcDetector, GC}
 import org.jboss.netty.bootstrap.ServerBootstrap
 import org.jboss.netty.channel.socket.nio.NioServerSocketChannelFactory
 import org.jboss.netty.handler.logging.LoggingHandler

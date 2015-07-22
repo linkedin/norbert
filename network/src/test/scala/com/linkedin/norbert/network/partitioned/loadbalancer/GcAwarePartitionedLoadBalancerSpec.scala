@@ -34,6 +34,10 @@ class GcAwarePartitionedLoadBalancerSpec extends SpecificationWithJUnit with Wai
   val cycleTime = 6000
   val slotTime = 2000
 
+  // Buffer time, in milliseconds, to prevent test cases failing at slot transition boundaries.
+  // i.e. we wait this amount of time into a particular slot before testing
+  val slackTime = 10
+
   class TestLBF(numPartitions: Int, csr: Boolean = true)
         extends GcAwarePartitionedLoadBalancerFactory[Int](numPartitions, cycleTime, slotTime, csr)
   {
@@ -114,7 +118,7 @@ class GcAwarePartitionedLoadBalancerSpec extends SpecificationWithJUnit with Wai
       val loadbalancer = loadBalancerFactory.newLoadBalancer(endpoints)
 
       while(System.currentTimeMillis()%cycleTime != 0){}
-      waitFor((slotTime + 10).ms)
+      waitFor((slotTime + slackTime).ms)
 
       val idCorrespondingToPartition4 = 1318
       val res = loadbalancer.nextNode(idCorrespondingToPartition4)

@@ -1,14 +1,31 @@
+/*
+ * Copyright 2009-2015 LinkedIn, Inc
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not
+ * use this file except in compliance with the License. You may obtain a copy of
+ * the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations under
+ * the License.
+ */
 package com.linkedin.norbert.network.partitioned.loadbalancer.gcaware
 
 import com.linkedin.norbert.cluster.Node
 import com.linkedin.norbert.logging.Logging
-import com.linkedin.norbert.network.GcDetector
 import com.linkedin.norbert.network.client.loadbalancer.LoadBalancerHelpers
 import com.linkedin.norbert.network.common.Endpoint
+import com.linkedin.norbert.network.garbagecollection.GcDetector
 import com.linkedin.norbert.norbertutils.ClockComponent
 
 /**
  * Created by sishah on 7/14/15.
+ *
+ * A mixin trait that provides functionality to help implement a hash based, GC-aware, partition-agnostic load balancer.
  */
 trait GcAwareLoadBalancerHelper extends LoadBalancerHelpers with Logging with GcDetector {
 

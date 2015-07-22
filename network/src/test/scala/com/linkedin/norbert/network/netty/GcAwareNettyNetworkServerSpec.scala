@@ -19,6 +19,7 @@ package netty
 
 import java.util.concurrent._
 
+import com.linkedin.norbert.network.garbagecollection.GcParamWrapper
 import org.specs.util.WaitFor
 import com.linkedin.norbert.cluster._
 import com.linkedin.norbert.network.common.SampleMessage
@@ -127,7 +128,6 @@ class GcAwareNettyNetworkServerSpec extends SpecificationWithJUnit with Mockito 
   }
 
   def verifyDelay(obsDelay:Long, expDelay:Long): Boolean = {
-    //A little arbitrary. 20ms gap.
     expDelay-obsDelay <= slackTimeInMillis
   }
 

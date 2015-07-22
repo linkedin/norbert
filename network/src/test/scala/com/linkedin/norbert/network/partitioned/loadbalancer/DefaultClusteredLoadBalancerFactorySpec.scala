@@ -233,8 +233,7 @@ class DefaultClusteredLoadBalancerFactorySpec extends SpecificationWithJUnit {
 
       val invalidClusterId = -1
 
-     lb.nodesForPartitionedIdsInOneCluster(set, invalidClusterId, None, None) must throwA[InvalidClusterException]
-
+      lb.nodesForPartitionedIdsInOneCluster(set, invalidClusterId, None, None) must throwA[InvalidClusterException]
 
     }
   }

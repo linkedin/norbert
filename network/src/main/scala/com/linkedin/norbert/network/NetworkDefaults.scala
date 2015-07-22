@@ -16,7 +16,7 @@
 package com.linkedin.norbert
 package network
 
-import com.linkedin.norbert.network.netty.{GcParamWrapper}
+import com.linkedin.norbert.network.garbagecollection.GcParamWrapper
 
 /**
  * A container for defaults related to the networking code.

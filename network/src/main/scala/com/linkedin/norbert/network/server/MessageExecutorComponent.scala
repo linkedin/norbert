@@ -18,7 +18,7 @@ package network
 package server
 
 
-import com.linkedin.norbert.network.netty.{GC, GcParamWrapper}
+import com.linkedin.norbert.network.garbagecollection.{GcParamWrapper, GcDetector}
 import com.linkedin.norbert.logging.Logging
 import jmx.JMX.MBean
 import jmx.{FinishedRequestTimeTracker, JMX}
@@ -105,6 +105,8 @@ class ThreadPoolMessageExecutor(clientName: Option[String],
 
   private val statsActor = CachedNetworkStatistics[Int, Int](SystemClock, requestStatisticsWindow, 200L)
   private val totalNumRejected = new AtomicInteger
+  // In milliseconds
+  private val timeBufferForAcceptableRequests = 50
 
   val gcCycleTime = gcParams.cycleTime
   val gcSlotTime = gcParams.slotTime
@@ -155,13 +157,10 @@ class ThreadPoolMessageExecutor(clientName: Option[String],
                                              (implicit is: InputSerializer[RequestMsg, ResponseMsg]) {
     val rr = new RequestRunner(request, requestTimeout, context, filters, responseHandler, is = is)
 
-    //Reject messages that arrive post the GC start period.
-    if(enableGcAwareness && isCurrentlyDownToGC(myNode.get.offset.get)) {
-      statsActor.endRequest(0, rr.id)
-
-      totalNumRejected.incrementAndGet
-      log.warn("Rejecting request in favour of going down to GC.")
-      throw new GcException
+    // Log messages that arrive post the GC start period.
+    // The check for ~50ms is to filter out the corner case messages that come right at the slot transition time.
+    if(enableGcAwareness && isCurrentlyDownToGC(myNode.get.offset.get) && wasDownToGcPreviously(myNode.get.offset.get, timeBufferForAcceptableRequests)) {
+      log.warn("Received a request in the node's GC slot, even though the node's slot started at least 50ms ago")
     }
 
     try {
@@ -206,8 +205,7 @@ class ThreadPoolMessageExecutor(clientName: Option[String],
         try {
           context match {
             case Some(null) => ()
-            case Some(m) => if (m.attributes != null)
-            {
+            case Some(m) => if (m.attributes != null) {
               m.attributes += (TimingKeys.ON_REQUEST_TIME_ATTR -> System.currentTimeMillis)
             }
             case None => ()

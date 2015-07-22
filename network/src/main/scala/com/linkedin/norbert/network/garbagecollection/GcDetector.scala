@@ -1,4 +1,4 @@
-package com.linkedin.norbert.network
+package com.linkedin.norbert.network.garbagecollection
 
 import com.linkedin.norbert.norbertutils.ClockComponent
 
@@ -37,6 +37,11 @@ trait GcDetector {
     currentOffset == nodeOffset
   }
 
+  def wasDownToGcPreviously(nodeOffset: Int, millisecondsAgo: Int): Boolean = {
+    val offset = ((clock.getCurrentTimeMilliseconds - millisecondsAgo) % gcCycleTime) / gcSlotTime
+    offset == nodeOffset
+  }
+
   /**
    *
    * Calculates the time until the next GC should occur for this node
@@ -54,6 +59,10 @@ trait GcDetector {
     else
       (gcCycleTime - timeOffsetWithinCycle) + nodeGcTimeOffsetWithinCycle
 
+  }
+
+  def currentGcOffset : Int = {
+    ((clock.getCurrentTimeMilliseconds % gcCycleTime) / gcSlotTime).asInstanceOf[Int]
   }
 
 }

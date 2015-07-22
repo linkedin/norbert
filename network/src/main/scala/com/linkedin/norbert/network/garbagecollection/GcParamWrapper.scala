@@ -1,4 +1,4 @@
-package com.linkedin.norbert.network.netty
+package com.linkedin.norbert.network.garbagecollection
 
 /**
  * Created by sishah on 7/6/15.

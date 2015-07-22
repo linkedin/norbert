@@ -1,4 +1,4 @@
-package com.linkedin.norbert.network.netty
+package com.linkedin.norbert.network.garbagecollection
 
 import com.linkedin.norbert.logging.Logging
 
