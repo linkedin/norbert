@@ -49,7 +49,7 @@ class ConcurrentCyclicCounter extends Logging {
     // Thread1: sees & gets 3, increments counter to 4.
     // Thread2: sees & gets 4, increments counter to 5.
     // Thread2 compensates counter to 6, post its operations (I.E. it didn't find node 4 viable, and picked node 5 instead)
-    // Thread1 now doesn't find nodes 3, 4, 5 or 6 viable, for some reason, picks 7 and tries to compensate to 8.
+    // Thread1 now doesn't find nodes 3, 4, 5 (which was available just before) or 6 viable, for some reason, picks 7 and tries to compensate to 8.
     // This will not allow the compensation, and the next call to the counter may send another request to 7.
     //
     // On the other hand, this will prevent situations like the following:

@@ -19,9 +19,7 @@ package client
 package loadbalancer
 
 import common.Endpoint
-import cluster.Node
 import java.util.concurrent.atomic.AtomicInteger
-import annotation.tailrec
 
 class RoundRobinLoadBalancerFactory extends LoadBalancerFactory with LoadBalancerHelpers {
   def newLoadBalancer(endpointSet: Set[Endpoint]): LoadBalancer = new LoadBalancer {
@@ -33,7 +31,7 @@ class RoundRobinLoadBalancerFactory extends LoadBalancerFactory with LoadBalance
       val activeEndpoints = endpoints.filter{ isEndpointViable(capability, permanentCapability, _) }
 
       if(activeEndpoints.isEmpty) {
-        var capableEndpoints = endpoints.filter(_.node.isCapableOf(capability, permanentCapability))
+        val capableEndpoints = endpoints.filter(_.node.isCapableOf(capability, permanentCapability))
         if(capableEndpoints.isEmpty)
           None
         else
