@@ -105,6 +105,7 @@ class ThreadPoolMessageExecutor(clientName: Option[String],
 
   private val statsActor = CachedNetworkStatistics[Int, Int](SystemClock, requestStatisticsWindow, 200L)
   private val totalNumRejected = new AtomicInteger
+  private val totalRequestsInGcSlot = new AtomicInteger
   // In milliseconds
   private val timeBufferForAcceptableRequests = 50
 
@@ -160,6 +161,7 @@ class ThreadPoolMessageExecutor(clientName: Option[String],
     // Log messages that arrive post the GC start period.
     // The check for ~50ms is to filter out the corner case messages that come right at the slot transition time.
     if(enableGcAwareness && isCurrentlyDownToGC(myNode.get.offset.get) && wasDownToGcPreviously(myNode.get.offset.get, timeBufferForAcceptableRequests)) {
+      totalRequestsInGcSlot.incrementAndGet()
       log.warn("Received a request in the node's GC slot, even though the node's slot started at least 50ms ago")
     }
 
@@ -278,6 +280,8 @@ class ThreadPoolMessageExecutor(clientName: Option[String],
     def getCurrentPoolSize: Int
     
     def getActivePoolSize: Int
+
+    def getTotalRequestsInGcSlot: Int
   }
 
   class RequestProcessorMBeanImpl(clientName: Option[String], serviceName: String, val stats: CachedNetworkStatistics[Int, Int], queue: ArrayBlockingQueue[Runnable], threadPool: ThreadPoolExecutor)
@@ -291,6 +295,8 @@ class ThreadPoolMessageExecutor(clientName: Option[String],
     def getCurrentPoolSize = threadPool.getPoolSize
 
     def getActivePoolSize = threadPool.getActiveCount
+
+    def getTotalRequestsInGcSlot = totalRequestsInGcSlot.get.abs
   }
 }
 
