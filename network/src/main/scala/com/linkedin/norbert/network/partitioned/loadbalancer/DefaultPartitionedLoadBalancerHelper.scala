@@ -1,5 +1,5 @@
 /*
- * Copyright 2009-2010 LinkedIn, Inc
+ * Copyright 2009-2015 LinkedIn, Inc
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
@@ -19,20 +19,15 @@ package partitioned
 package loadbalancer
 
 import cluster.{InvalidClusterException, Node}
+import com.linkedin.norbert.network.util.ConcurrentCyclicCounter
 import common.Endpoint
-import java.util.concurrent.atomic.{AtomicBoolean, AtomicInteger}
-import annotation.tailrec
-import client.loadbalancer.LoadBalancerHelpers
+import java.util.concurrent.atomic.AtomicBoolean
 import logging.Logging
 
 /**
  * A mixin trait that provides functionality to help implement a hash based <code>Router</code>.
  */
-trait DefaultLoadBalancerHelper extends LoadBalancerHelpers with Logging {
-  /**
-   * A mapping from partition id to the <code>Node</code>s which can service that partition.
-   */
-  protected val partitionToNodeMap: Map[Int, (IndexedSeq[Endpoint], AtomicInteger, Array[AtomicBoolean])]
+trait DefaultPartitionedLoadBalancerHelper extends PartitionedLoadBalancerHelpers with Logging {
 
   /**
    * Given the currently available <code>Node</code>s and the total number of partitions in the cluster, this method
@@ -45,7 +40,7 @@ trait DefaultLoadBalancerHelper extends LoadBalancerHelpers with Logging {
    * @throws InvalidClusterException thrown if every partition doesn't have at least one available <code>Node</code>
    * assigned to it
    */
-  protected def generatePartitionToNodeMap(nodes: Set[Endpoint], numPartitions: Int, serveRequestsIfPartitionMissing: Boolean): Map[Int, (IndexedSeq[Endpoint], AtomicInteger, Array[AtomicBoolean])] = {
+  def generatePartitionToNodeMap(nodes: Set[Endpoint], numPartitions: Int, serveRequestsIfPartitionMissing: Boolean): Map[Int, (IndexedSeq[Endpoint], ConcurrentCyclicCounter, Array[AtomicBoolean])] = {
     val partitionToNodeMap = (for (n <- nodes; p <- n.node.partitionIds) yield(p, n)).foldLeft(Map.empty[Int, IndexedSeq[Endpoint]]) {
       case (map, (partitionId, node)) => map + (partitionId -> (node +: map.get(partitionId).getOrElse(Vector.empty[Endpoint])))
     }
@@ -66,7 +61,7 @@ trait DefaultLoadBalancerHelper extends LoadBalancerHelpers with Logging {
     partitionToNodeMap.map { case (pId, endPoints) =>
       val states = new Array[AtomicBoolean](endPoints.size)
       (0 to endPoints.size -1).foreach(states(_) = new AtomicBoolean(true))
-      pId -> (endPoints, new AtomicInteger(0), states) 
+      pId -> (endPoints, new ConcurrentCyclicCounter, states)
     }
   }
 
@@ -78,39 +73,42 @@ trait DefaultLoadBalancerHelper extends LoadBalancerHelpers with Logging {
    * @return <code>Some</code> with the <code>Node</code> which can service the partition id, <code>None</code>
    * if there are no available <code>Node</code>s for the partition requested
    */
-  protected def nodeForPartition(partitionId: Int, capability: Option[Long] = None, persistentCapability: Option[Long] = None): Option[Node] = {
+  def nodeForPartition(partitionId: Int, capability: Option[Long] = None, persistentCapability: Option[Long] = None): Option[Node] = {
     partitionToNodeMap.get(partitionId) match {
       case None =>
-        return None
+        None
       case Some((endpoints, counter, states)) =>
-        import math._
         val es = endpoints.size
-        counter.compareAndSet(java.lang.Integer.MAX_VALUE, 0)
         val idx = counter.getAndIncrement
         var i = idx
         var loopCount = 0
         do {
           val endpoint = endpoints(i % es)
-          if(endpoint.canServeRequests && endpoint.node.isCapableOf(capability, persistentCapability)) {
-            compensateCounter(idx, loopCount, counter);
+          if(isEndpointViable(capability, persistentCapability, endpoint)) {
+            counter.compensate(idx, loopCount)
             return Some(endpoint.node)
           }
 
           i = i + 1
           if (i < 0) i = 0
           loopCount = loopCount + 1
-        } while (loopCount <= es)
+        } while (loopCount < es)
 
-        compensateCounter(idx, loopCount, counter);
-        return Some(endpoints(idx % es).node)
+        // To REVIEW: I don't think the compensate counter below is needed. The counter is already incremented when get
+        //            is called the first time, and if no node was found (which is the case when the code below is hit),
+        //            that behaviour should suffice. The below would do the same mod es, and this way we prevent the counter
+        //            hurrying its way to MAX_VALUE. Additionally, I changed the while loop above to < es from <= es, as
+        //            this does one redundant cycle (es + 1 times instead of es times).
+
+//        compensateCounter(idx, loopCount, counter)
+        nodeToReturnWhenNothingViableFound(endpoints, idx)
     }
   }
 
-  def compensateCounter(idx: Int, count:Int, counter:AtomicInteger) {
-    if (idx + 1 + count <= 0) {
-      // Integer overflow
-      counter.set(idx + 1 - java.lang.Integer.MAX_VALUE + count)
-    }
-    counter.set(idx + 1 + count)
+  // Returns the next node in round-robin fashion. Takes in the list of endpoints and the original counter value for that
+  // set of endpoints
+  def nodeToReturnWhenNothingViableFound(endpoints: IndexedSeq[Endpoint], idx: Int): Some[Node] = {
+    val es = endpoints.size
+    Some(endpoints(idx % es).node)
   }
 }

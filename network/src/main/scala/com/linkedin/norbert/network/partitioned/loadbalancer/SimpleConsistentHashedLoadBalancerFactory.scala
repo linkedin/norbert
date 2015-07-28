@@ -1,5 +1,5 @@
 /*
- * Copyright 2009-2010 LinkedIn, Inc
+ * Copyright 2009-2015 LinkedIn, Inc
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
@@ -19,6 +19,7 @@ package network
 package partitioned
 package loadbalancer
 
+import com.linkedin.norbert.network.client.loadbalancer.LoadBalancerHelpers
 import common.Endpoint
 import java.util.TreeMap
 import cluster.{Node, InvalidClusterException}
@@ -44,7 +45,7 @@ class SimpleConsistentHashedLoadBalancerFactory[PartitionedId](numReplicas: Int,
       }
     }
 
-    return new SimpleConsistentHashedLoadBalancer(wheel, hashFn)
+    new SimpleConsistentHashedLoadBalancer(wheel, hashFn)
   }
 
   def getNumPartitions(endpoints: Set[Endpoint]) = {
@@ -52,7 +53,7 @@ class SimpleConsistentHashedLoadBalancerFactory[PartitionedId](numReplicas: Int,
   }
 }
 
-class SimpleConsistentHashedLoadBalancer[PartitionedId](wheel: TreeMap[Int, Endpoint], hashFn: PartitionedId => Int) extends PartitionedLoadBalancer[PartitionedId] {
+class SimpleConsistentHashedLoadBalancer[PartitionedId](wheel: TreeMap[Int, Endpoint], hashFn: PartitionedId => Int) extends PartitionedLoadBalancer[PartitionedId] with LoadBalancerHelpers {
 
   def nodesForOneReplica(id: PartitionedId, capability: Option[Long] = None, persistentCapability: Option[Long] = None) = throw new UnsupportedOperationException
 
@@ -61,6 +62,6 @@ class SimpleConsistentHashedLoadBalancer[PartitionedId](wheel: TreeMap[Int, Endp
   def nodesForPartitions(id: PartitionedId, partitions: Set[Int], capability: Option[Long] = None, persistentCapability: Option[Long] = None) = throw new UnsupportedOperationException
 
   def nextNode(id: PartitionedId, capability: Option[Long], persistentCapability: Option[Long]): Option[Node] = {
-    PartitionUtil.searchWheel(wheel, hashFn(id), (e: Endpoint) => e.canServeRequests && e.node.isCapableOf(capability, persistentCapability)).map(_.node)
+    PartitionUtil.searchWheel(wheel, hashFn(id), (e: Endpoint) => isEndpointViable(capability, persistentCapability, e)).map(_.node)
   }
 }

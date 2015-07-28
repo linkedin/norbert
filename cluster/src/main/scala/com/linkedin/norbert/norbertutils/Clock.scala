@@ -38,6 +38,6 @@ object SystemClock extends Clock {
   def getCurrentTimeMilliseconds = System.currentTimeMillis
 }
 
-object SystemClockComponent extends ClockComponent {
+trait SystemClockComponent extends ClockComponent {
   val clock = SystemClock
 }

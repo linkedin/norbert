@@ -149,7 +149,12 @@ class ServerChannelHandler(clientName: Option[String],
     catch {
       case ex: HeavyLoadException =>
         Channels.write(ctx, Channels.future(channel), (context, ResponseHelper.errorResponse(context.requestId, ex, NorbertProtos.NorbertMessage.Status.HEAVYLOAD)))
-        statsActor.endRequest(0, context.requestId) 
+        statsActor.endRequest(0, context.requestId)
+
+      case ex: GcException =>
+        Channels.write(ctx, Channels.future(channel), (context, ResponseHelper.errorResponse(context.requestId, ex, NorbertProtos.NorbertMessage.Status.GC)))
+        statsActor.endRequest(0, context.requestId)
+
     }
   }
 
