@@ -99,5 +99,6 @@ class ResponseProcessorMBeanImpl(clientName: Option[String], serviceName: String
 abstract class DarkCanaryResponseHandler()
 {
   def initialize() {}
+  def downstreamCallback(requestId: UUID, productionRequest: Request[Any, Any], darkCanaryRequest: Request[Any, Any]) {}
   def upstreamCallback(isDark: Boolean, requestId: UUID, request: Request[Any, Any], response: NorbertProtos.NorbertMessage);
 }
