@@ -172,6 +172,8 @@ class DarkCanaryChannelHandler extends Logging {
                       hostRequestMap.put(request.id, request)
                       hostToMirror.put(request.id, newRequest.id)
                       mirrorToHost.put(newRequest.id, request.id)
+
+                      responseHandler.downstreamCallback(request.id, request, newRequest)
                     }
                     case None =>
                   }
