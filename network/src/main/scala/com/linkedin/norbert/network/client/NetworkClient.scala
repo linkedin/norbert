@@ -24,7 +24,7 @@ import server.{MessageExecutorComponent, NetworkServer}
 import cluster._
 import network.common._
 import network.client.DarkCanaryResponseHandler
-import netty.NettyNetworkClient
+import com.linkedin.norbert.network.netty.{ClientStatisticsRequestStrategy, ClientChannelHandler, NettyNetworkClient}
 
 object NetworkClientConfig {
   var defaultIteratorTimeout = NetworkDefaults.DEFAULT_ITERATOR_TIMEOUT;
@@ -69,6 +69,8 @@ class NetworkClientConfig {
   var darkCanaryResponseHandler: Option[DarkCanaryResponseHandler] = None
   var retryStrategy:Option[RetryStrategy] = None 
   var duplicatesOk:Boolean = false
+
+  var routingAwayCallback: Option[ClientStatisticsRequestStrategy.RoutingAwayCallback] = None
 }
 
 object NetworkClient {

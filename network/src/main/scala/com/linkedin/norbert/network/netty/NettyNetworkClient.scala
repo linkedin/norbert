@@ -67,7 +67,8 @@ abstract class BaseNettyNetworkClient(clientConfig: NetworkClientConfig) extends
     outlierConstant = clientConfig.outlierConstant,
     responseHandler = responseHandler,
     avoidByteStringCopy = clientConfig.avoidByteStringCopy,
-    stats = stats)
+    stats = stats,
+    routeAway = clientConfig.routingAwayCallback)
 
   private val darkCanaryHandler = new DarkCanaryChannelHandler()
 
