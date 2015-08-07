@@ -3,12 +3,12 @@ package com.linkedin.norbert.network.partitioned.loadbalancer
 import com.linkedin.norbert.network.common.Endpoint
 import java.util.TreeMap
 import com.linkedin.norbert.cluster.{Node, InvalidClusterException}
-import com.linkedin.norbert.logging.Logging
-import com.linkedin.norbert.network.client.loadbalancer.LoadBalancerHelpers
-import java.util.concurrent.atomic.{AtomicBoolean, AtomicInteger}
+import java.util.concurrent.atomic.AtomicBoolean
+
+import com.linkedin.norbert.network.util.ConcurrentCyclicCounter
 
 /*
-* Copyright 2009-2010 LinkedIn, Inc
+* Copyright 2009-2015 LinkedIn, Inc
 *
 * Licensed under the Apache License, Version 2.0 (the "License"); you may not
 * use this file except in compliance with the License. You may obtain a copy of
@@ -79,7 +79,7 @@ class PartitionedConsistentHashedLoadBalancerFactory[PartitionedId](numPartition
 }
 
 class PartitionedConsistentHashedLoadBalancer[PartitionedId](numPartitions: Int, wheels: Map[Int, TreeMap[Int, Endpoint]], hashFn: PartitionedId => Int, serveRequestsIfPartitionMissing: Boolean = true)
-        extends PartitionedLoadBalancer[PartitionedId] with DefaultLoadBalancerHelper {
+        extends PartitionedLoadBalancer[PartitionedId] with DefaultPartitionedLoadBalancerHelper {
   import scala.collection.JavaConversions._
   val endpoints = wheels.values.flatMap(_.values).toSet
   val partitionToNodeMap = generatePartitionToNodeMap(endpoints, numPartitions, serveRequestsIfPartitionMissing)
@@ -128,7 +128,7 @@ class PartitionedConsistentHashedLoadBalancer[PartitionedId](numPartitions: Int,
     }
   }  
   
-  private def nodesForPartitions0(partitionToNodeMap: Map[Int, (IndexedSeq[Endpoint], AtomicInteger, Array[AtomicBoolean])], capability: Option[Long], persistentCapability: Option[Long] = None) = {
+  private def nodesForPartitions0(partitionToNodeMap: Map[Int, (IndexedSeq[Endpoint], ConcurrentCyclicCounter, Array[AtomicBoolean])], capability: Option[Long], persistentCapability: Option[Long] = None) = {
     partitionToNodeMap.keys.foldLeft(Map.empty[Node, Set[Int]]) { (map, partition) =>
       val nodeOption = nodeForPartition(partition, capability, persistentCapability)
       if(nodeOption isDefined) {

@@ -137,7 +137,7 @@ trait NetworkServer extends Logging {
    *
    * @throws NetworkingException thrown if unable to bind
    */
-  private def bindNode(node: Node, markAvailable: Boolean, initialCapability: Long = 0L): Unit = doIfNotShutdown {
+  protected def bindNode(node: Node, markAvailable: Boolean, initialCapability: Long = 0L): Unit = doIfNotShutdown {
     clusterIoServer.bind(node, true)
 
     nodeOption = Some(node)

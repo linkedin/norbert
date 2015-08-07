@@ -1,5 +1,5 @@
 /*
- * Copyright 2009-2010 LinkedIn, Inc
+ * Copyright 2009-2015 LinkedIn, Inc
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
@@ -40,11 +40,12 @@ object Node {
     try {
       val node = NorbertProtos.Node.newBuilder.mergeFrom(bytes).build
       val partitions = node.getPartitionList.asInstanceOf[java.util.List[Int]].foldLeft(Set[Int]()) { (set, i) => set + i }
+      val offset = if(node.hasOffset && node.getOffset >= 0) Some(node.getOffset) else None
 
       if(!node.hasPersistentCapability)
-        Node(node.getId, node.getUrl, available, partitions, capability, None)
+        Node(node.getId, node.getUrl, available, partitions, capability, None, offset)
       else
-        Node(node.getId, node.getUrl, available, partitions, capability, Some(node.getPersistentCapability))
+        Node(node.getId, node.getUrl, available, partitions, capability, Some(node.getPersistentCapability), offset)
     } catch {
       case ex: InvalidProtocolBufferException => throw new InvalidNodeException("Error deserializing node", ex)
     }
@@ -60,8 +61,12 @@ object Node {
   implicit def nodeToByteArray(node: Node): Array[Byte] = {
     val builder = NorbertProtos.Node.newBuilder
     node.persistentCapability match {
-      case None => builder.setId(node.id).setUrl(node.url)
       case Some(x) => builder.setId(node.id).setUrl(node.url).setPersistentCapability(x)
+      case None => builder.setId(node.id).setUrl(node.url)
+    }
+    node.offset match {
+      case Some(x) => builder.setOffset(x)
+      case None =>
     }
     node.partitionIds.foreach(builder.addPartition(_))
 
@@ -77,8 +82,10 @@ object Node {
  * @param available whether or not the node is currently able to process requests
  * @param partitions the partitions for which the node can handle requests
  * @param capability the 64 bits Long representing up to 64 node capabilities
+ * @param offset the offset in the time cycle at which this node goes in to garbage collect. Used only
+ *               by GC-aware load balancers.
  */
-final case class Node(id: Int, url: String, available: Boolean, partitionIds: Set[Int] = Set.empty, capability: Option[Long] = None, persistentCapability: Option[Long] = None) {
+final case class Node(id: Int, url: String, available: Boolean, partitionIds: Set[Int] = Set.empty, capability: Option[Long] = None, persistentCapability: Option[Long] = None, offset: Option[Int] = None) {
   if (url == null) throw new NullPointerException("url must not be null")
   if (partitionIds == null) throw new NullPointerException("partitions must not be null")
 
@@ -89,7 +96,7 @@ final case class Node(id: Int, url: String, available: Boolean, partitionIds: Se
     case _ => false
   }
 
-  override def toString = "Node(%d,%s,[%s],%b,0x%08X,0x%08X)".format(id, url, partitionIds.mkString(","), available, if (capability.isEmpty) 0L else capability.get, if (persistentCapability.isEmpty) 0L else persistentCapability.get)
+  override def toString = "Node(%d,%s,[%s],%b,0x%08X,0x%08X,%d)".format(id, url, partitionIds.mkString(","), available, if (capability.isEmpty) 0L else capability.get, if (persistentCapability.isEmpty) 0L else persistentCapability.get, if (offset.isEmpty) -1 else offset.get)
 
   def isCapableOf(c: Option[Long], pc: Option[Long]) : Boolean = {
     val capabilityMatch: Boolean = (capability, c) match {
