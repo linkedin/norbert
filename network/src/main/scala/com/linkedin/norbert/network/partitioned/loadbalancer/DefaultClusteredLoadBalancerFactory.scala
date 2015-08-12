@@ -208,7 +208,6 @@ abstract class DefaultClusteredLoadBalancer[PartitionedId](endpoints: Set[Endpoi
         //            (and while building the original partitionToNode map).
         //            This part only affects 'nodesForPartitionedIdsInNReplicas'
         if (anyNodeServingPartition.nonEmpty) {
-          log.info("Couldn't find a node in that cluster. Returning node " + anyNodeServingPartition.get.id)
           anyNodeServingPartition.get
         }
         else {
