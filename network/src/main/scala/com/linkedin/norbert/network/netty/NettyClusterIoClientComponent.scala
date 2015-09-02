@@ -20,7 +20,7 @@ package netty
 import java.net.InetSocketAddress
 import java.util.concurrent.{ConcurrentHashMap}
 import org.jboss.netty.channel.{Channels, ChannelPipelineFactory}
-import cluster.Node
+import com.linkedin.norbert.cluster.{InvalidNodeException, Node}
 import logging.Logging
 import common._
 import norbertutils.SystemClock
@@ -30,20 +30,26 @@ import norbertutils.SystemClock
  */
 trait NettyClusterIoClientComponent extends ClusterIoClientComponent {
 
-  class NettyClusterIoClient(channelPoolFactory: ChannelPoolFactory, strategy: CanServeRequestStrategy) extends ClusterIoClient with UrlParser with Logging {
+  class NettyClusterIoClient(channelPoolFactory: ChannelPoolFactory, strategy: CanServeRequestStrategy, maxRetries: Int = 3)
+          extends ClusterIoClient with UrlParser with Logging {
     private val channelPools = new ConcurrentHashMap[Node, ChannelPool]
 
     def sendMessage[RequestMsg, ResponseMsg](node: Node, request: Request[RequestMsg, ResponseMsg]) {
       if (node == null || request == null) throw new NullPointerException
-
-      val pool = getChannelPool(node)
-      try {
-        pool.sendRequest(request)
-      } catch {
-        case ex: ChannelPoolClosedException =>
-          // ChannelPool was closed, try again
-          sendMessage(node, request)
+      for (_ <- 1 to maxRetries) {
+        val pool = getChannelPool(node)
+        try {
+          pool.sendRequest(request)
+          return
+        } catch {
+          case ex: ChannelPoolClosedException => {
+            // ChannelPool was closed. Remove entry and try again.
+            channelPools.remove(node)
+          }
+        }
       }
+      val errorMessage = "Failed to send request to %s after trying %d times!".format(node, maxRetries)
+      throw new InvalidNodeException(errorMessage)
     }
 
     def getChannelPool(node: Node): ChannelPool = {

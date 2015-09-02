@@ -17,12 +17,16 @@ package com.linkedin.norbert
 package network
 package netty
 
-import org.specs.SpecificationWithJUnit
+
 import java.net.InetSocketAddress
-import org.specs.util.WaitFor
+import java.util.UUID
+
+import com.linkedin.norbert.cluster.{InvalidNodeException, Node}
+import com.linkedin.norbert.network.common.{AlwaysAvailableRequestStrategy, CachedNetworkStatistics}
+import org.jboss.netty.bootstrap.ClientBootstrap
+import org.specs.SpecificationWithJUnit
 import org.specs.mock.Mockito
-import cluster.{InvalidNodeException, Node}
-import common.AlwaysAvailableRequestStrategy
+import org.specs.util.WaitFor
 
 class NettyClusterIoClientComponentSpec extends SpecificationWithJUnit with Mockito with WaitFor with NettyClusterIoClientComponent {
   val messageRegistry = null
@@ -39,8 +43,6 @@ class NettyClusterIoClientComponentSpec extends SpecificationWithJUnit with Mock
     "create a new ChannelPool if no pool is available" in {
       doNothing.when(channelPool).sendRequest(any[Request[_, _]])
       channelPoolFactory.newChannelPool(address) returns channelPool
-
-
 
       clusterIoClient.sendMessage(node, mock[Request[_, _]])
 
@@ -95,6 +97,14 @@ class NettyClusterIoClientComponentSpec extends SpecificationWithJUnit with Mock
         one(channelPool).close
         one(channelPoolFactory).shutdown
       }
+    }
+
+    "retry sending a request a fixed number of times" in {
+      // we need an actual ChannelPool object here as we have to invoke the close method on it.
+      val dummyPool = new ChannelPoolFactory(1, 1, 1, mock[ClientBootstrap], None, 1, 1, 1L, mock[CachedNetworkStatistics[Node, UUID]]).newChannelPool(address)
+      dummyPool.close
+      channelPoolFactory.newChannelPool(address) returns dummyPool
+      clusterIoClient.sendMessage(node, mock[Request[_, _]]) must throwA[InvalidNodeException]
     }
   }
 }
