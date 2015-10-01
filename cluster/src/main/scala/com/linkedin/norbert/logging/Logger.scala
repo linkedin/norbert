@@ -131,6 +131,15 @@ class Logger(wrapped: l4jLogger) {
    */
   def fatal(cause: Throwable, msg: => String) = log(FATAL, msg, cause)
 
+  /**
+   * Check whether this category is enabled for a given level passed as parameter.
+   * @param level <code>level</code> parameter to check.
+   * @return boolean True if this category is enabled for <code>level</code>.
+   */
+  def isEnabledFor(level: Level): Boolean = {
+    wrapped.isEnabledFor(level)
+  }
+
   private def log(level: Level, msg: => String, cause: Throwable = null) = {
     if (wrapped.isEnabledFor(level)) wrapped.log(fqcn, level, msg, cause)
   }
