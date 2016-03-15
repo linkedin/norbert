@@ -17,7 +17,7 @@
 package com.linkedin.norbert.network.netty
 
 import org.specs.SpecificationWithJUnit
-import com.linkedin.norbert.network.common.{ClusterIoClientComponent, SampleMessage}
+import com.linkedin.norbert.network.common.{CanServeRequestStrategy, ClusterIoClientComponent, SampleMessage}
 import com.linkedin.norbert.cluster.Node
 import com.linkedin.norbert.network.client.NetworkClientConfig
 import org.jboss.netty.channel.{ChannelFuture, MessageEvent, ChannelHandlerContext, Channel}
@@ -36,7 +36,9 @@ class DarkCanaryChannelHandlerSpec extends SpecificationWithJUnit with Mockito w
   val darkCanaryHandler= new DarkCanaryChannelHandler()
   val clientConfig = new NetworkClientConfig
   clientConfig.clientName = "foobar"
-  darkCanaryHandler.initialize(clientConfig, mockClusterIoClient)
+  darkCanaryHandler.initialize(clientConfig, mockClusterIoClient, new CanServeRequestStrategy {
+    override def canServeRequest(node: Node): Boolean = return "localhost:1235".equals(node.url)
+  })
 
   def getMessageEvent(ctx: ChannelHandlerContext, request: Request[Ping, Ping]) : MessageEvent = {
     val writeEvent = mock[MessageEvent]
@@ -76,6 +78,15 @@ class DarkCanaryChannelHandlerSpec extends SpecificationWithJUnit with Mockito w
     "not mirror request when incoming node and configured nodes do not match" in {
       val downstreamHandler = new darkCanaryHandler.DownStreamHandler
       darkCanaryHandler.addNode(Node(2, "localhost:1235", true))
+      writeRequest(downstreamHandler)
+      darkCanaryHandler.getInFlightRequestIds.size mustEq 0
+      org.mockito.Mockito.verify(mockClusterIoClient, org.mockito.Mockito.times(0))
+        .sendMessage(any[Node], any[Request[Ping,Ping]])
+    }
+
+    "not mirror request when the dark host cannot serve request" in {
+      val downstreamHandler = new darkCanaryHandler.DownStreamHandler
+      darkCanaryHandler.addNode(Node(1, "localhost:1236", true))
       writeRequest(downstreamHandler)
       darkCanaryHandler.getInFlightRequestIds.size mustEq 0
       org.mockito.Mockito.verify(mockClusterIoClient, org.mockito.Mockito.times(0))

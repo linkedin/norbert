@@ -19,7 +19,7 @@ package com.linkedin.norbert.network.netty
 import org.jboss.netty.channel._
 import com.linkedin.norbert.logging.Logging
 import com.linkedin.norbert.network.Request
-import com.linkedin.norbert.network.common.ClusterIoClientComponent
+import com.linkedin.norbert.network.common.{CanServeRequestStrategy, ClusterIoClientComponent}
 import com.linkedin.norbert.cluster._
 import java.util.concurrent.{ConcurrentHashMap => JConcurrentHashMap, ScheduledThreadPoolExecutor, TimeUnit}
 import java.util.UUID
@@ -61,8 +61,8 @@ import com.linkedin.norbert.network.client.DarkCanaryResponseHandler
 
 
 class DarkCanaryChannelHandler extends Logging {
-  private val hostToMirror = new JConcurrentHashMap[UUID, UUID]() 
-  private val mirrorToHost = new JConcurrentHashMap[UUID, UUID]() 
+  private val hostToMirror = new JConcurrentHashMap[UUID, UUID]()
+  private val mirrorToHost = new JConcurrentHashMap[UUID, UUID]()
   private val hostRequestMap = new JConcurrentHashMap[UUID, Request[Any,Any]]()
   private val mirrorRequestMap = new JConcurrentHashMap[UUID, Request[Any,Any]]()
   private val mirroredHosts= new JConcurrentHashMap[Int, Node]()
@@ -72,12 +72,16 @@ class DarkCanaryChannelHandler extends Logging {
   private var staleRequestTimeoutMins : Int = 0
   private var staleRequestCleanupFrequencyMins : Int = 0
   private var darkCanaryResponseHandler: Option[DarkCanaryResponseHandler] = None
+  private var canServeRequestStrategy : Option[CanServeRequestStrategy] = None
 
   class DarkCanaryException(message: String) extends Exception(message)
 
-  def initialize(clientConfig : NetworkClientConfig, clusterIoClient_ : ClusterIoClientComponent#ClusterIoClient) = {
+  def initialize(clientConfig : NetworkClientConfig,
+                 clusterIoClient_ : ClusterIoClientComponent#ClusterIoClient,
+                 strategy : CanServeRequestStrategy) = {
     clusterIoClient = Some(clusterIoClient_)
     darkCanaryResponseHandler =  clientConfig.darkCanaryResponseHandler
+    canServeRequestStrategy = Some(strategy)
 
     // The configuration variables below determine the minimum age for cleaning up the Request objects in the
     // mirrorRequestMap. The clientConfig.{staleRequestTimeoutMins,staleRequestCleanupFrequenceMins} are the values used in
@@ -158,34 +162,36 @@ class DarkCanaryChannelHandler extends Logging {
               val mirroredNode = mirroredHosts.get(request.node.id)
               if (request.node.url != mirroredNode.url) {
                 // This is a production request which we have to mirror.
-                try {
-                  log.debug("mirroring message from : %s to %s".format(request.node.url, mirroredNode.url))
-                  val newRequest = Request(request.message,
-                    mirroredNode,
-                    request.inputSerializer,
-                    request.outputSerializer,
-                    None,
-                    0)
+                if (canServeRequestStrategy.get.canServeRequest(mirroredNode)) {
+                  try {
+                    log.debug("mirroring message from : %s to %s".format(request.node.url, mirroredNode.url))
+                    val newRequest = Request(request.message,
+                      mirroredNode,
+                      request.inputSerializer,
+                      request.outputSerializer,
+                      None,
+                      0)
 
-                  darkCanaryResponseHandler match {
-                    case Some(responseHandler) => {
-                      hostRequestMap.put(request.id, request)
-                      hostToMirror.put(request.id, newRequest.id)
-                      mirrorToHost.put(newRequest.id, request.id)
+                    darkCanaryResponseHandler match {
+                      case Some(responseHandler) => {
+                        hostRequestMap.put(request.id, request)
+                        hostToMirror.put(request.id, newRequest.id)
+                        mirrorToHost.put(newRequest.id, request.id)
 
-                      responseHandler.downstreamCallback(request.id, request, newRequest)
+                        responseHandler.downstreamCallback(request.id, request, newRequest)
+                      }
+                      case None =>
                     }
-                    case None =>
-                  }
 
-                  mirrorRequestMap.put(newRequest.id, newRequest)
-                  clusterIoClient.get.sendMessage(newRequest.node, newRequest)
-                }
-                catch {
-                  case e : Exception => {
-                    log.error("Exception while mirroring request to %s. Message: %s".format(mirroredNode.url,
-                      e.getMessage))
-                    log.error("Stack trace : %s".format(e.getStackTraceString))
+                    mirrorRequestMap.put(newRequest.id, newRequest)
+                    clusterIoClient.get.sendMessage(newRequest.node, newRequest)
+                  }
+                  catch {
+                    case e: Exception => {
+                      log.error("Exception while mirroring request to %s. Message: %s".format(mirroredNode.url,
+                        e.getMessage))
+                      log.error("Stack trace : %s".format(e.getStackTraceString))
+                    }
                   }
                 }
               }

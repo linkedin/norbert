@@ -148,7 +148,7 @@ abstract class BaseNettyNetworkClient(clientConfig: NetworkClientConfig) extends
 
   val clusterIoClient = new NettyClusterIoClient(channelPoolFactory, strategy)
   clientConfig.darkCanaryServiceName match {
-    case Some(serviceName) => darkCanaryHandler.initialize(clientConfig, clusterIoClient)
+    case Some(serviceName) => darkCanaryHandler.initialize(clientConfig, clusterIoClient, strategy)
     case None => // Do nothing. We initialize dark canaries only if a dark canary service name is specified.
   }
 
