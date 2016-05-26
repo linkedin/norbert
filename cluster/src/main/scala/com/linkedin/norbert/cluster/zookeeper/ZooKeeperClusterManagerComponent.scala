@@ -47,7 +47,7 @@ trait ZooKeeperClusterManagerComponent extends ClusterManagerComponent {
     private val AVAILABILITY_NODE = SERVICE_NODE + "/available"
     private val MEMBERSHIP_NODE = SERVICE_NODE + "/members"
 
-    private val currentNodes = scala.collection.mutable.Map[Int, Node]()
+    private var currentNodes = scala.collection.mutable.Map[Int, Node]()
     private var zooKeeper: Option[ZooKeeper] = None
     private var watcher: ClusterWatcher = _
     def getWatcher():ClusterWatcher = {watcher}
@@ -94,7 +94,7 @@ trait ZooKeeperClusterManagerComponent extends ClusterManagerComponent {
 
           case NodeDeleted(path) => if (path.equals(MEMBERSHIP_NODE) || path.equals(AVAILABILITY_NODE)) {
             //zookeeper data corrupted
-            log.fatal("Received a zookeeper corruption message")    
+            log.fatal("Received a zookeeper corruption message")
           } else if (path.startsWith(MEMBERSHIP_NODE) || path.startsWith(AVAILABILITY_NODE)) {
             log.info("Received an event where a node was deleted:%s".format(path))
           } else {
@@ -273,10 +273,10 @@ trait ZooKeeperClusterManagerComponent extends ClusterManagerComponent {
         None
       }
     }
-    
+
     private def handleSetNodeCapability(nodeId: Int, capability: Long) {
       log.debug("Handling a SetNodeCapability (%d) message".format(nodeId))
-      
+
       doIfConnectedWithZooKeeperWithResponse("a SetNodeCapability message", "setting node capability "+ capability) {  zk =>
         val path = "%s/%d".format(AVAILABILITY_NODE, nodeId)
         if (zk.exists(path, false) !=null) {
@@ -371,23 +371,23 @@ trait ZooKeeperClusterManagerComponent extends ClusterManagerComponent {
       val members = zk.getChildren(MEMBERSHIP_NODE, true)
       val available = zk.getChildren(AVAILABILITY_NODE, true)
 
-      currentNodes.clear
-
-      members.foreach { member =>
+      // currentNodes is not changed if some unexpected exception happens
+      currentNodes = members.foldLeft(scala.collection.mutable.Map[Int, Node]()) {(nodes, member) =>
         val id = member.toInt
-        currentNodes += {id ->
-                {
-                  val capabilityOption = if (available.contains(member)) {
-                    try {
-                      val cbytes : Array[Byte] = zk.getData("%s/%d".format(AVAILABILITY_NODE, id), false, null)
-                      if (cbytes != null) Some(BigInt(cbytes).longValue) else Some(0L)
-                    } catch {
-                      case ex: KeeperException if ex.code == KeeperException.Code.NONODE => Some(0L)
-                    }
-                  } else None
+        val capabilityOption = if (available.contains(member)) {
+          try {
+            val cbytes : Array[Byte] = zk.getData("%s/%d".format(AVAILABILITY_NODE, id), false, null)
+            if (cbytes != null) Some(BigInt(cbytes).longValue) else Some(0L)
+          } catch {
+            case ex: KeeperException if ex.code == KeeperException.Code.NONODE => Some(0L)
+          }
+        } else None
 
-                  Node(id, zk.getData("%s/%s".format(MEMBERSHIP_NODE, member), watcher, null), available.contains(member), capabilityOption)
-                }
+        try {
+          nodes += (id -> Node(id, zk.getData("%s/%s".format(MEMBERSHIP_NODE, member), watcher, null), available.contains(member), capabilityOption))
+        } catch {
+          // it's possible that the node is deleted after the getChildren call
+          case ex: KeeperException if ex.code == KeeperException.Code.NONODE => nodes
         }
       }
     }
@@ -399,7 +399,7 @@ trait ZooKeeperClusterManagerComponent extends ClusterManagerComponent {
     private def makeNodeUnavailable(nodeId: Int) {
       currentNodes.get(nodeId).foreach { n => if (n.available) currentNodes.update(n.id, n.copy(available = false, capability = None)) }
     }
-    
+
     private def setNodeCapability(nodeId: Int, capability: Long) {
       currentNodes.get(nodeId).filter( _.available).map { n => currentNodes.update(n.id, n.copy(capability = Some(capability))) }
     }
