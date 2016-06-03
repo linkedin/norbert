@@ -171,6 +171,7 @@ class DarkCanaryChannelHandler extends Logging {
                       request.outputSerializer,
                       None,
                       0)
+                    request.headers.foreach{kv_pair => newRequest.addHeader(kv_pair._1, kv_pair._2)}
 
                     darkCanaryResponseHandler match {
                       case Some(responseHandler) => {
