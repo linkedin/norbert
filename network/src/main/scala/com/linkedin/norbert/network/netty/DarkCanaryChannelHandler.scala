@@ -154,6 +154,16 @@ class DarkCanaryChannelHandler extends Logging {
   }
 
   class DownStreamHandler extends SimpleChannelDownstreamHandler {
+    def createMirrorRequest(request: Request[Any, Any], mirroredNode: Node) : Request[Any, Any] = {
+      val mirrorRequest = Request(request.message,
+      mirroredNode,
+      request.inputSerializer,
+      request.outputSerializer,
+      None,
+      0)
+      request.headers.foreach{kv_pair => mirrorRequest.addHeader(kv_pair._1, kv_pair._2)}
+      mirrorRequest
+    }
     override def writeRequested(ctx: ChannelHandlerContext, msg: MessageEvent) {
       if (!mirroredHosts.isEmpty) {
         msg.getMessage match {
@@ -165,13 +175,7 @@ class DarkCanaryChannelHandler extends Logging {
                 if (canServeRequestStrategy.get.canServeRequest(mirroredNode)) {
                   try {
                     log.debug("mirroring message from : %s to %s".format(request.node.url, mirroredNode.url))
-                    val newRequest = Request(request.message,
-                      mirroredNode,
-                      request.inputSerializer,
-                      request.outputSerializer,
-                      None,
-                      0)
-                    request.headers.foreach{kv_pair => newRequest.addHeader(kv_pair._1, kv_pair._2)}
+                    val newRequest = createMirrorRequest(request, mirroredNode)
 
                     darkCanaryResponseHandler match {
                       case Some(responseHandler) => {
