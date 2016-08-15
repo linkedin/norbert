@@ -223,10 +223,10 @@ class DarkCanaryChannelHandler extends Logging {
                 darkCanaryResponseHandler match {
                   case Some(responseHandler) => {
                     mirrorToHost.remove(requestId) match {
+                      case null => log.error("Could not find hostRequestId for darkCanaryRequestId: %s".format(requestId.toString))
                       case hostRequestId => {
                         responseHandler.upstreamCallback(true, hostRequestId, request, message)
                       }
-                      case null => log.error("Could not find hostRequestId for darkCanaryRequestId: %s".format(requestId.toString))
                     }
                   }
                   case None =>

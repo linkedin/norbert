@@ -366,14 +366,14 @@ class SelectiveRetryIterator[PartitionedId, RequestMsg, ResponseMsg](
     while(true) {
       queue.poll(0, TimeUnit.MILLISECONDS) match {
        case null => return false
-       case e: Throwable => throw e;
-       case f: Tuple3[Node, Set[PartitionedId], ResponseMsg] => entry = f
+       case Left(e) => throw e
+       case Right(f) => entry = f
        case _ => return false
       } 
       if(isValidQueueEntry(entry._1, entry._2))
         return true
     }
-    return false
+    false
   }
 
   /**
@@ -393,8 +393,8 @@ class SelectiveRetryIterator[PartitionedId, RequestMsg, ResponseMsg](
         case f => {
           var e:Tuple3[Node, Set[PartitionedId], ResponseMsg] = null
           f match {
-		case g:Throwable => throw g;
-                case h:Tuple3[Node, Set[PartitionedId], ResponseMsg] => e = h
+		            case Left(g) => throw g
+                case Right(h) => e = h
                 case _ => return null.asInstanceOf[ResponseMsg] 
           }
           if(isValidQueueEntry(e._1, e._2)) {
