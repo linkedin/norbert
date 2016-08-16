@@ -216,7 +216,13 @@ class ClientStatisticsRequestStrategy(val stats: CachedNetworkStatistics[Node, U
 
       if (!available) {
         routeAway match {
-          case Some(callback) => callback(n, nodeMedian, clusterMedian)
+          case Some(callback) =>
+            try {
+              callback(n, nodeMedian, clusterMedian)
+            } catch {
+              case ex: Exception =>
+                log.error(ex, "Error when executing routing away callback")
+            }
           case None =>
             log.info("Node %s has a median response time of %f. The cluster response time is %f. Routing requests away temporarily.".format(n, nodeMedian, clusterMedian))
         }
