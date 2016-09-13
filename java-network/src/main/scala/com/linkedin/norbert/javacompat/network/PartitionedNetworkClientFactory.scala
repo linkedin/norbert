@@ -7,7 +7,8 @@ package com.linkedin.norbert.javacompat.network
 class PartitionedNetworkClientFactory[PartitionedId](serviceName: String, zooKeeperConnectString: String,
                                                      zooKeeperSessionTimeoutMillis: Int,
                                                      closeChannelTimeMillis: Long, norbertOutlierMultiplier: Double, norbertOutlierConstant: Double,
-                                                     partitionedLoadBalancerFactory: PartitionedLoadBalancerFactory[PartitionedId])
+                                                     partitionedLoadBalancerFactory: PartitionedLoadBalancerFactory[PartitionedId],
+                                                     enableNorbertReroutingStrategies: Boolean = true)
 {
   val config = new NetworkClientConfig
 
@@ -17,6 +18,7 @@ class PartitionedNetworkClientFactory[PartitionedId](serviceName: String, zooKee
   config.setCloseChannelTimeMillis(closeChannelTimeMillis);
   config.setOutlierMuliplier(norbertOutlierMultiplier);
   config.setOutlierConstant(norbertOutlierConstant);
+  config.setEnableNorbertReroutingStrategies(enableNorbertReroutingStrategies);
 
   def createPartitionedNetworkClient(): PartitionedNetworkClient[PartitionedId] =
   {

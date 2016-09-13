@@ -31,6 +31,7 @@ import protos.NorbertProtos
 import org.jboss.netty.channel.{ChannelPipelineFactory, Channels}
 import client.{ThreadPoolResponseHandler, ResponseHandlerComponent, NetworkClient, NetworkClientConfig}
 import com.linkedin.norbert.network.common.{CachedNetworkStatistics, CompositeCanServeRequestStrategy, SimpleBackoffStrategy, BaseNetworkClient}
+import com.linkedin.norbert.network.common.{AlwaysAvailableRequestStrategy}
 import java.util.{Map => JMap, UUID}
 import jmx.JMX
 import jmx.JMX.MBean
@@ -68,7 +69,8 @@ abstract class BaseNettyNetworkClient(clientConfig: NetworkClientConfig) extends
     responseHandler = responseHandler,
     avoidByteStringCopy = clientConfig.avoidByteStringCopy,
     stats = stats,
-    routeAway = clientConfig.routingAwayCallback)
+    routeAway = clientConfig.routingAwayCallback,
+    enableNorbertReroutingStrategies = clientConfig.enableNorbertReroutingStrategies)
 
   private val darkCanaryHandler = new DarkCanaryChannelHandler()
 
@@ -131,7 +133,10 @@ abstract class BaseNettyNetworkClient(clientConfig: NetworkClientConfig) extends
     def getNumNodesDown = endpoints.filter(e => !e.canServeRequests).size
   })
 
-  val channelPoolStrategy = new SimpleBackoffStrategy(SystemClock)
+  // channelPoolStrategy is to check error when opening a channel to a node.
+  // Therefore, we should always enable Norbert Rerouting if there is an error opening a channel.
+  // enableNorbertReroutingStrategies = true
+  val channelPoolStrategy = new SimpleBackoffStrategy(SystemClock, true)
   val clientChannelStrategy = handler.strategy // TODO: Carefully consider making this strategy a constructor for the ClientChannelHandler
 
   val strategy = CompositeCanServeRequestStrategy(channelPoolStrategy, clientChannelStrategy)

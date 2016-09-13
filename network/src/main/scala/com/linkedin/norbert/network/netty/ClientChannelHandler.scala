@@ -47,7 +47,8 @@ class ClientChannelHandler(clientName: Option[String],
                            responseHandler: ResponseHandler,
                            avoidByteStringCopy: Boolean,
                            stats : CachedNetworkStatistics[Node, UUID],
-                           routeAway: Option[ClientStatisticsRequestStrategy.RoutingAwayCallback] = None)
+                           routeAway: Option[ClientStatisticsRequestStrategy.RoutingAwayCallback] = None,
+                           enableNorbertReroutingStrategies: Boolean = true)
     extends SimpleChannelHandler with Logging {
 
   private val requestMap = new ConcurrentHashMap[UUID, Request[_, _]]
@@ -88,8 +89,8 @@ class ClientChannelHandler(clientName: Option[String],
 
   val cleanupExecutor = new ScheduledThreadPoolExecutor(1)
   cleanupExecutor.scheduleAtFixedRate(cleanupTask, staleRequestCleanupFrequencyMins, staleRequestCleanupFrequencyMins, TimeUnit.MINUTES)
-  val clientStatsStrategy = new ClientStatisticsRequestStrategy(stats, outlierMultiplier, outlierConstant, clock, routeAway)
-  val serverErrorStrategy = new SimpleBackoffStrategy(clock)
+  val clientStatsStrategy = new ClientStatisticsRequestStrategy(stats, outlierMultiplier, outlierConstant, clock, routeAway, enableNorbertReroutingStrategies)
+  val serverErrorStrategy = new SimpleBackoffStrategy(clock, enableNorbertReroutingStrategies)
 
   val clientStatsStrategyJMX = JMX.register(new ClientStatisticsRequestStrategyMBeanImpl(clientName, serviceName, clientStatsStrategy))
   val serverErrorStrategyJMX = JMX.register(new ServerErrorStrategyMBeanImpl(clientName, serviceName, serverErrorStrategy))
@@ -195,7 +196,8 @@ class ClientStatisticsRequestStrategy(val stats: CachedNetworkStatistics[Node, U
                                       @volatile var outlierMultiplier: Double,
                                       @volatile var outlierConstant: Double,
                                       clock: Clock,
-                                      routeAway: Option[ClientStatisticsRequestStrategy.RoutingAwayCallback] = None)
+                                      routeAway: Option[ClientStatisticsRequestStrategy.RoutingAwayCallback] = None,
+                                      @volatile var enableNorbertReroutingStrategies: Boolean = true)
   extends CanServeRequestStrategy with Logging with HealthScoreCalculator {
   // Must be more than outlierMultiplier * average + outlierConstant ms the others by default
 
@@ -212,7 +214,10 @@ class ClientStatisticsRequestStrategy(val stats: CachedNetworkStatistics[Node, U
       val nodeP = p.get(n).getOrElse(StatsEntry(0.0, 0, 0))
 
       val nodeMedian = doCalculation(Map(0 -> nodeP),Map(0 -> nodeN))
-      val available = nodeMedian <= clusterMedian * outlierMultiplier + outlierConstant
+      var available = true
+      if(enableNorbertReroutingStrategies){
+        available = nodeMedian <= clusterMedian * outlierMultiplier + outlierConstant
+      }
 
       if (!available) {
         routeAway match {
@@ -256,6 +261,7 @@ trait ClientStatisticsRequestStrategyMBean extends CanServeRequestStrategyMBean 
   def setOutlierConstant(c: Double)
 
   def getTotalNodesMarkedDown: Long
+  def getEnableNorbertReroutingStrategies: Boolean
 }
 
 class ClientStatisticsRequestStrategyMBeanImpl(clientName: Option[String], serviceName: String, strategy: ClientStatisticsRequestStrategy)
@@ -268,9 +274,13 @@ class ClientStatisticsRequestStrategyMBeanImpl(clientName: Option[String], servi
 
   def getOutlierConstant = strategy.outlierConstant
 
+  def getEnableNorbertReroutingStrategies = strategy.enableNorbertReroutingStrategies
+
   def setOutlierMultiplier(m: Double) { strategy.outlierMultiplier = m}
 
   def setOutlierConstant(c: Double) = { strategy.outlierConstant = c}
+
+  def setEnableNorbertReroutingStrategies(enableRouting: Boolean) = {strategy.enableNorbertReroutingStrategies = enableRouting}
 
   def getTotalNodesMarkedDown = strategy.totalNodesMarkedDown.get.abs
 }

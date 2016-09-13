@@ -58,6 +58,7 @@ class NetworkClientConfig {
 
   var outlierMuliplier = NetworkDefaults.OUTLIER_MULTIPLIER
   var outlierConstant = NetworkDefaults.OUTLIER_CONSTANT
+  var enableNorbertReroutingStrategies = NetworkDefaults.ENABLE_NORBERT_REROUTING_STRATEGIES
 
   var responseHandlerCorePoolSize = NetworkDefaults.RESPONSE_THREAD_CORE_POOL_SIZE
   var responseHandlerMaxPoolSize = NetworkDefaults.RESPONSE_THREAD_MAX_POOL_SIZE
@@ -67,7 +68,7 @@ class NetworkClientConfig {
   var avoidByteStringCopy = NetworkDefaults.AVOID_BYTESTRING_COPY
   var darkCanaryServiceName: Option[String] = None
   var darkCanaryResponseHandler: Option[DarkCanaryResponseHandler] = None
-  var retryStrategy:Option[RetryStrategy] = None 
+  var retryStrategy:Option[RetryStrategy] = None
   var duplicatesOk:Boolean = false
 
   var routingAwayCallback: Option[ClientStatisticsRequestStrategy.RoutingAwayCallback] = None
@@ -112,18 +113,18 @@ trait NetworkClient extends BaseNetworkClient {
    * @throws ClusterDisconnectedException thrown if the cluster is not connected when the method is called
    */
   def sendRequest[RequestMsg, ResponseMsg](request: RequestMsg, callback: Either[Throwable, ResponseMsg] => Unit)
-  (implicit is: InputSerializer[RequestMsg, ResponseMsg], os: OutputSerializer[RequestMsg, ResponseMsg]): Unit =  
+  (implicit is: InputSerializer[RequestMsg, ResponseMsg], os: OutputSerializer[RequestMsg, ResponseMsg]): Unit =
     sendRequest(request, callback, None, None)
 
   def sendRequest[RequestMsg, ResponseMsg](request: RequestMsg, callback: Either[Throwable, ResponseMsg] => Unit, capability: Option[Long])
-  (implicit is: InputSerializer[RequestMsg, ResponseMsg], os: OutputSerializer[RequestMsg, ResponseMsg]): Unit = 
+  (implicit is: InputSerializer[RequestMsg, ResponseMsg], os: OutputSerializer[RequestMsg, ResponseMsg]): Unit =
      sendRequest(request, callback, capability, None)
 
   def sendRequest[RequestMsg, ResponseMsg](request: RequestMsg, callback: Either[Throwable, ResponseMsg] => Unit, capability: Option[Long], persistentCapability: Option[Long])
   (implicit is: InputSerializer[RequestMsg, ResponseMsg], os: OutputSerializer[RequestMsg, ResponseMsg]): Unit =  doIfConnected {
      sendRequest(request, callback, 0, capability, persistentCapability)
   }
-  
+
   /**
    * Sends a request to a node in the cluster. The <code>NetworkClient</code> defers to the current
    * <code>LoadBalancer</code> to decide which <code>Node</code> the request should be sent to.
@@ -149,7 +150,7 @@ trait NetworkClient extends BaseNetworkClient {
   (implicit is: InputSerializer[RequestMsg, ResponseMsg], os: OutputSerializer[RequestMsg, ResponseMsg]): Future[ResponseMsg] = {
     sendRequest(request, capability, None)
   }
-  
+
   def sendRequest[RequestMsg, ResponseMsg](request: RequestMsg, capability: Option[Long], persistentCapability: Option[Long])
   (implicit is: InputSerializer[RequestMsg, ResponseMsg], os: OutputSerializer[RequestMsg, ResponseMsg]): Future[ResponseMsg] = {
     val future = new FutureAdapterListener[ResponseMsg]
@@ -190,7 +191,7 @@ trait NetworkClient extends BaseNetworkClient {
     sendRequest(request, callback, maxRetry, None, None)
 
   def sendRequest[RequestMsg, ResponseMsg](request: RequestMsg, callback: Either[Throwable, ResponseMsg] => Unit, maxRetry: Int, capability: Option[Long])
-  (implicit is: InputSerializer[RequestMsg, ResponseMsg], os:OutputSerializer[RequestMsg, ResponseMsg]): Unit = 
+  (implicit is: InputSerializer[RequestMsg, ResponseMsg], os:OutputSerializer[RequestMsg, ResponseMsg]): Unit =
     sendRequest(request, callback, maxRetry, capability, None)
 
   def sendRequest[RequestMsg, ResponseMsg](request: RequestMsg, callback: Either[Throwable, ResponseMsg] => Unit, maxRetry: Int, capability: Option[Long], persistentCapability: Option[Long])

@@ -94,7 +94,7 @@ trait BackoffStrategy extends CanServeRequestStrategy {
   def notifyFailure(node: Node)
 }
 
-class SimpleBackoffStrategy(clock: Clock, minBackoffTime: Long = 100L, maxBackoffTime: Long = 3200L) extends BackoffStrategy {
+class SimpleBackoffStrategy(clock: Clock, enableNorbertReroutingStrategies: Boolean = true, minBackoffTime: Long = 100L, maxBackoffTime: Long = 3200L) extends BackoffStrategy {
   import norbertutils._
   import collection.JavaConversions._
 
@@ -109,7 +109,7 @@ class SimpleBackoffStrategy(clock: Clock, minBackoffTime: Long = 100L, maxBackof
 
   def canServeRequest(node: Node): Boolean = {
     val b = jBackoff.get(node)
-    b == null || b.available
+    !enableNorbertReroutingStrategies || (b == null || b.available)
   }
 }
 
