@@ -117,7 +117,7 @@ object NetworkDefaults {
   /**
     * Whether or not to enable the SimpleBackoff and ClientStatisticsRequest Strategies, default value is true to enable.
     */
-  val ENABLE_NORBERT_REROUTING_STRATEGIES = true
+  val ENABLE_REROUTING_STRATEGIES = true
 
   /**
    * Protocol Buffers ByteString.copyFrom(byte[]) and ByteString.toByteArray both make a defensive copy of the

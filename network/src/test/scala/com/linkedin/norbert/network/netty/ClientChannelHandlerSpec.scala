@@ -32,7 +32,7 @@ class ClientChannelHandlerSpec extends SpecificationWithJUnit with Mockito with 
     responseHandler = responseHandler,
     avoidByteStringCopy = true,
     stats = statsActor,
-    enableNorbertReroutingStrategies = true
+    enableReroutingStrategies = true
   )
 
   def sendMockRequest(ctx: ChannelHandlerContext, request: Request[Ping, Ping]) {

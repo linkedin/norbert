@@ -35,7 +35,7 @@ class PartitionedNetworkClientFactory[PartitionedId](clientName: String,
                                                      partitionedLoadBalancerFactory: PartitionedLoadBalancerFactory[PartitionedId],
 						                                         enableSelectiveRetry: Boolean = false,
 						                                         retryStrategy: RetryStrategy = null,
-                                                     enableNorbertReroutingStrategies: Boolean = true)
+                                                     enableReroutingStrategies: Boolean = true)
 {
 
   def createPartitionedNetworkClient : PartitionedNetworkClient[PartitionedId] = {
@@ -44,7 +44,7 @@ class PartitionedNetworkClientFactory[PartitionedId](clientName: String,
     config.closeChannelTimeMillis = closeChannelTimeMillis
     config.outlierMuliplier = norbertOutlierMultiplier
     config.outlierConstant = norbertOutlierConstant
-    config.enableNorbertReroutingStrategies = enableNorbertReroutingStrategies
+    config.enableReroutingStrategies = enableReroutingStrategies
     config.clusterClient = ClusterClient(clientName, serviceName, zooKeeperConnectString, zooKeeperSessionTimeoutMillis)
     if(enableSelectiveRetry) {
       if(retryStrategy == null)

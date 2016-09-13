@@ -8,7 +8,7 @@ class PartitionedNetworkClientFactory[PartitionedId](serviceName: String, zooKee
                                                      zooKeeperSessionTimeoutMillis: Int,
                                                      closeChannelTimeMillis: Long, norbertOutlierMultiplier: Double, norbertOutlierConstant: Double,
                                                      partitionedLoadBalancerFactory: PartitionedLoadBalancerFactory[PartitionedId],
-                                                     enableNorbertReroutingStrategies: Boolean = true)
+                                                     enableReroutingStrategies: Boolean = true)
 {
   val config = new NetworkClientConfig
 
@@ -18,7 +18,7 @@ class PartitionedNetworkClientFactory[PartitionedId](serviceName: String, zooKee
   config.setCloseChannelTimeMillis(closeChannelTimeMillis);
   config.setOutlierMuliplier(norbertOutlierMultiplier);
   config.setOutlierConstant(norbertOutlierConstant);
-  config.setEnableNorbertReroutingStrategies(enableNorbertReroutingStrategies);
+  config.setEnableReroutingStrategies(enableReroutingStrategies);
 
   def createPartitionedNetworkClient(): PartitionedNetworkClient[PartitionedId] =
   {

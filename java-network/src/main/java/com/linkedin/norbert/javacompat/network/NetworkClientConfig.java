@@ -42,7 +42,7 @@ public class NetworkClientConfig {
 
   private double outlierMuliplier = NetworkDefaults.OUTLIER_MULTIPLIER();
   private double outlierConstant = NetworkDefaults.OUTLIER_CONSTANT();
-  private boolean enableNorbertReroutingStrategies = NetworkDefaults.ENABLE_NORBERT_REROUTING_STRATEGIES();
+  private boolean enableReroutingStrategies = NetworkDefaults.ENABLE_REROUTING_STRATEGIES();
 
   private int responseHandlerCorePoolSize = NetworkDefaults.RESPONSE_THREAD_CORE_POOL_SIZE();
   private int responseHandlerMaxPoolSize = NetworkDefaults.RESPONSE_THREAD_MAX_POOL_SIZE();
@@ -145,12 +145,12 @@ public class NetworkClientConfig {
     this.outlierConstant = outlierConstant;
   }
 
-  public boolean getEnableNorbertReroutingStrategies() {
-    return enableNorbertReroutingStrategies;
+  public boolean getEnableReroutingStrategies() {
+    return enableReroutingStrategies;
   }
 
-  public void setEnableNorbertReroutingStrategies(boolean enableNorbertReroutingStrategies) {
-    this.enableNorbertReroutingStrategies = enableNorbertReroutingStrategies;
+  public void setEnableReroutingStrategies(boolean enableReroutingStrategies) {
+    this.enableReroutingStrategies = enableReroutingStrategies;
   }
 
   public int getResponseHandlerCorePoolSize() {

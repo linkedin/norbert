@@ -70,7 +70,7 @@ abstract class BaseNettyNetworkClient(clientConfig: NetworkClientConfig) extends
     avoidByteStringCopy = clientConfig.avoidByteStringCopy,
     stats = stats,
     routeAway = clientConfig.routingAwayCallback,
-    enableNorbertReroutingStrategies = clientConfig.enableNorbertReroutingStrategies)
+    enableReroutingStrategies = clientConfig.enableReroutingStrategies)
 
   private val darkCanaryHandler = new DarkCanaryChannelHandler()
 
@@ -135,7 +135,7 @@ abstract class BaseNettyNetworkClient(clientConfig: NetworkClientConfig) extends
 
   // channelPoolStrategy is to check error when opening a channel to a node.
   // Therefore, we should always enable Norbert Rerouting if there is an error opening a channel.
-  // enableNorbertReroutingStrategies = true
+  // enableReroutingStrategies = true
   val channelPoolStrategy = new SimpleBackoffStrategy(SystemClock, true)
   val clientChannelStrategy = handler.strategy // TODO: Carefully consider making this strategy a constructor for the ClientChannelHandler
 

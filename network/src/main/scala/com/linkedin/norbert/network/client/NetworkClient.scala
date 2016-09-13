@@ -58,7 +58,7 @@ class NetworkClientConfig {
 
   var outlierMuliplier = NetworkDefaults.OUTLIER_MULTIPLIER
   var outlierConstant = NetworkDefaults.OUTLIER_CONSTANT
-  var enableNorbertReroutingStrategies = NetworkDefaults.ENABLE_NORBERT_REROUTING_STRATEGIES
+  var enableReroutingStrategies = NetworkDefaults.ENABLE_REROUTING_STRATEGIES
 
   var responseHandlerCorePoolSize = NetworkDefaults.RESPONSE_THREAD_CORE_POOL_SIZE
   var responseHandlerMaxPoolSize = NetworkDefaults.RESPONSE_THREAD_MAX_POOL_SIZE
