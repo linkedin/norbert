@@ -208,30 +208,31 @@ class ClientStatisticsRequestStrategy(val stats: CachedNetworkStatistics[Node, U
     val s = stats.getStatistics(0.5)
     val (p, f) = (s.map(_.pending).getOrElse(Map.empty), s.map(_.finished).getOrElse(Map.empty))
 
-    val clusterMedian = doCalculation(p, f)
-
     f.map { case (n, nodeN) =>
-      val nodeP = p.get(n).getOrElse(StatsEntry(0.0, 0, 0))
+      val available = if (enableReroutingStrategies) {
+        val clusterMedian = doCalculation(p, f)
+        val nodeP = p.get(n).getOrElse(StatsEntry(0.0, 0, 0))
 
-      val nodeMedian = doCalculation(Map(0 -> nodeP),Map(0 -> nodeN))
-      var available = true
-      if(enableReroutingStrategies){
-        available = nodeMedian <= clusterMedian * outlierMultiplier + outlierConstant
-      }
+        val nodeMedian = doCalculation(Map(0 -> nodeP),Map(0 -> nodeN))
+        val available_helper = nodeMedian <= clusterMedian * outlierMultiplier + outlierConstant
 
-      if (!available) {
-        routeAway match {
-          case Some(callback) =>
-            try {
-              callback(n, nodeMedian, clusterMedian)
-            } catch {
-              case ex: Exception =>
-                log.error(ex, "Error when executing routing away callback")
-            }
-          case None =>
-            log.info("Node %s has a median response time of %f. The cluster response time is %f. Routing requests away temporarily.".format(n, nodeMedian, clusterMedian))
+        if (!available_helper) {
+          routeAway match {
+            case Some(callback) =>
+              try {
+                callback(n, nodeMedian, clusterMedian)
+              } catch {
+                case ex: Exception =>
+                  log.error(ex, "Error when executing routing away callback")
+              }
+            case None =>
+              log.info("Node %s has a median response time of %f. The cluster response time is %f. Routing requests away temporarily.".format(n, nodeMedian, clusterMedian))
+          }
+          totalNodesMarkedDown.incrementAndGet
         }
-        totalNodesMarkedDown.incrementAndGet
+        available_helper
+      } else {
+        !enableReroutingStrategies
       }
       (n, available)
     }
