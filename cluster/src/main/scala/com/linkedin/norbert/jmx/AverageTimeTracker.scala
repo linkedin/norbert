@@ -27,7 +27,7 @@ class FinishedRequestTimeTracker(clock: Clock, interval: Long) {
 
   private def clean {
     // Let only one thread clean at a time
-    if(currentlyCleaning.compareAndSet(false, true)) {
+    if (currentlyCleaning.compareAndSet(false, true)) {
       clean0
       currentlyCleaning.set(false)
     }
@@ -36,11 +36,11 @@ class FinishedRequestTimeTracker(clock: Clock, interval: Long) {
   private def clean0 {
     while(!q.isEmpty) {
       val head = q.peek
-      if(head == null)
+      if (head == null)
         return
 
       val (completion, processingTime) = head
-      if(clock.getCurrentTimeOffsetMicroseconds - completion > interval) {
+      if (clock.getCurrentTimeOffsetMicroseconds - completion > interval) {
         q.remove(head)
       } else {
         return
@@ -77,7 +77,7 @@ class TotalRequestProcessingTime[KeyT](clock:Clock, interval:Long) {
 
   private def clean {
     // Let only one thread clean at a time
-    if(currentlyCleaning.compareAndSet(false, true)) {
+    if (currentlyCleaning.compareAndSet(false, true)) {
       clean0
       currentlyCleaning.set(false)
     }
@@ -86,11 +86,11 @@ class TotalRequestProcessingTime[KeyT](clock:Clock, interval:Long) {
   private def clean0 {
     while(!q.isEmpty) {
       val head = q.peek
-      if(head == null)
+      if (head == null)
         return
 
       val (completion, processingTime) = head
-      if(clock.getCurrentTimeOffsetMicroseconds - completion > interval) {
+      if (clock.getCurrentTimeOffsetMicroseconds - completion > interval) {
         q.remove(head)
       } else {
         return
@@ -127,7 +127,7 @@ class QueueTimeTracker[KeyT](clock: Clock, interval: Long) {
 
     private def clean {
       // Let only one thread clean at a time
-      if(currentlyCleaning.compareAndSet(false, true)) {
+      if (currentlyCleaning.compareAndSet(false, true)) {
         clean0
         currentlyCleaning.set(false)
       }
@@ -136,11 +136,11 @@ class QueueTimeTracker[KeyT](clock: Clock, interval: Long) {
     private def clean0 {
       while(!q.isEmpty) {
         val head = q.peek
-        if(head == null)
+        if (head == null)
           return
 
         val (completion, processingTime) = head
-        if(clock.getCurrentTimeOffsetMicroseconds - completion > interval) {
+        if (clock.getCurrentTimeOffsetMicroseconds - completion > interval) {
           q.remove(head)
         } else {
           return
@@ -178,12 +178,12 @@ class PendingRequestTimeTracker[KeyT](clock: Clock) {
   private val map : java.util.concurrent.ConcurrentMap[KeyT, Long] =
     new java.util.concurrent.ConcurrentHashMap[KeyT, Long]
 
-  private val mapQueueTime : java.util.concurrent.ConcurrentMap[KeyT, Long] = 
+  private val mapQueueTime : java.util.concurrent.ConcurrentMap[KeyT, Long] =
     new java.util.concurrent.ConcurrentHashMap[KeyT, Long]
 
   def getStartTime(key: KeyT) = Option(map.get(key))
 
-  //pre-condition for this method is the above method returns some 
+  //pre-condition for this method is the above method returns some
   def getQueueTime(key: KeyT) = mapQueueTime.get(key)
 
   def beginRequest(key: KeyT, queueTime: Long) {

@@ -67,7 +67,7 @@ trait PartitionedNetworkClient[PartitionedId] extends BaseNetworkClient {
   var retryStrategy:Option[RetryStrategy] = None
   def setConfig(config:NetworkClientConfig): Unit = {
     duplicatesOk = config.duplicatesOk
-    if(retryStrategy != null)
+    if (retryStrategy != null)
       retryStrategy = config.retryStrategy
   }
 
@@ -79,8 +79,8 @@ trait PartitionedNetworkClient[PartitionedId] extends BaseNetworkClient {
 
   def sendRequest[RequestMsg, ResponseMsg](id: PartitionedId, request: RequestMsg, callback: Either[Throwable, ResponseMsg] => Unit, capability: Option[Long])
   (implicit is: InputSerializer[RequestMsg, ResponseMsg], os: OutputSerializer[RequestMsg, ResponseMsg]): Unit =
-    sendRequest(id, request, callback, capability, None) 
- 
+    sendRequest(id, request, callback, capability, None)
+
   def sendRequest[RequestMsg, ResponseMsg](id: PartitionedId, request: RequestMsg, callback: Either[Throwable, ResponseMsg] => Unit, capability: Option[Long], persistentCapability: Option[Long])
   (implicit is: InputSerializer[RequestMsg, ResponseMsg], os: OutputSerializer[RequestMsg, ResponseMsg]): Unit = doIfConnected {
     if (id == null || request == null) throw new NullPointerException
@@ -182,11 +182,11 @@ trait PartitionedNetworkClient[PartitionedId] extends BaseNetworkClient {
   def sendRequest[RequestMsg, ResponseMsg](id: PartitionedId, request: RequestMsg)
   (implicit is: InputSerializer[RequestMsg, ResponseMsg], os: OutputSerializer[RequestMsg, ResponseMsg]): Future[ResponseMsg] =
     sendRequest(id, request, None, None)
- 
+
   def sendRequest[RequestMsg, ResponseMsg](id: PartitionedId, request: RequestMsg, capability: Option[Long])
-  (implicit is: InputSerializer[RequestMsg, ResponseMsg], os: OutputSerializer[RequestMsg, ResponseMsg]): Future[ResponseMsg] = 
-    sendRequest(id, request, capability, None) 
- 
+  (implicit is: InputSerializer[RequestMsg, ResponseMsg], os: OutputSerializer[RequestMsg, ResponseMsg]): Future[ResponseMsg] =
+    sendRequest(id, request, capability, None)
+
   def sendRequest[RequestMsg, ResponseMsg](id: PartitionedId, request: RequestMsg, capability: Option[Long], persistentCapability: Option[Long])
   (implicit is: InputSerializer[RequestMsg, ResponseMsg], os: OutputSerializer[RequestMsg, ResponseMsg]): Future[ResponseMsg] = {
     val future = new FutureAdapterListener[ResponseMsg]
@@ -215,8 +215,8 @@ trait PartitionedNetworkClient[PartitionedId] extends BaseNetworkClient {
 
   def sendRequest[RequestMsg, ResponseMsg](ids: Set[PartitionedId], request: RequestMsg, capability: Option[Long])
   (implicit is: InputSerializer[RequestMsg, ResponseMsg], os: OutputSerializer[RequestMsg, ResponseMsg]): ResponseIterator[ResponseMsg] =
-    sendRequest(ids, request, capability, None) 
- 
+    sendRequest(ids, request, capability, None)
+
   def sendRequest[RequestMsg, ResponseMsg](ids: Set[PartitionedId], request: RequestMsg, capability: Option[Long], persistentCapability: Option[Long])
   (implicit is: InputSerializer[RequestMsg, ResponseMsg], os: OutputSerializer[RequestMsg, ResponseMsg]): ResponseIterator[ResponseMsg] =
     sendRequest(ids, (node: Node, ids: Set[PartitionedId]) => request, capability, persistentCapability)(is, os)
@@ -305,9 +305,9 @@ trait PartitionedNetworkClient[PartitionedId] extends BaseNetworkClient {
   def sendRequest[RequestMsg, ResponseMsg](ids: Set[PartitionedId], requestBuilder: (Node, Set[PartitionedId]) => RequestMsg, maxRetry: Int)
   (implicit is: InputSerializer[RequestMsg, ResponseMsg], os: OutputSerializer[RequestMsg, ResponseMsg]): ResponseIterator[ResponseMsg] =
    sendRequest(ids, 0, requestBuilder, maxRetry, None, None)
-  
+
   def sendRequest[RequestMsg, ResponseMsg](ids: Set[PartitionedId], requestBuilder: (Node, Set[PartitionedId]) => RequestMsg, maxRetry: Int, capability: Option[Long])
-  (implicit is: InputSerializer[RequestMsg, ResponseMsg], os: OutputSerializer[RequestMsg, ResponseMsg]): ResponseIterator[ResponseMsg] = 
+  (implicit is: InputSerializer[RequestMsg, ResponseMsg], os: OutputSerializer[RequestMsg, ResponseMsg]): ResponseIterator[ResponseMsg] =
    sendRequest(ids, 0, requestBuilder, maxRetry, capability, None)
 
   def sendRequest[RequestMsg, ResponseMsg](ids: Set[PartitionedId], numberOfReplicas: Int,
@@ -533,7 +533,7 @@ trait PartitionedNetworkClient[PartitionedId] extends BaseNetworkClient {
       nodes.foldLeft((false, Map.empty[Int, Set[Node]])) { case ((hasInconsistency, map), (node, ids)) =>
 
       val thisNodeInconsistency = ids.foldLeft(hasInconsistency) { (hasInconsistency, id) =>
-        if(map.contains(id)) {
+        if (map.contains(id)) {
           // This is a no-no. This partition id is being sent to another node.
           val otherNodes = map(id)
           for (otherNode <- otherNodes) {
@@ -556,7 +556,7 @@ trait PartitionedNetworkClient[PartitionedId] extends BaseNetworkClient {
       })
     }
 
-    if(hasInconsistency) {
+    if (hasInconsistency) {
       // Fix it up our nodes
       correctRequestPartitioning(nodes, partitionToNodes)
     } else {
@@ -569,7 +569,7 @@ trait PartitionedNetworkClient[PartitionedId] extends BaseNetworkClient {
 
   def correctRequestPartitioning(nodes: Map[Node, Set[Int]], partitionToNodes: Map[Int, Set[Node]]): Map[Node, Set[Int]] = {
     partitionToNodes.foldLeft(Map.empty[Node, Set[Int]]) { case (map, (partitionId, candidates)) =>
-      val nodeToUse = if(candidates.size == 1) {
+      val nodeToUse = if (candidates.size == 1) {
         candidates.head
       } else {
         // randomly select
@@ -588,7 +588,7 @@ trait PartitionedNetworkClient[PartitionedId] extends BaseNetworkClient {
     sendRequestToReplicas(id, request, maxRetry, None, None)
 
   def sendRequestToReplicas[RequestMsg, ResponseMsg](id: PartitionedId, request: RequestMsg, maxRetry : Int, capability: Option[Long])
-                                                      (implicit is: InputSerializer[RequestMsg, ResponseMsg], os: OutputSerializer[RequestMsg, ResponseMsg]): ResponseIterator[ResponseMsg] = sendRequestToReplicas(id, request, maxRetry, capability, None)  
+                                                      (implicit is: InputSerializer[RequestMsg, ResponseMsg], os: OutputSerializer[RequestMsg, ResponseMsg]): ResponseIterator[ResponseMsg] = sendRequestToReplicas(id, request, maxRetry, capability, None)
 
   def sendRequestToReplicas[RequestMsg, ResponseMsg](id: PartitionedId, request: RequestMsg, maxRetry : Int, capability: Option[Long], persistentCapability: Option[Long])
                                                        (implicit is: InputSerializer[RequestMsg, ResponseMsg], os: OutputSerializer[RequestMsg, ResponseMsg]): ResponseIterator[ResponseMsg] = doIfConnected {
@@ -634,7 +634,7 @@ trait PartitionedNetworkClient[PartitionedId] extends BaseNetworkClient {
   def sendRequestToPartitions[RequestMsg, ResponseMsg](id: PartitionedId, partitions: Set[Int], requestBuilder: (Node, Set[Int]) => RequestMsg, capability: Option[Long])
                                                       (implicit is: InputSerializer[RequestMsg, ResponseMsg],
                                                        os: OutputSerializer[RequestMsg, ResponseMsg]): ResponseIterator[ResponseMsg]  =
-    sendRequestToPartitions(id, partitions, requestBuilder, None, None) 
+    sendRequestToPartitions(id, partitions, requestBuilder, None, None)
 
   def sendRequestToPartitions[RequestMsg, ResponseMsg](id: PartitionedId, partitions: Set[Int], requestBuilder: (Node, Set[Int]) => RequestMsg, capability: Option[Long], persistentCapability: Option[Long])
                                                       (implicit is: InputSerializer[RequestMsg, ResponseMsg],
@@ -719,7 +719,7 @@ trait PartitionedNetworkClient[PartitionedId] extends BaseNetworkClient {
     ids.foldLeft(Map[Node, Set[PartitionedId]]().withDefaultValue(Set())) { (map, id) =>
       val node = lb.nextNode(id, capability, persistentCapability).getOrElse(throw new NoNodesAvailableException("Unable to satisfy request, no node available for id %s".format(id)))
       map.updated(node, map(node) + id)
-    } 
+    }
   }
 
   private def calculateNodesFromIds(ids: Set[PartitionedId], numberOfReplicas: Int, capability: Option[Long],

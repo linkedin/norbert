@@ -44,7 +44,7 @@ object CompositeCanServeRequestStrategy {
 case class CompositeCanServeRequestStrategy(strategies: CanServeRequestStrategy*) extends CanServeRequestStrategy {
   def canServeRequest(node: Node): Boolean = {
     strategies.foreach{ strategy =>
-      if(!strategy.canServeRequest(node))
+      if (!strategy.canServeRequest(node))
         return false
     }
     return true
@@ -63,7 +63,7 @@ private[common] class SimpleBackoff(clock: Clock, minBackoffTime: Long = 100L, m
   val currBackoff = new AtomicLong(0)
 
   def notifyFailure {
-    if(clock.getCurrentTimeMilliseconds - lastError >= minBackoffTime)
+    if (clock.getCurrentTimeMilliseconds - lastError >= minBackoffTime)
       incrementBackoff
   }
 
@@ -79,7 +79,7 @@ private[common] class SimpleBackoff(clock: Clock, minBackoffTime: Long = 100L, m
 
    // If it's been a while since the last error, reset the backoff back to 0
     val currentBackoffTime = currBackoff.get
-    if(currentBackoffTime != 0L && now - lastError > 3 * maxBackoffTime)
+    if (currentBackoffTime != 0L && now - lastError > 3 * maxBackoffTime)
       currBackoff.compareAndSet(currentBackoffTime, 0L)
   }
 

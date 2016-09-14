@@ -152,7 +152,7 @@ trait ClusterClient extends Logging {
   def myNodeByPort(port: Int): Option[Node] = {
     val url = InetAddress.getLocalHost.getCanonicalHostName
     val node = nodeByUrl(url, port)
-    if(node == None) {
+    if (node == None) {
       log.warn("No node could be found for this machine's URL and port: %s:%d".format(url, port))
     }
     node

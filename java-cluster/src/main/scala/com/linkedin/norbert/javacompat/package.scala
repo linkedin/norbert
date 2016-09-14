@@ -53,8 +53,8 @@ package object javacompat {
       }
 
       SNode(node.getId, node.getUrl, node.isAvailable, partitionIds,
-			if(node.getCapability == null) None else Some(node.getCapability.longValue),
-			if(node.getPersistentCapability == null) None else Some(node.getPersistentCapability.longValue))
+			if (node.getCapability == null) None else Some(node.getCapability.longValue),
+			if (node.getPersistentCapability == null) None else Some(node.getPersistentCapability.longValue))
     }
   }
 

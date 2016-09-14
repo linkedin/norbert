@@ -35,10 +35,10 @@ class ConcurrentCyclicCounter extends Logging {
   /** Compensate counter to origValue + count + 1, keeping in mind overflow */
   def compensate(origValue: Int, count:Int): Unit = {
 
-    if(count <= 0 || origValue < 0 || origValue == Integer.MAX_VALUE)
+    if (count <= 0 || origValue < 0 || origValue == Integer.MAX_VALUE)
       return
 
-    val valueToSet = if(origValue+count+1 <= 0) { origValue + 1 - Integer.MAX_VALUE + count }
+    val valueToSet = if (origValue+count+1 <= 0) { origValue + 1 - Integer.MAX_VALUE + count }
                      else {origValue+count+1}
 
     // If the counter has been touched since the original value being compensated was seen, do nothing.

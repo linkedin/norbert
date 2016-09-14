@@ -11,7 +11,7 @@ class GC(debugFunction: Option[()=>String]) extends Runnable with Logging {
 
   override def run(): Unit = {
 
-    if(debugFunction.isDefined) {
+    if (debugFunction.isDefined) {
       log.debug(System.currentTimeMillis().toString + debugFunction.get())
     }
 

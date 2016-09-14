@@ -24,30 +24,30 @@ package object norbertutils {
 
   @tailrec
   private def binarySearch[T](array: Seq[T], value: T, lo: Int, hi: Int)(implicit ordering: Ordering[T]): Int = {
-    if(lo > hi) -lo - 1
+    if (lo > hi) -lo - 1
     else {
       val mid = lo + ((hi - lo) >> 2)
       val middleValue = array(mid)
-      if(ordering.gt(value, middleValue))
+      if (ordering.gt(value, middleValue))
         binarySearch(array, value, mid + 1, hi)
-      else if(ordering.lt(value, middleValue))
+      else if (ordering.lt(value, middleValue))
         binarySearch(array, value, lo, mid - 1)
       else mid
     }
   }
 
   def getOrElse[T](seq: Seq[T], index: Int, other: T): T = {
-    if(0 <= index && index < seq.size) seq(index)
+    if (0 <= index && index < seq.size) seq(index)
     else other
   }
 
   // TODO: Put this into a utility somewhere? Scala's concurrent getOrElseUpdate is not atomic, unlike this guy
   def atomicCreateIfAbsent[K, V](map: ConcurrentMap[K, V], key: K)(fn: K => V): V = {
     val oldValue = map.get(key)
-    if(oldValue == null) {
+    if (oldValue == null) {
       map.synchronized {
         val oldValue2 = map.get(key)
-        if(oldValue2 == null) {
+        if (oldValue2 == null) {
           val newValue = fn(key)
           map.putIfAbsent(key, newValue)
           map.get(key)
@@ -61,7 +61,7 @@ package object norbertutils {
   }
 
   def safeDivide(num: Double, den: Double)(orElse: Double): Double = {
-    if(den == 0) orElse
+    if (den == 0) orElse
     else num / den
   }
 
@@ -78,7 +78,7 @@ package object norbertutils {
   def calculatePercentile[T](values: Array[T], percentile: Double, default: Double = 0.0)(implicit n: Numeric[T]): Double = {
     import math._
 
-    if(values.isEmpty)
+    if (values.isEmpty)
       return default
 
     val p = max(0.0, min(1.0, percentile))
@@ -88,7 +88,7 @@ package object norbertutils {
 
     val (lIdx, rIdx) = (idx.floor.toInt, idx.ceil.toInt)
 
-    if(idx == lIdx)
+    if (idx == lIdx)
       n.toDouble(values(lIdx))
     else {
      // Linearly Interpolate between the two

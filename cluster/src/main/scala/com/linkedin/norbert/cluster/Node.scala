@@ -40,9 +40,9 @@ object Node {
     try {
       val node = NorbertProtos.Node.newBuilder.mergeFrom(bytes).build
       val partitions = node.getPartitionList.asInstanceOf[java.util.List[Int]].foldLeft(Set[Int]()) { (set, i) => set + i }
-      val offset = if(node.hasOffset && node.getOffset >= 0) Some(node.getOffset) else None
+      val offset = if (node.hasOffset && node.getOffset >= 0) Some(node.getOffset) else None
 
-      if(!node.hasPersistentCapability)
+      if (!node.hasPersistentCapability)
         Node(node.getId, node.getUrl, available, partitions, capability, None, offset)
       else
         Node(node.getId, node.getUrl, available, partitions, capability, Some(node.getPersistentCapability), offset)

@@ -46,7 +46,7 @@ class Request[RequestMsg, ResponseMsg](val message: RequestMsg, val node: Node,
   def addHeader(key: String, value: String) = headers += (key -> value)
 
   def onFailure(exception: Throwable) {
-    if(!callback.isEmpty) callback.get(Left(exception))
+    if (!callback.isEmpty) callback.get(Left(exception))
   }
 
   def endNettyTiming(stats: CachedNetworkStatistics[Node, UUID]) = {
@@ -58,7 +58,7 @@ class Request[RequestMsg, ResponseMsg](val message: RequestMsg, val node: Node,
   }
 
   def onSuccess(bytes: Array[Byte]) {
-    if(!callback.isEmpty) callback.get(try {
+    if (!callback.isEmpty) callback.get(try {
       Right(inputSerializer.responseFromBytes(bytes))
     } catch {
       case ex: Exception => Left(new ClusterException("Exception while deserializing response", ex))

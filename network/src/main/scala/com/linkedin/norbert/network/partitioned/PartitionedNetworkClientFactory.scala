@@ -46,8 +46,8 @@ class PartitionedNetworkClientFactory[PartitionedId](clientName: String,
     config.outlierConstant = norbertOutlierConstant
     config.enableReroutingStrategies = enableReroutingStrategies
     config.clusterClient = ClusterClient(clientName, serviceName, zooKeeperConnectString, zooKeeperSessionTimeoutMillis)
-    if(enableSelectiveRetry) {
-      if(retryStrategy == null)
+    if (enableSelectiveRetry) {
+      if (retryStrategy == null)
         throw new IllegalArgumentException("Retry strategy needs to be provided if you enable selective retry")
       else
         config.retryStrategy = Some(retryStrategy)

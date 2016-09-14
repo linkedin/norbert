@@ -27,9 +27,9 @@ case class CacheMaintainer[T](clock: Clock, ttl: Long, fn: () => T) {
     val lut = lastUpdateTime.get
     val now = clock.getCurrentTimeMilliseconds
 
-    if(item == null || now - lut > ttl) {
+    if (item == null || now - lut > ttl) {
       // Let one thread pass through to update the calculation
-      if(refreshing.compareAndSet(false, true)) {
+      if (refreshing.compareAndSet(false, true)) {
         lastUpdateTime.set(now)
 
         refresh0
@@ -110,7 +110,7 @@ class CachedNetworkStatistics[GroupIdType, RequestIdType](private val stats: Net
     }
 
     val bs = binarySearch(data, (now - 1000000L, 0L))
-    val idx = if(bs < 0) -bs - 1 else bs
+    val idx = if (bs < 0) -bs - 1 else bs
     data.size - idx
   }
 }

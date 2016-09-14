@@ -92,10 +92,10 @@ abstract class DefaultPartitionedLoadBalancer[PartitionedId](endpoints: Set[Endp
   def nodesForPartitions(id: PartitionedId, partitionToNodeMap: Map[Int, (IndexedSeq[Endpoint], ConcurrentCyclicCounter, Array[AtomicBoolean])], capability: Option[Long], persistentCapability: Option[Long]) = {
     partitionToNodeMap.keys.foldLeft(Map.empty[Node, Set[Int]]) { (map, partition) =>
       val nodeOption = nodeForPartition(partition, capability, persistentCapability)
-      if(nodeOption.isDefined) {
+      if (nodeOption.isDefined) {
         val n = nodeOption.get
         map + (n -> (map.getOrElse(n, Set.empty[Int]) + partition))
-      } else if(serveRequestsIfPartitionMissing) {
+      } else if (serveRequestsIfPartitionMissing) {
         log.warn("Partition %s is unavailable, attempting to continue serving requests to other partitions.".format(partition))
         map
       } else

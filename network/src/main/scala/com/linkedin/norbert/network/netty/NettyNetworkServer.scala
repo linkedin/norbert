@@ -161,7 +161,7 @@ class NettyNetworkServer(serverConfig: NetworkServerConfig) extends NetworkServe
 
     super.bindNode(node, markAvailable, initialCapability)
 
-    if(serverConfig.gcParams.enableGcAwareness) {
+    if (serverConfig.gcParams.enableGcAwareness) {
 
       schedulePeriodicGc(node)
 

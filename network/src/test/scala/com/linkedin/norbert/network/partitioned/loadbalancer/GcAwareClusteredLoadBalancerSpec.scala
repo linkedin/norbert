@@ -237,9 +237,9 @@ class GcAwareClusteredLoadBalancerSpec extends SpecificationWithJUnit with WaitF
       for (id <- clusterSet) {
 
         val currSlot = (System.currentTimeMillis() % cycleTime) / slotTime
-        if(currSlot == getSlotForCluster(id)) {
+        if (currSlot == getSlotForCluster(id)) {
           val timeForSlotToEnd = getTimeForSlotToEnd(currSlot.asInstanceOf[Int])
-          if(timeForSlotToEnd != 0)
+          if (timeForSlotToEnd != 0)
             waitFor((timeForSlotToEnd.asInstanceOf[Int] + slackTime).ms)
         }
 

@@ -222,14 +222,14 @@ class NorbertResponseIteratorSpec extends SpecificationWithJUnit with Mockito wi
     "if timeout occurs we try to find the next node multiple times" in {
       var invocationCount = 1
       def calculateNodeFunctor(setPIds: Set[Int],setNodes: Set[Node],requestMsg: Int):Map[Node, Set[Int]] = {
-        if(invocationCount == 1) {
+        if (invocationCount == 1) {
           val failedNodes = Set.empty[Node] + Node(1, "node1", true) + Node(2, "node2", true)
           setNodes.size mustEqual 2
           setNodes mustEqual failedNodes
           val partitionsRetry = Set.empty[Int] + 1 + 2 + 3 + 4 + 5 + 6
           setPIds mustEqual partitionsRetry
           return Map.empty[Node, Set[Int]] + (Node(4,"node4", true) -> (Set.empty[Int] + 1 + 2)) + (Node(5,"node5",true) -> (Set.empty[Int] + 3 + 4)) + (Node(6,"node6",true) -> (Set.empty[Int] + 5 + 6))
-        } else if(invocationCount == 2){
+        } else if (invocationCount == 2){
           val failedNodes = Set.empty[Node] + Node(6, "node6", true)
           setNodes.size mustEqual 1
           setNodes mustEqual failedNodes
@@ -244,7 +244,7 @@ class NorbertResponseIteratorSpec extends SpecificationWithJUnit with Mockito wi
       val queue = new ResponseQueue[Tuple3[Node, Set[Int], Int]]
       queue += Right(Tuple3(Node(3, "node3", true), Set.empty[Int] + 7 + 8 + 9, 1000))
       def callback(pRequest: PartitionedRequest[Int,Int,Int]) = {
-        if(invocationCount == 1) {
+        if (invocationCount == 1) {
           val insertQueueLate = new Thread(new Runnable {
             def run() {Thread.sleep(5000); queue += Right(Tuple3(Node(6, "endpoint", true), Set.empty[Int] + 5 + 6, 6000)) }
           })
@@ -258,7 +258,7 @@ class NorbertResponseIteratorSpec extends SpecificationWithJUnit with Mockito wi
           })
           insertQueueLate2.start()
           invocationCount += 1
-        } else if(invocationCount == 2) {
+        } else if (invocationCount == 2) {
           val insertQueueLate = new Thread(new Runnable {
             def run() {Thread.sleep(20); queue += Right(Tuple3(Node(7, "endpoint", true), Set.empty[Int] + 5 + 6, 9000)) }
           })

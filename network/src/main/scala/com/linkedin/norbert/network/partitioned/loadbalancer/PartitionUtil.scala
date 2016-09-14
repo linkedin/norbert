@@ -21,7 +21,7 @@ import com.linkedin.norbert.network.common.Endpoint
 object PartitionUtil {
   def wheelEntry[K, V](map: java.util.TreeMap[K, V], key: K): java.util.Map.Entry[K, V] = {
     val entry = map.ceilingEntry(key)
-    if(entry == null)
+    if (entry == null)
       map.firstEntry
     else
       entry
@@ -29,28 +29,28 @@ object PartitionUtil {
 
   def rotateWheel[K, V](map: java.util.TreeMap[K, V], key: K): java.util.Map.Entry[K, V] = {
     val entry = map.higherEntry(key)
-    if(entry == null)
+    if (entry == null)
       map.firstEntry
     else
       entry
   }
 
   def searchWheel[T, V](wheel: java.util.TreeMap[T, V], key: T, usable: V => Boolean): Option[V] = {
-    if(wheel.isEmpty)
+    if (wheel.isEmpty)
       return None
 
     val entry = PartitionUtil.wheelEntry(wheel, key)
     var e = entry
     do {
-      if(usable(e.getValue))
+      if (usable(e.getValue))
         return Some(e.getValue)
 
       // rotate the wheel
         e = PartitionUtil.rotateWheel(wheel, e.getKey)
     }
     while (e != entry)
-    
-    if(e == entry)
+
+    if (e == entry)
       return None
     else
       return Some(e.getValue)

@@ -33,21 +33,21 @@ object ProtoUtils extends Logging {
   }
 
   def byteArrayToByteString(byteArray: Array[Byte], avoidByteStringCopy: Boolean): ByteString = {
-    if(avoidByteStringCopy)
+    if (avoidByteStringCopy)
       fastByteArrayToByteString(byteArray)
     else
       slowByteArrayToByteString(byteArray)
   }
 
   def byteStringToByteArray(byteString: ByteString, avoidByteStringCopy: Boolean): Array[Byte] = {
-    if(avoidByteStringCopy)
+    if (avoidByteStringCopy)
       fastByteStringToByteArray(byteString)
     else
       slowByteStringToByteArray(byteString)
   }
 
   private final def fastByteArrayToByteString(byteArray: Array[Byte]): ByteString = {
-    if(byteStringConstructor != null)
+    if (byteStringConstructor != null)
       try {
         byteStringConstructor.newInstance(byteArray)
       } catch {
@@ -64,7 +64,7 @@ object ProtoUtils extends Logging {
   }
 
   private final def fastByteStringToByteArray(byteString: ByteString): Array[Byte] = {
-    if(byteStringField != null)
+    if (byteStringField != null)
       try {
         byteStringField.get(byteString).asInstanceOf[Array[Byte]]
       } catch {

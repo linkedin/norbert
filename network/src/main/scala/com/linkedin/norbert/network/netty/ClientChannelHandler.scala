@@ -102,7 +102,7 @@ class ClientChannelHandler(clientName: Option[String],
   override def writeRequested(ctx: ChannelHandlerContext, e: MessageEvent) = {
     val request = e.getMessage.asInstanceOf[Request[_, _]]
     log.debug("Writing request: %s".format(request))
-    if(!request.callback.isEmpty) {
+    if (!request.callback.isEmpty) {
       requestMap.put(request.id, request)
       stats.beginRequest(request.node, request.id, 0)
     }
@@ -178,7 +178,7 @@ trait HealthScoreCalculator extends Logging {
 
     val result = safeDivide(fTotal + pTotal, fSize + pSize)(0)
 
-    if(result < 0.0) {
+    if (result < 0.0) {
       log.warn("Found a negative result when calculating weighted median. Pending = %s. Finished = %s. fSize = %s. pSize = %s. fTotal = %s. pTotal = %s"
                 .format(p, f, fSize, pSize, fTotal, pTotal))
     }
