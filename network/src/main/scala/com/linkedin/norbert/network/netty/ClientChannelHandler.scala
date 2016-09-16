@@ -209,7 +209,9 @@ class ClientStatisticsRequestStrategy(val stats: CachedNetworkStatistics[Node, U
     val (p, f) = (s.map(_.pending).getOrElse(Map.empty), s.map(_.finished).getOrElse(Map.empty))
 
     f.map { case (n, nodeN) =>
-      val available = if (enableReroutingStrategies) {
+      val available = if (!enableReroutingStrategies) {
+        !enableReroutingStrategies
+        } else {
         val clusterMedian = doCalculation(p, f)
         val nodeP = p.get(n).getOrElse(StatsEntry(0.0, 0, 0))
 
@@ -231,8 +233,6 @@ class ClientStatisticsRequestStrategy(val stats: CachedNetworkStatistics[Node, U
           totalNodesMarkedDown.incrementAndGet
         }
         available_helper
-      } else {
-        !enableReroutingStrategies
       }
       (n, available)
     }
