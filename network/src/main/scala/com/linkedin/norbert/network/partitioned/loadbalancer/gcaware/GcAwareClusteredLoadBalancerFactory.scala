@@ -112,7 +112,7 @@ abstract class GcAwareClusteredLoadBalancer[PartitionedId](endpoints: Set[Endpoi
 
     }
 
-    if(pendingIds.isEmpty) {
+    if (pendingIds.isEmpty) {
       return nodesToPartitionedIds
     }
 

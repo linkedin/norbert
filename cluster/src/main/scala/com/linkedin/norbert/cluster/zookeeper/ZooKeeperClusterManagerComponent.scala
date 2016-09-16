@@ -356,7 +356,7 @@ trait ZooKeeperClusterManagerComponent extends ClusterManagerComponent {
       }
       val oldMember: Node = currentNodes.getOrElse(memberId, null)
       //make sure this node did not get its membership changed
-      if(oldMember != null) {
+      if (oldMember != null) {
         val membersBytes = zk.getData("%s/%s".format(MEMBERSHIP_NODE, memberId),watcher,null)
         currentNodes += memberId -> Node(memberId, membersBytes, oldMember.available, oldMember.capability)
         return true

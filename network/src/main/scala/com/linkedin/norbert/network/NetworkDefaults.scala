@@ -115,6 +115,11 @@ object NetworkDefaults {
   val OUTLIER_CONSTANT = 10000.0
 
   /**
+    * Whether or not to enable the SimpleBackoff and ClientStatisticsRequest Strategies, default value is true to enable.
+    */
+  val ENABLE_REROUTING_STRATEGIES = true
+
+  /**
    * Protocol Buffers ByteString.copyFrom(byte[]) and ByteString.toByteArray both make a defensive copy of the
    * data contained in the ByteString. There's no fundamental reason they need to do so, and if this property
    * is set to true, Norbert will attempt to bypass the copy using reflection. You will have to disable this

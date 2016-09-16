@@ -33,8 +33,9 @@ class PartitionedNetworkClientFactory[PartitionedId](clientName: String,
                                                      norbertOutlierMultiplier: Double,
                                                      norbertOutlierConstant: Double,
                                                      partitionedLoadBalancerFactory: PartitionedLoadBalancerFactory[PartitionedId],
-						     enableSelectiveRetry: Boolean = false,  	
-						     retryStrategy: RetryStrategy = null)
+						                                         enableSelectiveRetry: Boolean = false,
+						                                         retryStrategy: RetryStrategy = null,
+                                                     enableReroutingStrategies: Boolean = true)
 {
 
   def createPartitionedNetworkClient : PartitionedNetworkClient[PartitionedId] = {
@@ -43,13 +44,14 @@ class PartitionedNetworkClientFactory[PartitionedId](clientName: String,
     config.closeChannelTimeMillis = closeChannelTimeMillis
     config.outlierMuliplier = norbertOutlierMultiplier
     config.outlierConstant = norbertOutlierConstant
+    config.enableReroutingStrategies = enableReroutingStrategies
     config.clusterClient = ClusterClient(clientName, serviceName, zooKeeperConnectString, zooKeeperSessionTimeoutMillis)
-    if(enableSelectiveRetry) {
-      if(retryStrategy == null) 
+    if (enableSelectiveRetry) {
+      if (retryStrategy == null)
         throw new IllegalArgumentException("Retry strategy needs to be provided if you enable selective retry")
       else
         config.retryStrategy = Some(retryStrategy)
-    }   	
+    }
     val partitionedNetworkClient = PartitionedNetworkClient(config, partitionedLoadBalancerFactory)
 
     partitionedNetworkClient

@@ -182,7 +182,7 @@ abstract class DefaultClusteredLoadBalancer[PartitionedId](endpoints: Set[Endpoi
           // Filter the node with the given cluster id. Then, check whether the isOneCluster flag is set.
           // If this call is for only one cluster, we should not check the node status since it can cause
           // selecting nodes from other clusters.
-          if(cluster.contains(clusterId(endpoint.node)) && checkIfOneClusterOrEndpointViable(isOneCluster, capability, persistentCapability, endpoint)) {
+          if (cluster.contains(clusterId(endpoint.node)) && checkIfOneClusterOrEndpointViable(isOneCluster, capability, persistentCapability, endpoint)) {
             counter.compensate(idx, loopCount)
             return endpoint.node
           }

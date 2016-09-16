@@ -154,11 +154,11 @@ class ChannelPool(address: InetSocketAddress, maxConnections: Int, openTimeoutMi
         openChannel(request)
     }
   }
- 
+
   /*
    * This is a soft close where we get rid of the JMX values only.
    * The reason for splitting it in two phases is to avoid extra synchronization overhead
-  */ 
+  */
   def unregisterJMX {
     softClosed.set(true)
     jmxHandle.foreach {JMX.unregister(_)}
@@ -166,7 +166,7 @@ class ChannelPool(address: InetSocketAddress, maxConnections: Int, openTimeoutMi
 
   def close {
     if (closed.compareAndSet(false, true)) {
-      if(!softClosed.get()) {
+      if (!softClosed.get()) {
         jmxHandle.foreach {JMX.unregister(_)}
       }
       channelGroup.close.awaitUninterruptibly
@@ -181,14 +181,14 @@ class ChannelPool(address: InetSocketAddress, maxConnections: Int, openTimeoutMi
 
         case request =>
           val timeout = if (isFirstWriteToChannel) writeTimeoutMillis + openTimeoutMillis else writeTimeoutMillis
-          if((System.currentTimeMillis - request.timestamp) < timeout)
+          if ((System.currentTimeMillis - request.timestamp) < timeout)
             writeRequestToChannel(request, poolEntry.channel)
           else
             request.onFailure(new TimeoutException("Timed out while waiting to write"))
       }
     }
 
-    if(poolEntry.reuseChannel(closeChannelTimeMillis))
+    if (poolEntry.reuseChannel(closeChannelTimeMillis))
       pool.offer(poolEntry)
     else {
       poolSize.decrementAndGet()
@@ -205,7 +205,7 @@ class ChannelPool(address: InetSocketAddress, maxConnections: Int, openTimeoutMi
 
         case pe =>
           if (pe.channel.isConnected) {
-            if(pe.reuseChannel(closeChannelTimeMillis)) {
+            if (pe.reuseChannel(closeChannelTimeMillis)) {
               poolEntry = pe
               found = true
             } else {

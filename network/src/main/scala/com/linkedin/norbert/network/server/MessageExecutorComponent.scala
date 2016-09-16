@@ -160,7 +160,7 @@ class ThreadPoolMessageExecutor(clientName: Option[String],
 
     // Log messages that arrive post the GC start period.
     // The check for ~50ms is to filter out the corner case messages that come right at the slot transition time.
-    if(enableGcAwareness && isCurrentlyDownToGC(myNode.get.offset.get) && wasDownToGcPreviously(myNode.get.offset.get, timeBufferForAcceptableRequests)) {
+    if (enableGcAwareness && isCurrentlyDownToGC(myNode.get.offset.get) && wasDownToGcPreviously(myNode.get.offset.get, timeBufferForAcceptableRequests)) {
       totalRequestsInGcSlot.incrementAndGet()
       log.warn("Received a request in the node's GC slot, even though the node's slot started at least 50ms ago")
     }
@@ -196,7 +196,7 @@ class ThreadPoolMessageExecutor(clientName: Option[String],
                                                        implicit val is: InputSerializer[RequestMsg, ResponseMsg]) extends Runnable {
     def run = {
       val now = System.currentTimeMillis
-      if(now - queuedAt > reqTimeout) {
+      if (now - queuedAt > reqTimeout) {
         totalNumRejected.incrementAndGet
         log.warn("Request timed out, ignoring! Currently = " + now + ". Queued at = " + queuedAt + ". Timeout = " + requestTimeout)
         callback.foreach(_(Left(new HeavyLoadException)))
@@ -217,7 +217,7 @@ class ThreadPoolMessageExecutor(clientName: Option[String],
           try {
             val response = handler(request)
             val timeResponse = System.currentTimeMillis - queuedAt
-            if(responseGenerationTimeoutMillis>0 && timeResponse > responseGenerationTimeoutMillis) {
+            if (responseGenerationTimeoutMillis>0 && timeResponse > responseGenerationTimeoutMillis) {
               totalNumRejected.incrementAndGet
               log.warn("Request timed out by the time we generated response, ignoring! Currently = " + now + ". " +
                 "Queued at = " + queuedAt + ". Timeout = " + requestTimeout)
@@ -250,7 +250,7 @@ class ThreadPoolMessageExecutor(clientName: Option[String],
           case None => ()
         }
         response.foreach { (res) =>
-          if(!callback.isEmpty) callback.get(res)
+          if (!callback.isEmpty) callback.get(res)
           res match {
             case Left(ex) => filters.reverse.foreach(filter => continueOnError(filter.onError(ex, context.getOrElse(null))))
             case Right(responseMsg) =>  filters.reverse.foreach(filter => continueOnError(filter.onResponse(responseMsg, context.getOrElse(null))))
@@ -276,9 +276,9 @@ class ThreadPoolMessageExecutor(clientName: Option[String],
     def getTotalNumRejected: Int
 
     def getMedianTime: Double
-    
+
     def getCurrentPoolSize: Int
-    
+
     def getActivePoolSize: Int
 
     def getTotalRequestsInGcSlot: Int

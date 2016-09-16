@@ -45,18 +45,18 @@ trait ListenableFuture {
  */
 abstract class PromiseListener[ResponseMsg] {
   /**
-   * Depending on the timing this method   
+   * Depending on the timing this method
    * could execute in the calling thread
    * of addListener or in the norbert client
    * thread. Fork another thread if this
-   * is going to be a heavy call.  
+   * is going to be a heavy call.
    */
   def onCompleted(response: ResponseMsg):Unit = {
   }
   /**
-   * Depending on the timing this method 
-   * could execute in the calling thread 
-   * of addListener or in the norbert client       
+   * Depending on the timing this method
+   * could execute in the calling thread
+   * of addListener or in the norbert client
    * thread. Fork another thread if this
    * is going to be a heavy call.
    */
@@ -74,8 +74,8 @@ class FutureAdapterListener[ResponseMsg] extends FutureAdapter[ResponseMsg] {
   val callbackInvokingThread:AtomicInteger = new AtomicInteger(InvokerThread.none)
   def addListener(listener: PromiseListener[ResponseMsg]) {
     mListener = listener
-    if(isDone) {
-      if(callbackInvokingThread.compareAndSet(InvokerThread.none, InvokerThread.requestingThread)) {
+    if (isDone) {
+      if (callbackInvokingThread.compareAndSet(InvokerThread.none, InvokerThread.requestingThread)) {
         response match {
           case Left(t) => listener.onThrowable(t)
           case Right(response) => listener.onCompleted(response)
@@ -87,8 +87,8 @@ class FutureAdapterListener[ResponseMsg] extends FutureAdapter[ResponseMsg] {
 
   override def apply(callback: Either[Throwable, ResponseMsg]): Unit = {
     super.apply(callback)
-    if(mListener != null) {
-      if(callbackInvokingThread.compareAndSet(InvokerThread.none, InvokerThread.norbertThread)) {
+    if (mListener != null) {
+      if (callbackInvokingThread.compareAndSet(InvokerThread.none, InvokerThread.norbertThread)) {
         response match {
           case Left(t) => mListener.onThrowable(t)
           case Right(response) => mListener.onCompleted(response)
@@ -229,7 +229,7 @@ case class PartialIterator[ResponseMsg](inner: ExceptionIterator[ResponseMsg]) e
   def hasNext: Boolean = hasNext0
 
   @tailrec private final def hasNext0: Boolean = {
-    if(nextElem != null) {
+    if (nextElem != null) {
       if (nextElem.isRight) true
       else {
         nextElem = null
@@ -249,7 +249,7 @@ case class PartialIterator[ResponseMsg](inner: ExceptionIterator[ResponseMsg]) e
 
   def next = {
     val hn = hasNext
-    if(hn) {
+    if (hn) {
       val result = nextElem.right.get
       nextElem = null
       result
@@ -284,12 +284,12 @@ class RetryStrategy(var timeoutForRetry: Long, var thresholdNodeFailures: Int, v
    * @return Setup a future retry in case this retry fails
    */
   def onTimeout(numNodeFailures: Int):Tuple2[Option[RetryStrategy],Boolean] = {
-    if(numNodeFailures <= thresholdNodeFailures) {
+    if (numNodeFailures <= thresholdNodeFailures) {
       log.info("RetryStrategy: retry kicked in for %d failures".format(numNodeFailures))
       return Tuple2(nextRetryStrategy,true)
     }
     log.info("RetryStrategy: too many failures %d more than retry threshold".format(numNodeFailures))
-    return Tuple2(None,false) 
+    return Tuple2(None,false)
   }
 }
 
@@ -343,14 +343,14 @@ class SelectiveRetryIterator[PartitionedId, RequestMsg, ResponseMsg](
    * @return true - this response should be returned to higher layer, false - if this response should not be returned
    */
   def isValidQueueEntry(node: Node, pIds: Set[PartitionedId]) : Boolean = {
-    if(!duplicatesOk) {
-      if(!failedNodes.contains(node))
+    if (!duplicatesOk) {
+      if (!failedNodes.contains(node))
         return true
     } else {
       val iter: Iterator[PartitionedId] = pIds.iterator
       while(iter.hasNext) {
         val partitionedId = iter.next
-        if(setRequests.contains(partitionedId))
+        if (setRequests.contains(partitionedId))
           return true
       }
     }
@@ -369,8 +369,8 @@ class SelectiveRetryIterator[PartitionedId, RequestMsg, ResponseMsg](
        case Left(e) => throw e
        case Right(f) => entry = f
        case _ => return false
-      } 
-      if(isValidQueueEntry(entry._1, entry._2))
+      }
+      if (isValidQueueEntry(entry._1, entry._2))
         return true
     }
     false
@@ -395,9 +395,9 @@ class SelectiveRetryIterator[PartitionedId, RequestMsg, ResponseMsg](
           f match {
 		            case Left(g) => throw g
                 case Right(h) => e = h
-                case _ => return null.asInstanceOf[ResponseMsg] 
+                case _ => return null.asInstanceOf[ResponseMsg]
           }
-          if(isValidQueueEntry(e._1, e._2)) {
+          if (isValidQueueEntry(e._1, e._2)) {
             return e._3
           }
         }
@@ -436,12 +436,12 @@ class SelectiveRetryIterator[PartitionedId, RequestMsg, ResponseMsg](
               //check if we meet the requirements for retry to occur or not
               var tuple:Tuple2[Option[RetryStrategy],Boolean] = e.onTimeout(failedNodes.size)
               retryStrategy = tuple._1
-              conditionsRetryMet = tuple._2 
+              conditionsRetryMet = tuple._2
               timeoutForRetry = e.timeoutForRetry
 
               //time started pass should be relative the start time
               timeStartedPass = timeoutCutoff
-              timeoutCutoff = timeStartedPass + timeoutForRetry 
+              timeoutCutoff = timeStartedPass + timeoutForRetry
             }
             case None => {
               if (!duplicatesOk)
@@ -451,12 +451,12 @@ class SelectiveRetryIterator[PartitionedId, RequestMsg, ResponseMsg](
             }
           }
 
-          if(conditionsRetryMet) {
-            retryMessage = "Retry initiated at %d".format(System.currentTimeMillis) 
+          if (conditionsRetryMet) {
+            retryMessage = "Retry initiated at %d".format(System.currentTimeMillis)
             //If for a particular partition id only if 10/10 of the replicas are in trouble then quit
             val nodes = calculateNodesFromIds(ids, failedNodes, 10)
 
-            if(duplicatesOk != true) {
+            if (duplicatesOk != true) {
               //only the responses from these new requests count
               log.debug("Adjust responseIterator to: %d".format(nodes.keySet.size))
               distinctResponsesLeft=nodes.keySet.size
@@ -489,7 +489,7 @@ class SelectiveRetryIterator[PartitionedId, RequestMsg, ResponseMsg](
           //check if we received an exception or response
           e match {
             case Right(response) => {
-              if(isValidQueueEntry(response._1, response._2)) {
+              if (isValidQueueEntry(response._1, response._2)) {
                 distinctResponsesLeft=distinctResponsesLeft - 1
                 response._2.foreach {
                   partitionId => setRequests -= partitionId
@@ -510,13 +510,13 @@ class SelectiveRetryIterator[PartitionedId, RequestMsg, ResponseMsg](
 
   def hasNext = {
     val returnVal = {
-      if(!duplicatesOk)
+      if (!duplicatesOk)
         distinctResponsesLeft != 0
       else {
         setRequests.isEmpty != true
       }
     }
-    if(!returnVal)
+    if (!returnVal)
       log.debug("Completed processing the scatter gather: retryInfo:%s".format(retryMessage))
     returnVal
   }
@@ -524,7 +524,7 @@ class SelectiveRetryIterator[PartitionedId, RequestMsg, ResponseMsg](
 
 private[common] trait ResponseHelper extends Logging {
   protected def translateResponse[T](response: Either[Throwable, T]) = {
-    val r = if(response == null) Left(new NullPointerException("Null response found"))
+    val r = if (response == null) Left(new NullPointerException("Null response found"))
             else response
 
     r.fold(ex => throw new ExecutionException(ex) , msg => msg)

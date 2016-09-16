@@ -54,6 +54,7 @@ abstract class BaseNettyNetworkClient extends BaseNetworkClient {
     c.requestStatisticsWindow = config.getRequestStatisticsWindow
     c.outlierMuliplier = config.getOutlierMuliplier
     c.outlierConstant = config.getOutlierConstant
+    c.enableReroutingStrategies = config.getEnableReroutingStrategies
 
     c.responseHandlerCorePoolSize = config.getResponseHandlerCorePoolSize
     c.responseHandlerMaxPoolSize = config.getResponseHandlerMaxPoolSize

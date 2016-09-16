@@ -104,7 +104,7 @@ public class ConsistentHashPartitionedLoadBalancer<PartitionedId> implements Par
     return new ConsistentHashPartitionedLoadBalancer<PartitionedId>(hashFunction, rings, routingMap, fallThrough);
   }
 
-  @Override 
+  @Override
   public Node nextNode(PartitionedId partitionedId, Long capability)
   {
     return nextNode(partitionedId, capability, 0L);
@@ -115,8 +115,8 @@ public class ConsistentHashPartitionedLoadBalancer<PartitionedId> implements Par
   {
     return nextNode(partitionedId, 0L, 0L);
   }
-  
-  @Override 
+
+  @Override
   public Node nextNode(PartitionedId partitionedId, Long capability, Long persistentCapability)
   {
     long hash = _hashFunction.hash(partitionedId.toString());
@@ -171,7 +171,7 @@ public class ConsistentHashPartitionedLoadBalancer<PartitionedId> implements Par
       Node node = entry.getKey().getNode();
       Set<Integer> partitionsToServe = entry.getValue();
 
-      if(entry.getKey().canServeRequests())
+      if (entry.getKey().canServeRequests())
       {
         results.put(node, new HashSet<Integer>(partitionsToServe));
       }
@@ -182,13 +182,13 @@ public class ConsistentHashPartitionedLoadBalancer<PartitionedId> implements Par
     }
 
 
-    if(unsatisfiedPartitions.size() > 0)
+    if (unsatisfiedPartitions.size() > 0)
     {
       Map<Node, Set<Integer>> resolved = nodesForPartitions(partitionedId, unsatisfiedPartitions);
       for(Map.Entry<Node, Set<Integer>> entry : resolved.entrySet())
       {
         Set<Integer> partitions = results.get(entry.getKey());
-        if(partitions != null)
+        if (partitions != null)
         {
           partitions.addAll(entry.getValue());
         }
@@ -227,7 +227,7 @@ public class ConsistentHashPartitionedLoadBalancer<PartitionedId> implements Par
 
       Node node = endpoint.getNode();
       Set<Integer> partitionsForNode = nodes.get(node);
-      if(partitionsForNode == null)
+      if (partitionsForNode == null)
         partitionsForNode = new HashSet<Integer>();
 
       partitionsForNode.add(partition);
@@ -243,13 +243,13 @@ public class ConsistentHashPartitionedLoadBalancer<PartitionedId> implements Par
 
   private static <K, V> V searchWheel(NavigableMap<K, V> ring, K key, Function<V, Boolean> predicate)
   {
-    if(ring.isEmpty())
+    if (ring.isEmpty())
       return null;
 
     final Map.Entry<K, V> original = lookup(ring, key);
     Map.Entry<K, V> candidate = original;
     do {
-      if(predicate.apply(candidate.getValue()))
+      if (predicate.apply(candidate.getValue()))
         return candidate.getValue();
 
       candidate = rotateWheel(ring, candidate.getKey());
@@ -261,7 +261,7 @@ public class ConsistentHashPartitionedLoadBalancer<PartitionedId> implements Par
   private static <K, V> Map.Entry<K, V> rotateWheel(NavigableMap<K, V> ring, K key)
   {
     Map.Entry<K, V> nextEntry = ring.higherEntry(key);
-    if(nextEntry == null)
+    if (nextEntry == null)
       return ring.firstEntry();
     return nextEntry;
   }
@@ -272,7 +272,7 @@ public class ConsistentHashPartitionedLoadBalancer<PartitionedId> implements Par
     if (result == null)
     {       // Not a direct match
       Map.Entry<K, V> entry = ring.ceilingEntry(key);
-      if(entry == null)
+      if (entry == null)
         return ring.firstEntry();
       else
         return entry;

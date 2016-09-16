@@ -27,7 +27,7 @@ object EndpointConversions {
   }
 
   implicit def javaEndpointToScalaEndpoint(endpoint: JEndpoint): SEndpoint = {
-    if(endpoint == null) null
+    if (endpoint == null) null
     else new SEndpoint {
       def node: SNode = {
         javaNodeToScalaNode(endpoint.getNode)

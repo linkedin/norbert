@@ -48,10 +48,10 @@ trait DefaultPartitionedLoadBalancerHelper extends PartitionedLoadBalancerHelper
     val possiblePartitions = (0 until numPartitions).toSet
     val missingPartitions = possiblePartitions diff (partitionToNodeMap.keys.toSet)
 
-    if(missingPartitions.size == possiblePartitions.size)
+    if (missingPartitions.size == possiblePartitions.size)
       throw new InvalidClusterException("Every single partition appears to be missing. There are %d partitions".format(numPartitions))
-    else if(!missingPartitions.isEmpty) {
-      if(serveRequestsIfPartitionMissing)
+    else if (!missingPartitions.isEmpty) {
+      if (serveRequestsIfPartitionMissing)
         log.warn("Partitions %s are unavailable, attempting to continue serving requests to other partitions.".format(missingPartitions))
       else
         throw new InvalidClusterException("Partitions %s are unavailable, cannot serve requests.".format(missingPartitions))
@@ -84,7 +84,7 @@ trait DefaultPartitionedLoadBalancerHelper extends PartitionedLoadBalancerHelper
         var loopCount = 0
         do {
           val endpoint = endpoints(i % es)
-          if(isEndpointViable(capability, persistentCapability, endpoint)) {
+          if (isEndpointViable(capability, persistentCapability, endpoint)) {
             counter.compensate(idx, loopCount)
             return Some(endpoint.node)
           }

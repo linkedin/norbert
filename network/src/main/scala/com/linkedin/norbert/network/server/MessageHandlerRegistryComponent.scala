@@ -30,7 +30,7 @@ class MessageHandlerRegistry {
 
   def registerHandler[RequestMsg, ResponseMsg](handler: RequestMsg => ResponseMsg)
                                               (implicit is: InputSerializer[RequestMsg, ResponseMsg], os: OutputSerializer[RequestMsg, ResponseMsg]) {
-    if(handler == null) throw new NullPointerException
+    if (handler == null) throw new NullPointerException
 
     handlerMap += (is.requestName -> MessageHandlerEntry(is, os, handler))
   }
@@ -61,7 +61,7 @@ class MessageHandlerRegistry {
       .getOrElse(throw buildException(messageName))
       .asInstanceOf[RequestMsg => ResponseMsg]
   }
-  
+
   def buildException(messageName: String) =
     new InvalidMessageException("%s is not a registered method. Methods registered are %s".format(messageName, "(" + handlerMap.keys.mkString(",") + ")"))
 }
