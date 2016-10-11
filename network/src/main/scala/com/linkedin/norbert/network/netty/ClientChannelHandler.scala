@@ -207,12 +207,12 @@ class ClientStatisticsRequestStrategy(val stats: CachedNetworkStatistics[Node, U
   val canServeRequests = CacheMaintainer(clock, 200L, () => {
     val s = stats.getStatistics(0.5)
     val (p, f) = (s.map(_.pending).getOrElse(Map.empty), s.map(_.finished).getOrElse(Map.empty))
+    val clusterMedian = doCalculation(p, f)
 
     f.map { case (n, nodeN) =>
       val available = if (!enableReroutingStrategies) {
         !enableReroutingStrategies
         } else {
-        val clusterMedian = doCalculation(p, f)
         val nodeP = p.get(n).getOrElse(StatsEntry(0.0, 0, 0))
 
         val nodeMedian = doCalculation(Map(0 -> nodeP),Map(0 -> nodeN))
