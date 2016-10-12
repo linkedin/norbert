@@ -83,7 +83,6 @@ class ThreadPoolMessageExecutor(clientName: Option[String],
            responseGenerationTimeoutMillis: Long) =
     this(clientName, serviceName, messageHandlerRegistry, filters, requestTimeout, corePoolSize, maxPoolSize, keepAliveTime, maxWaitingQueueSize, requestStatisticsWindow, responseGenerationTimeoutMillis, GcParamWrapper.DEFAULT, None)
 
-
   def this(clientName: Option[String],
            serviceName: String,
            messageHandlerRegistry: MessageHandlerRegistry,
@@ -109,8 +108,7 @@ class ThreadPoolMessageExecutor(clientName: Option[String],
            gcParams: GcParamWrapper,
            myNode: => Option[Node]) =
     this(clientName, serviceName, messageHandlerRegistry, new MutableList[Filter], requestTimeout, corePoolSize, maxPoolSize, keepAliveTime, maxWaitingQueueSize, requestStatisticsWindow, responseGenerationTimeoutMillis, gcParams, myNode)
-
-
+  
   private val statsActor = CachedNetworkStatistics[Int, Int](SystemClock, requestStatisticsWindow, 200L)
   private val totalNumRejected = new AtomicInteger
   private val totalRequestsInGcSlot = new AtomicInteger
@@ -268,7 +266,7 @@ class ThreadPoolMessageExecutor(clientName: Option[String],
       }
     }
 
-    def run = {
+    override def run(): Unit = {
       onRequestHook
 
       var responseFuture: CompletableFuture[Response] = null
@@ -293,13 +291,13 @@ class ThreadPoolMessageExecutor(clientName: Option[String],
 //          }
 
           onResponseHook(Right(responseMsg))  // process response immediately - avoids thread context switch
-          () => ()
+          return
         }
       } catch {
         case ex: Exception =>
           log.error(ex, "Message handler threw an exception while processing message")
           onResponseHook(Left(ex))
-          ()
+          return
       }
 
       responseFuture
