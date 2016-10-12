@@ -17,51 +17,72 @@ package com.linkedin.norbert
 package network
 package server
 
+import java.util.concurrent.CompletableFuture
+
 trait MessageHandlerRegistryComponent {
   val messageHandlerRegistry: MessageHandlerRegistry
 }
 
-private case class MessageHandlerEntry[RequestMsg, ResponseMsg]
+private case class SyncHandlerEntry[RequestMsg, ResponseMsg]
 (is: InputSerializer[RequestMsg, ResponseMsg], os: OutputSerializer[RequestMsg, ResponseMsg], handler: RequestMsg => ResponseMsg)
 
+private case class AsyncHandlerEntry[RequestMsg, ResponseMsg, Response]
+(is: InputSerializer[RequestMsg, ResponseMsg], os: OutputSerializer[RequestMsg, ResponseMsg], onRequestHandler: RequestMsg => CompletableFuture[Response], onResponseHandler: Response => ResponseMsg)
+
 class MessageHandlerRegistry {
-  @volatile private var handlerMap =
-    Map.empty[String, MessageHandlerEntry[_ <: Any, _ <: Any]]
+  @volatile private var syncHandlerMap = Map.empty[String, SyncHandlerEntry[_ <: Any, _ <: Any]]
+  @volatile private var asyncHandlerMap = Map.empty[String, AsyncHandlerEntry[_ <: Any, _ <: Any, _ <: Any]]
 
   def registerHandler[RequestMsg, ResponseMsg](handler: RequestMsg => ResponseMsg)
                                               (implicit is: InputSerializer[RequestMsg, ResponseMsg], os: OutputSerializer[RequestMsg, ResponseMsg]) {
     if (handler == null) throw new NullPointerException
 
-    handlerMap += (is.requestName -> MessageHandlerEntry(is, os, handler))
+    syncHandlerMap += (is.requestName -> SyncHandlerEntry(is, os, handler))
+  }
+
+  def registerAsyncHandler[RequestMsg, ResponseMsg, Response](onRequestHandler: RequestMsg => CompletableFuture[Response], onResponseHandler: Response => ResponseMsg)
+                                                             (implicit is: InputSerializer[RequestMsg, ResponseMsg], os: OutputSerializer[RequestMsg, ResponseMsg]): Unit = {
+    if (onRequestHandler == null || onResponseHandler == null) throw new NullPointerException
+
+    asyncHandlerMap += (is.requestName -> AsyncHandlerEntry(is, os, onRequestHandler, onResponseHandler))
   }
 
   @throws(classOf[InvalidMessageException])
   def inputSerializerFor[RequestMsg, ResponseMsg](messageName: String): InputSerializer[RequestMsg, ResponseMsg] = {
-    handlerMap.get(messageName).map(_.is)
-      .getOrElse(throw buildException(messageName))
-      .asInstanceOf[InputSerializer[RequestMsg, ResponseMsg]]
+    syncHandlerMap.getOrElse(messageName,
+      asyncHandlerMap.getOrElse(messageName,
+        throw buildException(messageName))).asInstanceOf[InputSerializer[RequestMsg, ResponseMsg]]
   }
 
   @throws(classOf[InvalidMessageException])
   def outputSerializerFor[RequestMsg, ResponseMsg](messageName: String): OutputSerializer[RequestMsg, ResponseMsg] = {
-    handlerMap.get(messageName).map(_.os)
-      .getOrElse(throw buildException(messageName))
-      .asInstanceOf[OutputSerializer[RequestMsg, ResponseMsg]]
+    syncHandlerMap.getOrElse(messageName,
+      asyncHandlerMap.getOrElse(messageName,
+        throw buildException(messageName))).asInstanceOf[OutputSerializer[RequestMsg, ResponseMsg]]
+  }
+
+  def isSyncHandler[RequestMsg, ResponseMsg](messageName: String): Boolean = syncHandlerMap.contains(messageName)
+
+  @throws(classOf[InvalidMessageException])
+  def onRequestHandlerFor[RequestMsg, ResponseMsg, Response](messageName: String): RequestMsg => CompletableFuture[Response] = {
+    asyncHandlerMap.getOrElse(messageName, throw buildException(messageName)).asInstanceOf[AsyncHandlerEntry[RequestMsg, ResponseMsg, Response]].onRequestHandler
   }
 
   @throws(classOf[InvalidMessageException])
-  def handlerFor[RequestMsg, ResponseMsg](request: RequestMsg)
-                                         (implicit is: InputSerializer[RequestMsg, ResponseMsg]): RequestMsg => ResponseMsg = {
-    handlerFor[RequestMsg, ResponseMsg](is.requestName)
+  def onResponseHandlerFor[RequestMsg, ResponseMsg, Response](messageName: String): Response => ResponseMsg = {
+    asyncHandlerMap.getOrElse(messageName, throw buildException(messageName)).asInstanceOf[AsyncHandlerEntry[RequestMsg, ResponseMsg, Response]].onResponseHandler
+  }
+
+  @throws(classOf[InvalidMessageException])
+  def handlerFor[RequestMsg, ResponseMsg](request: RequestMsg)(implicit is: InputSerializer[RequestMsg, ResponseMsg]): RequestMsg => ResponseMsg = {
+    handlerFor(is.requestName)
   }
 
   @throws(classOf[InvalidMessageException])
   def handlerFor[RequestMsg, ResponseMsg](messageName: String): RequestMsg => ResponseMsg = {
-    handlerMap.get(messageName).map(_.handler)
-      .getOrElse(throw buildException(messageName))
-      .asInstanceOf[RequestMsg => ResponseMsg]
+    syncHandlerMap.getOrElse(messageName, throw buildException(messageName)).asInstanceOf[SyncHandlerEntry[RequestMsg, ResponseMsg]].handler
   }
 
   def buildException(messageName: String) =
-    new InvalidMessageException("%s is not a registered method. Methods registered are %s".format(messageName, "(" + handlerMap.keys.mkString(",") + ")"))
+    new InvalidMessageException("%s is not a registered method. Methods registered are %s".format(messageName, "(" + syncHandlerMap.keys.mkString(",") + "," + asyncHandlerMap.keys.mkString(",") + ")"))
 }

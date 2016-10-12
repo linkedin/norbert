@@ -19,7 +19,7 @@ package netty
 
 import org.jboss.netty.channel.group.ChannelGroup
 import org.jboss.netty.channel._
-import server.{MessageExecutor, MessageHandlerRegistry, RequestContext => NorbertRequestContext}
+import com.linkedin.norbert.network.server.{RequestContext => NorbertRequestContext, MessageExecutor, MessageHandlerRegistry}
 import common.CachedNetworkStatistics
 import protos.NorbertProtos
 import logging.Logging
@@ -125,28 +125,28 @@ class ServerChannelHandler(clientName: Option[String],
 
     statsActor.beginRequest(0, context.requestId, 0)
 
-    val (handler, is, os) = try {
-      val handler: Any => Any = messageHandlerRegistry.handlerFor(messageName)
+    try {
       val is: InputSerializer[Any, Any] = messageHandlerRegistry.inputSerializerFor(messageName)
       val os: OutputSerializer[Any, Any] = messageHandlerRegistry.outputSerializerFor(messageName)
 
-      (handler, is, os)
+      val req = is.requestFromBytes(requestBytes)
+
+      if (messageHandlerRegistry.isSyncHandler(messageName)) {
+        messageExecutor.executeMessage(req, Option((either: Either[Exception, Any]) => {
+          responseHandler(context, e.getChannel, either)(is, os)
+        }), Some(context))(is)
+      } else {
+        messageExecutor.executeAsyncMessage(req, (either: Either[Exception, Any]) => {
+            responseHandler(context, e.getChannel, either)(is, os)
+          }, Some(context), messageHandlerRegistry.onRequestHandlerFor(messageName), messageHandlerRegistry.onResponseHandlerFor(messageName))(is)
+      }
     } catch {
       case ex: InvalidMessageException =>
         Channels.write(ctx, Channels.future(channel), (context, ResponseHelper.errorResponse(context.requestId, ex)))
         statsActor.endRequest(0, context.requestId)
 
         throw ex
-    }
 
-    val request = is.requestFromBytes(requestBytes)
-
-    try {
-      messageExecutor.executeMessage(request, Option((either: Either[Exception, Any]) => {
-        responseHandler(context, e.getChannel, either)(is, os)
-      }), Some(context))(is)
-    }
-    catch {
       case ex: HeavyLoadException =>
         Channels.write(ctx, Channels.future(channel), (context, ResponseHelper.errorResponse(context.requestId, ex, NorbertProtos.NorbertMessage.Status.HEAVYLOAD)))
         statsActor.endRequest(0, context.requestId)
@@ -154,7 +154,6 @@ class ServerChannelHandler(clientName: Option[String],
       case ex: GcException =>
         Channels.write(ctx, Channels.future(channel), (context, ResponseHelper.errorResponse(context.requestId, ex, NorbertProtos.NorbertMessage.Status.GC)))
         statsActor.endRequest(0, context.requestId)
-
     }
   }
 
@@ -210,7 +209,7 @@ trait NetworkServerStatisticsMBean {
 class NetworkServerStatisticsMBeanImpl(clientName: Option[String], serviceName: String, val stats: CachedNetworkStatistics[Int, UUID])
   extends MBean(classOf[NetworkServerStatisticsMBean], JMX.name(clientName, serviceName)) with NetworkServerStatisticsMBean {
 
-  def toMillis(statsMetric: Double):Double = {statsMetric/1000} 
+  def toMillis(statsMetric: Double):Double = {statsMetric/1000}
 
   def getMedianTime = toMillis(stats.getStatistics(0.5).map(_.finished.values.map(_.percentile).sum).getOrElse(0.0))
 

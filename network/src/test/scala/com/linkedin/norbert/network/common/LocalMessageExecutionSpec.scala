@@ -17,6 +17,8 @@ package com.linkedin.norbert
 package network
 package common
 
+import java.util.concurrent.CompletableFuture
+
 import org.specs.SpecificationWithJUnit
 import org.specs.mock.Mockito
 import client.NetworkClient
@@ -43,6 +45,10 @@ class LocalMessageExecutionSpec extends SpecificationWithJUnit with Mockito with
 
       responseHandler.get(Right(response))
     }
+
+    def executeAsyncMessage[RequestMsg, ResponseMsg, Response](request: RequestMsg, norbertCallback: (Either[Exception, ResponseMsg]) => Unit, context: Option[RequestContext] = None,
+                                                               onRequestHandler: (RequestMsg) => CompletableFuture[Response], onResponseHandler: (Response) => ResponseMsg)
+                                                              (implicit is: InputSerializer[RequestMsg, ResponseMsg]): Unit = ()
   }
 
   val networkClient = new NetworkClient with ClusterClientComponent with ClusterIoClientComponent with LoadBalancerFactoryComponent
