@@ -17,18 +17,19 @@ package com.linkedin.norbert
 package network
 package server
 
-
-import com.linkedin.norbert.network.garbagecollection.{GcParamWrapper, GcDetector}
+import com.linkedin.norbert.network.garbagecollection.{GcDetector, GcParamWrapper}
 import com.linkedin.norbert.logging.Logging
 import jmx.JMX.MBean
-import jmx.{FinishedRequestTimeTracker, JMX}
+import jmx.JMX
 import java.util.concurrent.atomic.AtomicInteger
-import norbertutils.{SystemClock, NamedPoolThreadFactory}
+
+import norbertutils.{NamedPoolThreadFactory, SystemClock}
 import java.util.concurrent._
+
 import scala.collection.mutable.MutableList
 import common.CachedNetworkStatistics
 import norbertutils._
-import cluster.{Node, ClusterDisconnectedException, ClusterClientComponent}
+import cluster.Node
 import network.netty.TimingKeys
 
 /**
@@ -39,10 +40,10 @@ trait MessageExecutorComponent {
 }
 
 trait MessageExecutor {
-  def executeMessage[RequestMsg, ResponseMsg](request: RequestMsg, responseHandler: Option[(Either[Exception, ResponseMsg]) => Unit])
-  (implicit is: InputSerializer[RequestMsg, ResponseMsg]) : Unit = executeMessage(request, responseHandler, None)
-  def executeMessage[RequestMsg, ResponseMsg](request: RequestMsg, responseHandler: Option[(Either[Exception, ResponseMsg]) => Unit], context: Option[RequestContext])
-  (implicit is: InputSerializer[RequestMsg, ResponseMsg]): Unit
+  def execMSG[RequestMsg, ResponseMsg] (request: RequestMsg, messageName: String,
+                                        responseHandler: Option[(Either[Exception, ResponseMsg]) => Unit],
+                                        context: Option[RequestContext] = None)
+
   @volatile val filters : MutableList[Filter]
   def addFilters(filters: List[Filter]) : Unit = this.filters ++= (filters)
   def shutdown: Unit
@@ -75,7 +76,6 @@ class ThreadPoolMessageExecutor(clientName: Option[String],
            responseGenerationTimeoutMillis: Long) =
     this(clientName, serviceName, messageHandlerRegistry, filters, requestTimeout, corePoolSize, maxPoolSize, keepAliveTime, maxWaitingQueueSize, requestStatisticsWindow, responseGenerationTimeoutMillis, GcParamWrapper.DEFAULT, None)
 
-
   def this(clientName: Option[String],
            serviceName: String,
            messageHandlerRegistry: MessageHandlerRegistry,
@@ -101,7 +101,6 @@ class ThreadPoolMessageExecutor(clientName: Option[String],
            gcParams: GcParamWrapper,
            myNode: => Option[Node]) =
     this(clientName, serviceName, messageHandlerRegistry, new MutableList[Filter], requestTimeout, corePoolSize, maxPoolSize, keepAliveTime, maxWaitingQueueSize, requestStatisticsWindow, responseGenerationTimeoutMillis, gcParams, myNode)
-
 
   private val statsActor = CachedNetworkStatistics[Int, Int](SystemClock, requestStatisticsWindow, 200L)
   private val totalNumRejected = new AtomicInteger
@@ -136,27 +135,29 @@ class ThreadPoolMessageExecutor(clientName: Option[String],
   val statsJmx = JMX.register(new RequestProcessorMBeanImpl(clientName, serviceName, statsActor, requestQueue, threadPool))
 
   private val threadPool = new ThreadPoolExecutor(corePoolSize, maxPoolSize, keepAliveTime, TimeUnit.SECONDS, requestQueue,
-    new NamedPoolThreadFactory("norbert-message-executor")) {
-
-    override def beforeExecute(t: Thread, r: Runnable) = {
-      val rr = r.asInstanceOf[RequestRunner[_, _]]
-      statsActor.beginRequest(0, rr.id, (System.currentTimeMillis() - rr.queuedAt) * 1000)
-    }
-
-    override def afterExecute(r: Runnable, t: Throwable) = {
-      val rr = r.asInstanceOf[RequestRunner[_, _]]
-      statsActor.endRequest(0, rr.id)
-    }
-  }
+    new NamedPoolThreadFactory("norbert-message-executor")
+  )
 
   def setRequestTimeout(newValue : Long) = {
     requestTimeout = newValue
     log.info("Setting timeout to " + newValue)
   }
 
-  def executeMessage[RequestMsg, ResponseMsg](request: RequestMsg, responseHandler:  Option[(Either[Exception, ResponseMsg]) => Unit], context: Option[RequestContext] = None)
-                                             (implicit is: InputSerializer[RequestMsg, ResponseMsg]) {
-    val rr = new RequestRunner(request, requestTimeout, context, filters, responseHandler, is = is)
+  def execMSG[RequestMsg, ResponseMsg](request: RequestMsg,
+                                       messageName: String,
+                                       responseHandler: Option[(Either[Exception, ResponseMsg]) => Unit],
+                                       context: Option[RequestContext] = None) {
+
+    val rr: AbstractRequestRunner[RequestMsg, ResponseMsg] =
+      if (messageHandlerRegistry.hasAsyncHandler(messageName)) {
+        new AsyncRequestRunner[RequestMsg, ResponseMsg](request,
+          requestTimeout, context, filters, messageHandlerRegistry.asyncHandlerFor(messageName), responseHandler)
+      } else if (messageHandlerRegistry.hasSyncHandler(messageName)) {
+        new SyncRequestRunner[RequestMsg, ResponseMsg](request,
+          requestTimeout, context, filters, messageHandlerRegistry.handlerFor(messageName), responseHandler)
+      } else {
+        throw messageHandlerRegistry.buildException(messageName)
+      }
 
     // Log messages that arrive post the GC start period.
     // The check for ~50ms is to filter out the corner case messages that come right at the slot transition time.
@@ -169,13 +170,10 @@ class ThreadPoolMessageExecutor(clientName: Option[String],
       threadPool.execute(rr)
     } catch {
       case ex: RejectedExecutionException =>
-        statsActor.endRequest(0, rr.id)
-
         totalNumRejected.incrementAndGet
         log.warn("Request processing queue full. Size is currently " + requestQueue.size)
         throw new HeavyLoadException
     }
-
   }
 
   def shutdown {
@@ -186,80 +184,123 @@ class ThreadPoolMessageExecutor(clientName: Option[String],
 
   private val idGenerator = new AtomicInteger(0)
 
-  private class RequestRunner[RequestMsg, ResponseMsg](request: RequestMsg,
-                                                       val reqTimeout : Long,
-                                                       context: Option[RequestContext],
-                                                       filters: MutableList[Filter],
-                                                       callback: Option[(Either[Exception, ResponseMsg]) => Unit],
-                                                       val queuedAt: Long = System.currentTimeMillis,
-                                                       val id: Int = idGenerator.getAndIncrement.abs,
-                                                       implicit val is: InputSerializer[RequestMsg, ResponseMsg]) extends Runnable {
-    def run = {
+  private abstract class AbstractRequestRunner[RequestMsg, ResponseMsg](request: RequestMsg,
+                                                                        reqTimeout: Long,
+                                                                        context: Option[RequestContext],
+                                                                        filters: MutableList[Filter],
+                                                                        callback: Option[(Either[Exception, ResponseMsg]) => Unit],
+                                                                        val queuedAt: Long = System.currentTimeMillis,
+                                                                        val id: Int = idGenerator.getAndIncrement.abs) extends Runnable {
+
+    def beforeExecute(): Unit = {
+      statsActor.beginRequest(0, id, (System.currentTimeMillis() - queuedAt) * 1000)
+
       val now = System.currentTimeMillis
       if (now - queuedAt > reqTimeout) {
         totalNumRejected.incrementAndGet
         log.warn("Request timed out, ignoring! Currently = " + now + ". Queued at = " + queuedAt + ". Timeout = " + requestTimeout)
-        callback.foreach(_(Left(new HeavyLoadException)))
+        if (callback.isDefined) callback.get(Left(new HeavyLoadException))
       } else {
         log.debug("Executing message: %s".format(request))
 
-        val response: Option[Either[Exception, ResponseMsg]] =
-        try {
-          context match {
-            case Some(null) => ()
-            case Some(m) => if (m.attributes != null) {
-              m.attributes += (TimingKeys.ON_REQUEST_TIME_ATTR -> System.currentTimeMillis)
-            }
-            case None => ()
-          }
-          filters.foreach(filter => continueOnError(filter.onRequest(request, context.getOrElse(null))))
-          val handler = messageHandlerRegistry.handlerFor(request)
-          try {
-            val response = handler(request)
-            val timeResponse = System.currentTimeMillis - queuedAt
-            if (responseGenerationTimeoutMillis>0 && timeResponse > responseGenerationTimeoutMillis) {
-              totalNumRejected.incrementAndGet
-              log.warn("Request timed out by the time we generated response, ignoring! Currently = " + now + ". " +
-                "Queued at = " + queuedAt + ". Timeout = " + requestTimeout)
-              throw new Exception("Response took too long:%d".format(timeResponse))
-            }
-            response match {
-              case _:Unit => None
-              case null => None
-              case _ => Some(Right(response))
-            }
-          } catch {
-            case ex: Exception =>
-              log.error(ex, "Message handler threw an exception while processing message")
-              Some(Left(ex))
-          }
-        } catch {
-          case ex: InvalidMessageException =>
-            log.error(ex, "Received an invalid message: %s".format(request))
-            Some(Left(ex))
-
-          case ex: Exception =>
-            log.error(ex, "Unexpected error while handling message: %s".format(request))
-            Some(Left(ex))
-        }
         context match {
           case Some(null) => ()
           case Some(m) => if (m.attributes != null) {
-            m.attributes += (TimingKeys.ON_RESPONSE_TIME_ATTR -> System.currentTimeMillis)
+            m.attributes += (TimingKeys.ON_REQUEST_TIME_ATTR -> now)
           }
           case None => ()
         }
-        response.foreach { (res) =>
-          if (!callback.isEmpty) callback.get(res)
-          res match {
-            case Left(ex) => filters.reverse.foreach(filter => continueOnError(filter.onError(ex, context.getOrElse(null))))
-            case Right(responseMsg) =>  filters.reverse.foreach(filter => continueOnError(filter.onResponse(responseMsg, context.getOrElse(null))))
-          }
+
+        filters.foreach(filter => continueOnError(filter.onRequest(request, context.getOrElse(null))))
+      }
+    }
+
+    def afterExecute(result: Either[Exception, ResponseMsg]): Unit = {
+      val responseTime = System.currentTimeMillis - queuedAt
+      if (responseGenerationTimeoutMillis > 0 && responseTime > responseGenerationTimeoutMillis) {
+        totalNumRejected.incrementAndGet
+        log.warn("Request timed out by the time we generated response, ignoring! Response latency = " + responseTime + ". " +
+          "Queued at = " + queuedAt + ". Timeout = " + requestTimeout)
+        if (callback.isDefined) callback.get(Left(new Exception("Response took too long:%d".format(responseTime))))
+      } else {
+        if (callback.isDefined) callback.get(result)
+      }
+
+      context match {
+        case Some(null) => ()
+        case Some(m) => if (m.attributes != null) {
+          m.attributes += (TimingKeys.ON_RESPONSE_TIME_ATTR -> System.currentTimeMillis)
         }
+        case None => ()
+      }
+
+      result match {
+        case Left(ex) => filters.reverse.foreach(filter => continueOnError(filter.onError(ex, context.getOrElse(null))))
+        case Right(responseMsg) => filters.reverse.foreach(filter => continueOnError(filter.onResponse(responseMsg, context.getOrElse(null))))
+      }
+
+      statsActor.endRequest(0, id)
+    }
+  }
+
+  private class SyncRequestRunner[RequestMsg, ResponseMsg](request: RequestMsg,
+                                                           reqTimeout: Long,
+                                                           context: Option[RequestContext],
+                                                           filters: MutableList[Filter],
+                                                           handler: (RequestMsg) => ResponseMsg,
+                                                           callback: Option[(Either[Exception, ResponseMsg]) => Unit])
+    extends AbstractRequestRunner[RequestMsg, ResponseMsg](request, reqTimeout, context, filters, callback) {
+
+    def run() = {
+      beforeExecute()
+
+      val response: Option[Either[Exception, ResponseMsg]] =
+        try {
+          val response = handler(request)
+          response match {
+            case _:Unit => None
+            case null => None
+            case _ => Some(Right(response))
+          }
+        } catch {
+          case ex: Exception =>
+            log.error(ex, "Message handler threw an exception while processing message")
+            Some(Left(ex))
+        }
+
+      response match {
+        case Some(resp) => afterExecute(resp)
+        case None => statsActor.endRequest(0, id)
       }
     }
   }
 
+  private class AsyncRequestRunner[RequestMsg, ResponseMsg](request: RequestMsg,
+                                                            reqTimeout: Long,
+                                                            context: Option[RequestContext],
+                                                            filters: MutableList[Filter],
+                                                            handler: (RequestMsg, CallbackContext[ResponseMsg]) => Unit,
+                                                            callback: Option[(Either[Exception, ResponseMsg]) => Unit])
+    extends AbstractRequestRunner[RequestMsg, ResponseMsg](request, reqTimeout, context, filters, callback) {
+
+    val callbackCtx: CallbackContext[ResponseMsg] = new CallbackContext[ResponseMsg] {
+      override def onResponse(responseMsg: ResponseMsg): Unit = afterExecute(Right(responseMsg))
+      override def onError(ex: Exception): Unit = afterExecute(Left(ex))
+      override def getCallbackExecutor(): Executor = threadPool
+    }
+
+    def run() = {
+      beforeExecute()
+
+      try {
+        handler(request, callbackCtx)
+      } catch {
+        case ex: Exception =>
+          log.error(ex, "Message onRequest handler threw an exception while processing message")
+          afterExecute(Left(ex))
+      }
+    }
+  }
 
   def getThreadPoolStats: String = {
 

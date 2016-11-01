@@ -65,67 +65,88 @@ class MessageExecutorSpec extends SpecificationWithJUnit with Mockito with WaitF
     "satisfy general requirements in" in { generalExecutorTests }
 
     "satisfy filter-specific requirements in" in { filterSpecificTests }
-
-//    "execute the responseHandler with Left(InvalidMessageException) if the response message is of the wrong type" in {
-////      messageHandlerRegistry.validResponseFor(request, request) returns false
-//      messageHandlerRegistry.handlerFor(request) returns returnHandler _
-//
-//      messageExecutor.executeMessage(request, handler _)(unregisteredSerializer)
-//
-//      handlerCalled must eventually(beTrue)
-//      either.isLeft must beTrue
-//
-//      println(either.left.get.getStackTraceString)
-//      either.left.get must haveClass[InvalidMessageException]
-//    }
-//
-//    "execute the responseHandler with Left(InvalidMessageException) if the response message is null and should not be" in {
-////      messageHandlerRegistry.validResponseFor(request, null) returns false
-//      messageHandlerRegistry.handlerFor(request) returns nullHandler _
-//
-//      messageExecutor.executeMessage(request, handler _)(unregisteredSerializer)
-//
-//      handlerCalled must eventually(beTrue)
-//      either.isLeft must beTrue
-//
-//      either.left.get must haveClass[InvalidMessageException]
-//    }
   }
 
   def returnHandler(message: Ping): Ping = message
   def throwsHandler(message: Ping): Ping = throw exception
   def nullHandler(message: Ping): Ping = null
 
+  def asyncReturnHandler(message: Ping, callback: CallbackContext[Ping]): Unit = callback.onResponse(message)
+  def asyncThrowsHandler(message: Ping, callback: CallbackContext[Ping]): Unit = callback.onError(exception)
+
+  val requestName: String = Ping.PingSerializer.requestName
+
   def generalExecutorTests = {
 
-    "find the handler associated with the specified message" in {
-      messageHandlerRegistry.handlerFor(request) returns returnHandler _
+    "find the sync handler associated with the specified message" in {
+      messageHandlerRegistry.hasSyncHandler(requestName) returns true
+      messageHandlerRegistry.hasAsyncHandler(requestName) returns false
+      messageHandlerRegistry.handlerFor[Ping,Ping](requestName) returns returnHandler _
 
-      messageExecutor.executeMessage(request, Some((either: Either[Exception, Ping]) => null:Unit), None)
+      messageExecutor.execMSG(request, requestName, Some((either: Either[Exception, Ping]) => null:Unit), None)
 
       waitFor(50.ms)
-
-      there was one(messageHandlerRegistry).handlerFor(request)
+      there was one(messageHandlerRegistry).handlerFor[Ping,Ping](requestName)
     }
 
-    "execute the handler associated with the specified message" in {
+    "find the async handler associated with the specified message" in {
+      messageHandlerRegistry.hasSyncHandler(requestName) returns false
+      messageHandlerRegistry.hasAsyncHandler(requestName) returns true
+      messageHandlerRegistry.asyncHandlerFor[Ping,Ping](requestName) returns asyncReturnHandler _
+
+      messageExecutor.execMSG(request, requestName, Some((either: Either[Exception, Ping]) => null:Unit), None)
+
+      waitFor(50.ms)
+      there was one(messageHandlerRegistry).asyncHandlerFor[Ping,Ping](requestName)
+    }
+
+    "execute the sync handler associated with the specified message" in {
       var wasCalled = false
       def h(message: Ping): Ping = {
         wasCalled = true
         message
       }
-      messageHandlerRegistry.handlerFor(request) returns h _
+      messageHandlerRegistry.hasSyncHandler(requestName) returns true
+      messageHandlerRegistry.hasAsyncHandler(requestName) returns false
+      messageHandlerRegistry.handlerFor[Ping,Ping](requestName) returns h _
 
-      messageExecutor.executeMessage(request, Some((either: Either[Exception, Ping]) => null:Unit), None)
+      messageExecutor.execMSG(request, requestName, Some((either: Either[Exception, Ping]) => null:Unit), None)
 
       wasCalled must eventually(beTrue)
     }
 
-    "execute the responseHandler with Right(message) if the handler returns a valid message" in {
-      //      messageHandlerRegistry.validResponseFor(request, request) returns true
-      messageHandlerRegistry.handlerFor(request) returns returnHandler _
+    "execute the async handler associated with the specified message" in {
+      var wasCalled = false
+      def h(message: Ping, callbackContext: CallbackContext[Ping]): Unit = {
+        wasCalled = true
+      }
+      messageHandlerRegistry.hasSyncHandler(requestName) returns false
+      messageHandlerRegistry.hasAsyncHandler(requestName) returns true
+      messageHandlerRegistry.asyncHandlerFor[Ping,Ping](requestName) returns h _
 
-      messageExecutor.executeMessage(request, Some(handler _))
+      messageExecutor.execMSG(request, requestName, Some((either: Either[Exception, Ping]) => null:Unit), None)
+
+      wasCalled must eventually(beTrue)
+    }
+
+    "execute the sync responseHandler with Right(message) if the handler returns a valid message" in {
+      messageHandlerRegistry.hasSyncHandler(requestName) returns true
+      messageHandlerRegistry.hasAsyncHandler(requestName) returns false
+      messageHandlerRegistry.handlerFor[Ping,Ping](requestName) returns returnHandler _
+
+      messageExecutor.execMSG(request, requestName, Some(handler _), None)
+
+      handlerCalled must eventually(beTrue)
+      either.isRight must beTrue
+      either.right.get must be(request)
+    }
+
+    "execute the async responseHandler with Right(message) if the handler returns a valid message" in {
+      messageHandlerRegistry.hasSyncHandler(requestName) returns false
+      messageHandlerRegistry.hasAsyncHandler(requestName) returns true
+      messageHandlerRegistry.asyncHandlerFor[Ping,Ping](requestName) returns asyncReturnHandler _
+
+      messageExecutor.execMSG(request, requestName, Some(handler _), None)
 
       handlerCalled must eventually(beTrue)
       either.isRight must beTrue
@@ -133,42 +154,69 @@ class MessageExecutorSpec extends SpecificationWithJUnit with Mockito with WaitF
     }
 
     "not execute the responseHandler if the handler returns null" in {
-      //      messageHandlerRegistry.validResponseFor(request, null) returns true
-      messageHandlerRegistry.handlerFor(request) returns nullHandler _
+      messageHandlerRegistry.hasSyncHandler(requestName) returns true
+      messageHandlerRegistry.hasAsyncHandler(requestName) returns false
+      messageHandlerRegistry.handlerFor[Ping,Ping](requestName) returns nullHandler _
 
-      messageExecutor.executeMessage(request, Some(handler _))
+      messageExecutor.execMSG(request, requestName, Some(handler _), None)
 
       handlerCalled must eventually(beFalse)
     }
 
-    "execute the responseHandler with Left(ex) if the handler throws an exception" in {
-      messageHandlerRegistry.handlerFor(request) returns throwsHandler _
+    "execute the sync responseHandler with Left(ex) if the handler throws an exception" in {
+      messageHandlerRegistry.hasSyncHandler(requestName) returns true
+      messageHandlerRegistry.hasAsyncHandler(requestName) returns false
+      messageHandlerRegistry.handlerFor[Ping,Ping](requestName) returns throwsHandler _
 
-      messageExecutor.executeMessage(request, Some(handler _))
+      messageExecutor.execMSG(request, requestName, Some(handler _), None)
+
+      handlerCalled must eventually(beTrue)
+      either.isLeft must beTrue
+    }
+
+    "execute the async responseHandler with Left(ex) if the handler throws an exception" in {
+      messageHandlerRegistry.hasSyncHandler(requestName) returns false
+      messageHandlerRegistry.hasAsyncHandler(requestName) returns true
+      messageHandlerRegistry.asyncHandlerFor[Ping,Ping](requestName) returns asyncThrowsHandler _
+
+      messageExecutor.execMSG(request, requestName, Some(handler _), None)
 
       handlerCalled must eventually(beTrue)
       either.isLeft must beTrue
     }
 
     "not execute the responseHandler if the message is not registered" in {
-      messageHandlerRegistry.handlerFor(request) throws new InvalidMessageException("")
+      messageHandlerRegistry.hasSyncHandler(requestName) returns false
+      messageHandlerRegistry.hasAsyncHandler(requestName) returns false
+      messageHandlerRegistry.buildException(requestName) throws new InvalidMessageException("")
 
-      messageExecutor.executeMessage(request, Some(handler _))
+      messageExecutor.execMSG(request, requestName, Some(handler _), None) must throwA[InvalidMessageException]
 
       waitFor(5.ms)
-
-      handlerCalled must eventually(beTrue)
-      either.isLeft must beTrue
-      either.left.get must haveClass[InvalidMessageException]
+      handlerCalled must eventually(beFalse)
     }
-
   }
 
   def filterSpecificTests = {
 
-    "filters are executed when message is valid" in {
-      messageHandlerRegistry.handlerFor(request) returns returnHandler _
-      messageExecutor.executeMessage(request, Some((either: Either[Exception, Ping]) => null:Unit), Some(requestContext))
+    "filters are executed when sync handler returns a valid message" in {
+      messageHandlerRegistry.hasSyncHandler(requestName) returns true
+      messageHandlerRegistry.hasAsyncHandler(requestName) returns false
+      messageHandlerRegistry.handlerFor[Ping,Ping](requestName) returns returnHandler _
+
+      messageExecutor.execMSG(request, requestName, Some((either: Either[Exception, Ping]) => null:Unit), Some(requestContext))
+
+      waitFor(5.ms)
+      there was one(filter1).onRequest(request, requestContext) then one(filter2).onRequest(request, requestContext) orderedBy(filter1, filter2)
+      there was one(filter2).onResponse(request, requestContext) then one(filter1).onResponse(request, requestContext) orderedBy(filter2, filter1)
+    }
+
+    "filters are executed when async handler returns a valid message" in {
+      messageHandlerRegistry.hasSyncHandler(requestName) returns false
+      messageHandlerRegistry.hasAsyncHandler(requestName) returns true
+      messageHandlerRegistry.asyncHandlerFor[Ping,Ping](requestName) returns asyncReturnHandler _
+
+      messageExecutor.execMSG(request, requestName, Some((either: Either[Exception, Ping]) => null:Unit), Some(requestContext))
 
       waitFor(5.ms)
       there was one(filter1).onRequest(request, requestContext) then one(filter2).onRequest(request, requestContext) orderedBy(filter1, filter2)
@@ -176,17 +224,23 @@ class MessageExecutorSpec extends SpecificationWithJUnit with Mockito with WaitF
     }
 
     "filters are not executed when handler return null" in {
-      messageHandlerRegistry.handlerFor(request) returns nullHandler _
-      messageExecutor.executeMessage(request, Some(handler _), Some(requestContext))
+      messageHandlerRegistry.hasSyncHandler(requestName) returns true
+      messageHandlerRegistry.hasAsyncHandler(requestName) returns false
+      messageHandlerRegistry.handlerFor[Ping,Ping](requestName) returns nullHandler _
+
+      messageExecutor.execMSG(request, requestName, Some(handler _), Some(requestContext))
 
       waitFor(5.ms)
       there was one(filter1).onRequest(request, requestContext) then one(filter2).onRequest(request, requestContext) orderedBy(filter1, filter2)
       there was no(filter2).onResponse(null, requestContext) then no(filter1).onResponse(null, requestContext)
     }
 
-    "filters are executed when handler throws an exception" in {
-      messageHandlerRegistry.handlerFor(request) returns throwsHandler _
-      messageExecutor.executeMessage(request, Some(handler _), Some(requestContext))
+    "filters are executed when sync handler throws an exception" in {
+      messageHandlerRegistry.hasSyncHandler(requestName) returns true
+      messageHandlerRegistry.hasAsyncHandler(requestName) returns false
+      messageHandlerRegistry.handlerFor[Ping,Ping](requestName) returns throwsHandler _
+
+      messageExecutor.execMSG(request, requestName, Some(handler _), Some(requestContext))
 
       waitFor(5.ms)
       there was one(filter1).onRequest(request, requestContext) then one(filter2).onRequest(request, requestContext) orderedBy(filter1, filter2)
@@ -195,14 +249,16 @@ class MessageExecutorSpec extends SpecificationWithJUnit with Mockito with WaitF
       there was no(filter2).onResponse(request, requestContext)
     }
 
-    "filters are executed when message is not registered" in {
-      val ie = new InvalidMessageException("")
-      messageHandlerRegistry.handlerFor(request) throws ie
-      messageExecutor.executeMessage(request, Some(handler _), Some(requestContext))
+    "filters are executed when async handler throws an exception" in {
+      messageHandlerRegistry.hasSyncHandler(requestName) returns false
+      messageHandlerRegistry.hasAsyncHandler(requestName) returns true
+      messageHandlerRegistry.asyncHandlerFor[Ping,Ping](requestName) returns asyncThrowsHandler _
+
+      messageExecutor.execMSG(request, requestName, Some(handler _), Some(requestContext))
 
       waitFor(5.ms)
       there was one(filter1).onRequest(request, requestContext) then one(filter2).onRequest(request, requestContext) orderedBy(filter1, filter2)
-      there was one(filter2).onError(ie, requestContext) then one(filter1).onError(ie, requestContext) orderedBy(filter2, filter1)
+      there was one(filter2).onError(exception, requestContext) then one(filter1).onError(exception, requestContext) orderedBy(filter2, filter1)
       there was no(filter1).onResponse(request, requestContext)
       there was no(filter2).onResponse(request, requestContext)
     }

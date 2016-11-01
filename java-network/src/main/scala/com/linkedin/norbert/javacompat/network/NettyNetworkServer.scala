@@ -19,6 +19,7 @@ package network
 import cluster.BaseClusterClient
 import com.linkedin.norbert.cluster.ClusterClient
 import com.linkedin.norbert.network.Serializer
+import com.linkedin.norbert.network.server.CallbackContext
 
 class NettyNetworkServer(config: NetworkServerConfig) extends NetworkServer {
   val c = new com.linkedin.norbert.network.netty.NetworkServerConfig
@@ -26,7 +27,7 @@ class NettyNetworkServer(config: NetworkServerConfig) extends NetworkServer {
   c.clusterClient = if (config.getClusterClient != null)
     config.getClusterClient.asInstanceOf[BaseClusterClient].underlying
   else ClusterClient(null, config.getServiceName, config.getZooKeeperConnectString, config.getZooKeeperSessionTimeoutMillis)
-  
+
   c.zooKeeperSessionTimeoutMillis = config.getZooKeeperSessionTimeoutMillis
   c.requestThreadCorePoolSize = config.getRequestThreadCorePoolSize
   c.requestThreadMaxPoolSize = config.getRequestThreadMaxPoolSize
@@ -54,5 +55,9 @@ class NettyNetworkServer(config: NetworkServerConfig) extends NetworkServer {
 
   def registerHandler[RequestMsg, ResponseMsg](handler: RequestHandler[RequestMsg, ResponseMsg], serializer: Serializer[RequestMsg, ResponseMsg]) = {
     underlying.registerHandler((request: RequestMsg) => handler.handleRequest(request))(serializer, serializer)
+  }
+
+  def registerAsyncHandler[RequestMsg, ResponseMsg](handler: CallbackRequestHandler[RequestMsg, ResponseMsg], serializer: Serializer[RequestMsg, ResponseMsg]) = {
+    underlying.registerAsyncHandler((request: RequestMsg, callback: CallbackContext[ResponseMsg]) => handler.onRequest(request, callback))(serializer, serializer)
   }
 }

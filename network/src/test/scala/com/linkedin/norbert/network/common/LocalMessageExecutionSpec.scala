@@ -20,10 +20,11 @@ package common
 import org.specs.SpecificationWithJUnit
 import org.specs.mock.Mockito
 import client.NetworkClient
-import client.loadbalancer.{LoadBalancerFactory, LoadBalancer, LoadBalancerFactoryComponent}
+import client.loadbalancer.{LoadBalancer, LoadBalancerFactory, LoadBalancerFactoryComponent}
 import server._
-import cluster.{Node, ClusterClientComponent, ClusterClient}
+import cluster.{ClusterClient, ClusterClientComponent, Node}
 import com.google.protobuf.Message
+
 import scala.collection.mutable.MutableList
 
 class LocalMessageExecutionSpec extends SpecificationWithJUnit with Mockito with SampleMessage {
@@ -35,7 +36,9 @@ class LocalMessageExecutionSpec extends SpecificationWithJUnit with Mockito with
     val filters = new MutableList[Filter]
     def shutdown = {}
 
-    def executeMessage[RequestMsg, ResponseMsg](request: RequestMsg, responseHandler: Option[(Either[Exception, ResponseMsg]) => Unit], context: Option[RequestContext])(implicit is: InputSerializer[RequestMsg, ResponseMsg]) = {
+    def execMSG[RequestMsg, ResponseMsg] (request: RequestMsg, messageName: String,
+                                          responseHandler: Option[(Either[Exception, ResponseMsg]) => Unit],
+                                          context: Option[RequestContext] = None) = {
       called = true
       this.request = request
 

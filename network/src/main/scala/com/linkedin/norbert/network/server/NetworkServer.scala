@@ -19,6 +19,7 @@ package server
 
 import java.util.concurrent.atomic.AtomicBoolean
 import java.net.InetAddress
+
 import netty.{NettyNetworkServer, NetworkServerConfig}
 import cluster._
 import logging.Logging
@@ -46,8 +47,13 @@ trait NetworkServer extends Logging {
    */
 
   def registerHandler[RequestMsg, ResponseMsg](handler: RequestMsg => ResponseMsg)
-  (implicit is: InputSerializer[RequestMsg, ResponseMsg], os: OutputSerializer[RequestMsg, ResponseMsg]) {
+                                              (implicit is: InputSerializer[RequestMsg, ResponseMsg], os: OutputSerializer[RequestMsg, ResponseMsg]) {
     messageHandlerRegistry.registerHandler(handler)
+  }
+
+  def registerAsyncHandler[RequestMsg, ResponseMsg](handler: (RequestMsg, CallbackContext[ResponseMsg]) => Unit)
+                                                   (implicit is: InputSerializer[RequestMsg, ResponseMsg], os: OutputSerializer[RequestMsg, ResponseMsg]) {
+    messageHandlerRegistry.registerAsyncHandler(handler)
   }
 
   def addFilters(filters: List[Filter]) : Unit = messageExecutor.addFilters(filters)
@@ -98,7 +104,6 @@ trait NetworkServer extends Logging {
    * <code>Node</code>'s url must be specified in the format hostname:port.
    *
    * @param nodeId the id of the <code>Node</code> this server is associated with.
-   *
    * @throws InvalidNodeException thrown if no <code>Node</code> with the specified <code>nodeId</code> exists
    * @throws NetworkingException thrown if unable to bind
    */
@@ -112,7 +117,6 @@ trait NetworkServer extends Logging {
    * @param nodeId the id of the <code>Node</code> this server is associated with.
    * @param markAvailable if true marks the <code>Node</code> identified by <code>nodeId</code> as available after binding to
    * the port
-   *
    * @throws InvalidNodeException thrown if no <code>Node</code> with the specified <code>nodeId</code> exists or if the
    * format of the <code>Node</code>'s url isn't hostname:port
    * @throws NetworkingException thrown if unable to bind
@@ -193,7 +197,7 @@ trait NetworkServer extends Logging {
     clusterClient.markNodeUnavailable(myNode.id)
     markAvailableWhenConnected = false
   }
-  
+
   def setNodeCapabiity(capability: Long): Unit = {
     clusterClient.setNodeCapability(myNode.id, capability)
   }

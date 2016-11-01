@@ -42,8 +42,12 @@ class MessageHandlerRegistrySpec extends SpecificationWithJUnit with Mockito wit
       handled must be_==(request)
     }
 
-    "throw an InvalidMessageException if no handler is registered" in {
+    "throw an InvalidMessageException if no sync handler is registered" in {
       messageHandlerRegistry.handlerFor(Ping.PingSerializer.requestName) must throwA[InvalidMessageException]
+    }
+
+    "throw an InvalidMessageException if no async handler is registered" in {
+      messageHandlerRegistry.asyncHandlerFor(Ping.PingSerializer.requestName) must throwA[InvalidMessageException]
     }
 
     "return true if the provided response is a valid response for the given request" in {
