@@ -155,18 +155,6 @@ class ThreadPoolMessageExecutor(clientName: Option[String],
           new AsyncRequestRunner[RequestMsg, ResponseMsg](request, requestTimeout, context, filters, async, responseHandler)
       }
 
-
-//    val rr: AbstractRequestRunner[RequestMsg, ResponseMsg] =
-//      if (messageHandlerRegistry.hasAsyncHandler(messageName)) {
-//        new AsyncRequestRunner[RequestMsg, ResponseMsg](request,
-//          requestTimeout, context, filters, messageHandlerRegistry.asyncHandlerFor(messageName), responseHandler)
-//      } else if (messageHandlerRegistry.hasSyncHandler(messageName)) {
-//        new SyncRequestRunner[RequestMsg, ResponseMsg](request,
-//          requestTimeout, context, filters, messageHandlerRegistry.handlerFor(messageName), responseHandler)
-//      } else {
-//        throw messageHandlerRegistry.buildException(messageName)
-//      }
-
     // Log messages that arrive post the GC start period.
     // The check for ~50ms is to filter out the corner case messages that come right at the slot transition time.
     if (enableGcAwareness && isCurrentlyDownToGC(myNode.get.offset.get) && wasDownToGcPreviously(myNode.get.offset.get, timeBufferForAcceptableRequests)) {
