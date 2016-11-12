@@ -131,7 +131,7 @@ class ServerChannelHandler(clientName: Option[String],
 
       val req = is.requestFromBytes(requestBytes)
 
-      messageExecutor.execMSG(req, messageName, Option((either: Either[Exception, Any]) => {
+      messageExecutor.executeMessage(req, messageName, Option((either: Either[Exception, Any]) => {
         responseHandler(context, e.getChannel, either)(is, os)
         }), Some(context)
       )

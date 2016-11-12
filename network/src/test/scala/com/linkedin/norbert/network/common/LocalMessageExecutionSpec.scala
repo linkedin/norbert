@@ -36,7 +36,7 @@ class LocalMessageExecutionSpec extends SpecificationWithJUnit with Mockito with
     val filters = new MutableList[Filter]
     def shutdown = {}
 
-    def execMSG[RequestMsg, ResponseMsg] (request: RequestMsg, messageName: String,
+    def executeMessage[RequestMsg, ResponseMsg] (request: RequestMsg, messageName: String,
                                           responseHandler: Option[(Either[Exception, ResponseMsg]) => Unit],
                                           context: Option[RequestContext] = None) = {
       called = true

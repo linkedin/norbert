@@ -16,7 +16,6 @@
 package com.linkedin.norbert.javacompat.network;
 
 import com.linkedin.norbert.network.server.CallbackContext;
-import java.util.function.BiConsumer;
 
 public interface CallbackRequestHandler<RequestMsg, ResponseMsg> {
 

@@ -40,9 +40,9 @@ trait MessageExecutorComponent {
 }
 
 trait MessageExecutor {
-  def execMSG[RequestMsg, ResponseMsg] (request: RequestMsg, messageName: String,
-                                        responseHandler: Option[(Either[Exception, ResponseMsg]) => Unit],
-                                        context: Option[RequestContext] = None)
+  def executeMessage[RequestMsg, ResponseMsg] (request: RequestMsg, messageName: String,
+                                               responseHandler: Option[(Either[Exception, ResponseMsg]) => Unit],
+                                               context: Option[RequestContext] = None)
 
   @volatile val filters : MutableList[Filter]
   def addFilters(filters: List[Filter]) : Unit = this.filters ++= (filters)
@@ -143,21 +143,29 @@ class ThreadPoolMessageExecutor(clientName: Option[String],
     log.info("Setting timeout to " + newValue)
   }
 
-  def execMSG[RequestMsg, ResponseMsg](request: RequestMsg,
+  def executeMessage[RequestMsg, ResponseMsg](request: RequestMsg,
                                        messageName: String,
                                        responseHandler: Option[(Either[Exception, ResponseMsg]) => Unit],
                                        context: Option[RequestContext] = None) {
-
     val rr: AbstractRequestRunner[RequestMsg, ResponseMsg] =
-      if (messageHandlerRegistry.hasAsyncHandler(messageName)) {
-        new AsyncRequestRunner[RequestMsg, ResponseMsg](request,
-          requestTimeout, context, filters, messageHandlerRegistry.asyncHandlerFor(messageName), responseHandler)
-      } else if (messageHandlerRegistry.hasSyncHandler(messageName)) {
-        new SyncRequestRunner[RequestMsg, ResponseMsg](request,
-          requestTimeout, context, filters, messageHandlerRegistry.handlerFor(messageName), responseHandler)
-      } else {
-        throw messageHandlerRegistry.buildException(messageName)
+      messageHandlerRegistry.getHandler(messageName) match {
+        case sync: SyncHandlerEntry[RequestMsg, ResponseMsg] =>
+          new SyncRequestRunner[RequestMsg, ResponseMsg](request, requestTimeout, context, filters, sync, responseHandler)
+        case async: AsyncHandlerEntry[RequestMsg, ResponseMsg] =>
+          new AsyncRequestRunner[RequestMsg, ResponseMsg](request, requestTimeout, context, filters, async, responseHandler)
       }
+
+
+//    val rr: AbstractRequestRunner[RequestMsg, ResponseMsg] =
+//      if (messageHandlerRegistry.hasAsyncHandler(messageName)) {
+//        new AsyncRequestRunner[RequestMsg, ResponseMsg](request,
+//          requestTimeout, context, filters, messageHandlerRegistry.asyncHandlerFor(messageName), responseHandler)
+//      } else if (messageHandlerRegistry.hasSyncHandler(messageName)) {
+//        new SyncRequestRunner[RequestMsg, ResponseMsg](request,
+//          requestTimeout, context, filters, messageHandlerRegistry.handlerFor(messageName), responseHandler)
+//      } else {
+//        throw messageHandlerRegistry.buildException(messageName)
+//      }
 
     // Log messages that arrive post the GC start period.
     // The check for ~50ms is to filter out the corner case messages that come right at the slot transition time.
@@ -235,7 +243,10 @@ class ThreadPoolMessageExecutor(clientName: Option[String],
       }
 
       result match {
-        case Left(ex) => filters.reverse.foreach(filter => continueOnError(filter.onError(ex, context.getOrElse(null))))
+        case Left(ex) => {
+          log.error(ex, "Message handler returned an exception")
+          filters.reverse.foreach(filter => continueOnError(filter.onError(ex, context.getOrElse(null))))
+        }
         case Right(responseMsg) => filters.reverse.foreach(filter => continueOnError(filter.onResponse(responseMsg, context.getOrElse(null))))
       }
 
@@ -247,7 +258,7 @@ class ThreadPoolMessageExecutor(clientName: Option[String],
                                                            reqTimeout: Long,
                                                            context: Option[RequestContext],
                                                            filters: MutableList[Filter],
-                                                           handler: (RequestMsg) => ResponseMsg,
+                                                           handlerEntry: SyncHandlerEntry[RequestMsg, ResponseMsg],
                                                            callback: Option[(Either[Exception, ResponseMsg]) => Unit])
     extends AbstractRequestRunner[RequestMsg, ResponseMsg](request, reqTimeout, context, filters, callback) {
 
@@ -256,7 +267,7 @@ class ThreadPoolMessageExecutor(clientName: Option[String],
 
       val response: Option[Either[Exception, ResponseMsg]] =
         try {
-          val response = handler(request)
+          val response = handlerEntry.handler(request)
           response match {
             case _:Unit => None
             case null => None
@@ -264,7 +275,6 @@ class ThreadPoolMessageExecutor(clientName: Option[String],
           }
         } catch {
           case ex: Exception =>
-            log.error(ex, "Message handler threw an exception while processing message")
             Some(Left(ex))
         }
 
@@ -279,7 +289,7 @@ class ThreadPoolMessageExecutor(clientName: Option[String],
                                                             reqTimeout: Long,
                                                             context: Option[RequestContext],
                                                             filters: MutableList[Filter],
-                                                            handler: (RequestMsg, CallbackContext[ResponseMsg]) => Unit,
+                                                            handlerEntry: AsyncHandlerEntry[RequestMsg, ResponseMsg],
                                                             callback: Option[(Either[Exception, ResponseMsg]) => Unit])
     extends AbstractRequestRunner[RequestMsg, ResponseMsg](request, reqTimeout, context, filters, callback) {
 
@@ -293,11 +303,9 @@ class ThreadPoolMessageExecutor(clientName: Option[String],
       beforeExecute()
 
       try {
-        handler(request, callbackCtx)
+        handlerEntry.handler(request, callbackCtx)
       } catch {
-        case ex: Exception =>
-          log.error(ex, "Message onRequest handler threw an exception while processing message")
-          afterExecute(Left(ex))
+        case ex: Exception => afterExecute(Left(ex))
       }
     }
   }
