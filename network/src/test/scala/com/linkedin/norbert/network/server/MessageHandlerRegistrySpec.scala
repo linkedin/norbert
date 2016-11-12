@@ -19,7 +19,6 @@ package server
 
 import org.specs.SpecificationWithJUnit
 import org.specs.mock.Mockito
-import protos.NorbertExampleProtos
 import common.SampleMessage
 
 class MessageHandlerRegistrySpec extends SpecificationWithJUnit with Mockito with SampleMessage {
@@ -36,32 +35,28 @@ class MessageHandlerRegistrySpec extends SpecificationWithJUnit with Mockito wit
     "return the handler for the specified request message" in {
       messageHandlerRegistry.registerHandler(handler)
 
-      val h = messageHandlerRegistry.handlerFor[Ping, Ping](Ping.PingSerializer.requestName)
+      val h = messageHandlerRegistry.getHandler[Ping, Ping](Ping.PingSerializer.requestName) match {
+        case sync: SyncHandlerEntry[Ping,Ping] => sync.handler
+      }
 
       h(request) must be_==(request)
       handled must be_==(request)
     }
 
-    "throw an InvalidMessageException if no handler is registered" in {
-      messageHandlerRegistry.handlerFor(Ping.PingSerializer.requestName) must throwA[InvalidMessageException]
+    "throw an InvalidMessageException if no sync handler is registered" in {
+      messageHandlerRegistry.getHandler(Ping.PingSerializer.requestName) must throwA[InvalidMessageException]
+    }
+
+    "throw an InvalidMessageException if no async handler is registered" in {
+      messageHandlerRegistry.getHandler(Ping.PingSerializer.requestName) must throwA[InvalidMessageException]
     }
 
     "return true if the provided response is a valid response for the given request" in {
       messageHandlerRegistry.registerHandler(handler)
-//      messageHandlerRegistry.validResponseFor(proto, NorbertExampleProtos.Ping.newBuilder.setTimestamp(System.currentTimeMillis).build) must beTrue
     }
 
     "return false if the provided response is not a valid response for the given request" in {
       messageHandlerRegistry.registerHandler(handler)
-//      messageHandlerRegistry.validResponseFor(proto, mock[Message]) must beFalse
     }
-
-//    "correctly handles null in validResponseFor" in {
-//      messageHandlerRegistry.registerHandler(proto, null, handler)
-//      messageHandlerRegistry.validResponseFor(proto, null) must beTrue
-//
-//      messageHandlerRegistry.registerHandler(proto, proto, handler)
-//      messageHandlerRegistry.validResponseFor(proto, null) must beFalse
-//    }
   }
 }

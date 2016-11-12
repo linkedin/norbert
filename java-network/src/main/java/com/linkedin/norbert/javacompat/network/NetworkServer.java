@@ -31,6 +31,8 @@ public interface NetworkServer {
    */
   <RequestMsg, ResponseMsg> void registerHandler(RequestHandler<RequestMsg, ResponseMsg> handler, Serializer<RequestMsg, ResponseMsg> serializer);
 
+  <RequestMsg, ResponseMsg> void registerAsyncHandler(CallbackRequestHandler<RequestMsg, ResponseMsg> handler, Serializer<RequestMsg, ResponseMsg> serializer);
+
   /**
    * Binds the network server instance to the wildcard address and the port of the <code>Node</code> identified
    * by the provided nodeId and automatically marks the <code>Node</code> available in the cluster.  A

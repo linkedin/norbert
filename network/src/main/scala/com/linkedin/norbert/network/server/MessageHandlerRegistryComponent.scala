@@ -21,47 +21,51 @@ trait MessageHandlerRegistryComponent {
   val messageHandlerRegistry: MessageHandlerRegistry
 }
 
-private case class MessageHandlerEntry[RequestMsg, ResponseMsg]
-(is: InputSerializer[RequestMsg, ResponseMsg], os: OutputSerializer[RequestMsg, ResponseMsg], handler: RequestMsg => ResponseMsg)
+abstract class HandlerEntry[RequestMsg, ResponseMsg]
+(val is: InputSerializer[RequestMsg, ResponseMsg], val os: OutputSerializer[RequestMsg, ResponseMsg]) {}
+
+case class SyncHandlerEntry[RequestMsg, ResponseMsg]
+(override val is: InputSerializer[RequestMsg, ResponseMsg], override val os: OutputSerializer[RequestMsg, ResponseMsg], handler: (RequestMsg) => ResponseMsg)
+  extends HandlerEntry[RequestMsg, ResponseMsg](is, os)
+
+case class AsyncHandlerEntry[RequestMsg, ResponseMsg]
+(override val is: InputSerializer[RequestMsg, ResponseMsg], override val os: OutputSerializer[RequestMsg, ResponseMsg], handler: (RequestMsg, CallbackContext[ResponseMsg]) => Unit)
+  extends HandlerEntry[RequestMsg, ResponseMsg](is, os)
+
 
 class MessageHandlerRegistry {
-  @volatile private var handlerMap =
-    Map.empty[String, MessageHandlerEntry[_ <: Any, _ <: Any]]
+  @volatile private var handlerEntryMap = Map.empty[String, HandlerEntry[_ <: Any, _ <: Any]]
 
   def registerHandler[RequestMsg, ResponseMsg](handler: RequestMsg => ResponseMsg)
                                               (implicit is: InputSerializer[RequestMsg, ResponseMsg], os: OutputSerializer[RequestMsg, ResponseMsg]) {
     if (handler == null) throw new NullPointerException
 
-    handlerMap += (is.requestName -> MessageHandlerEntry(is, os, handler))
+    handlerEntryMap += (is.requestName -> SyncHandlerEntry(is, os, handler))
+  }
+
+  def registerAsyncHandler[RequestMsg, ResponseMsg](handler: (RequestMsg, CallbackContext[ResponseMsg]) => Unit)
+                                                   (implicit is: InputSerializer[RequestMsg, ResponseMsg], os: OutputSerializer[RequestMsg, ResponseMsg]) {
+    if (handler == null) throw new NullPointerException
+
+    handlerEntryMap += (is.requestName -> AsyncHandlerEntry(is, os, handler))
+  }
+
+  def getHandler[RequestMsg, ResponseMsg](messageName: String): HandlerEntry[RequestMsg, ResponseMsg] = {
+    handlerEntryMap.getOrElse(messageName, throw buildException(messageName)).asInstanceOf[HandlerEntry[RequestMsg, ResponseMsg]]
   }
 
   @throws(classOf[InvalidMessageException])
   def inputSerializerFor[RequestMsg, ResponseMsg](messageName: String): InputSerializer[RequestMsg, ResponseMsg] = {
-    handlerMap.get(messageName).map(_.is)
-      .getOrElse(throw buildException(messageName))
-      .asInstanceOf[InputSerializer[RequestMsg, ResponseMsg]]
+    getHandler[RequestMsg, ResponseMsg](messageName).is
   }
 
   @throws(classOf[InvalidMessageException])
   def outputSerializerFor[RequestMsg, ResponseMsg](messageName: String): OutputSerializer[RequestMsg, ResponseMsg] = {
-    handlerMap.get(messageName).map(_.os)
-      .getOrElse(throw buildException(messageName))
-      .asInstanceOf[OutputSerializer[RequestMsg, ResponseMsg]]
-  }
-
-  @throws(classOf[InvalidMessageException])
-  def handlerFor[RequestMsg, ResponseMsg](request: RequestMsg)
-                                         (implicit is: InputSerializer[RequestMsg, ResponseMsg]): RequestMsg => ResponseMsg = {
-    handlerFor[RequestMsg, ResponseMsg](is.requestName)
-  }
-
-  @throws(classOf[InvalidMessageException])
-  def handlerFor[RequestMsg, ResponseMsg](messageName: String): RequestMsg => ResponseMsg = {
-    handlerMap.get(messageName).map(_.handler)
-      .getOrElse(throw buildException(messageName))
-      .asInstanceOf[RequestMsg => ResponseMsg]
+    getHandler[RequestMsg, ResponseMsg](messageName).os
   }
 
   def buildException(messageName: String) =
-    new InvalidMessageException("%s is not a registered method. Methods registered are %s".format(messageName, "(" + handlerMap.keys.mkString(",") + ")"))
+    new InvalidMessageException("%s is not a registered method. Methods registered are %s"
+      .format(messageName, "(" + handlerEntryMap.keys.mkString(",") + ")")
+    )
 }
