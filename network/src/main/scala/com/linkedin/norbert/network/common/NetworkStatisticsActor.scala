@@ -58,6 +58,9 @@ class CachedNetworkStatistics[GroupIdType, RequestIdType](private val stats: Net
   val finishedQueueTimings = CacheMaintainer(clock, refreshInterval, () => stats.getQueueTimings)
   val responseTimings = CacheMaintainer(clock, refreshInterval, () => stats.getResponseTimings)
 
+  val numRequestBytes = new AtomicLong
+  val numResponseBytes = new AtomicLong
+
   def beginRequest(groupId: GroupIdType, requestId: RequestIdType, queueTime: Long) {
     stats.beginRequest(groupId, requestId, queueTime)
   }
@@ -74,7 +77,19 @@ class CachedNetworkStatistics[GroupIdType, RequestIdType](private val stats: Net
     stats.endRequest(groupId, requestId)
   }
 
-  def reset { stats.reset }
+  def increaseNumRequestBytes(bytes: Long): Unit = {
+    numRequestBytes.addAndGet(bytes)
+  }
+
+  def increaseNumResponseBytes(bytes: Long): Unit = {
+    numResponseBytes.addAndGet(bytes)
+  }
+
+  def reset {
+    stats.reset
+    numRequestBytes.set(0)
+    numResponseBytes.set(0)
+  }
 
   private def calculate(map: Map[GroupIdType, Array[Long]], p: Double) = {
     map.mapValues { v =>
@@ -228,6 +243,9 @@ trait NetworkClientStatisticsMBean {
 
   def getClusterTotalRequests: Int
 
+  def getNumResponseBytes: Long
+  def getNumRequestBytes: Long
+
   def reset
 
   // Jill will be very upset if I break her graphs
@@ -343,6 +361,10 @@ class NetworkClientStatisticsMBeanImpl(clientName: Option[String], serviceName: 
   def getNodesMarkedDown = strategy.canServeRequests.get.getOrElse(Map.empty).count({ case (node, up) => up == false })
 
   def getNumReroutedRequests = strategy.totalNumReroutes.get
+
+  def getNumResponseBytes = stats.numResponseBytes.get
+
+  def getNumRequestBytes = stats.numRequestBytes.get
 
   def reset = stats.reset
 }
