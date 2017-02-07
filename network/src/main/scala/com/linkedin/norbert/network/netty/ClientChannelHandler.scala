@@ -115,6 +115,7 @@ class ClientChannelHandler(clientName: Option[String],
       message.addHeader(NorbertProtos.NorbertMessage.Header.newBuilder.setKey(header._1).setValue(header._2).build)
     }
     message.setMessage(ProtoUtils.byteArrayToByteString(request.requestBytes, avoidByteStringCopy))
+    stats.increaseNumRequestBytes(request.requestBytes.length)
     super.writeRequested(ctx, new DownstreamMessageEvent(e.getChannel, e.getFuture, message.build, e.getRemoteAddress))
   }
 
@@ -130,6 +131,7 @@ class ClientChannelHandler(clientName: Option[String],
       case request =>
         requestMap.remove(requestId)
         stats.endRequest(request.node, request.id)
+        stats.increaseNumResponseBytes(message.getMessage.size())
         if (message.getStatus == NorbertProtos.NorbertMessage.Status.OK) {
           responseHandler.onSuccess(request, message)
         } else if (message.getStatus == NorbertProtos.NorbertMessage.Status.HEAVYLOAD) {
