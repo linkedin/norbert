@@ -243,6 +243,8 @@ trait NetworkClientStatisticsMBean {
 
   def getClusterTotalRequests: Int
 
+  def getNumResponseBytes: Long
+  def getNumRequestBytes: Long
   def getNumResponseKBytes: Long
   def getNumRequestKBytes: Long
 
@@ -362,9 +364,13 @@ class NetworkClientStatisticsMBeanImpl(clientName: Option[String], serviceName: 
 
   def getNumReroutedRequests = strategy.totalNumReroutes.get
 
-  def getNumResponseKBytes = (stats.numResponseBytes.get / (1024)).toLong
+  def getNumResponseBytes = stats.numResponseBytes.get
 
-  def getNumRequestKBytes = (stats.numRequestBytes.get / (1024)).toLong
+  def getNumRequestBytes = stats.numRequestBytes.get  
+
+  def getNumResponseKBytes = (stats.numResponseBytes.get / 1024).toLong
+
+  def getNumRequestKBytes = (stats.numRequestBytes.get / 1024).toLong
 
   def reset = stats.reset
 }
