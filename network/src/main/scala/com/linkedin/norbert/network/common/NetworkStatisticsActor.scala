@@ -366,7 +366,7 @@ class NetworkClientStatisticsMBeanImpl(clientName: Option[String], serviceName: 
 
   def getNumResponseBytes = stats.numResponseBytes.get
 
-  def getNumRequestBytes = stats.numRequestBytes.get  
+  def getNumRequestBytes = stats.numRequestBytes.get
 
   def getNumResponseKBytes = (stats.numResponseBytes.get / 1024).toLong
 
