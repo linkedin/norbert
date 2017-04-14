@@ -164,47 +164,58 @@ class DarkCanaryChannelHandler extends Logging {
       request.headers.foreach{kv_pair => mirrorRequest.addHeader(kv_pair._1, kv_pair._2)}
       mirrorRequest
     }
-    override def writeRequested(ctx: ChannelHandlerContext, msg: MessageEvent) {
-      if (!mirroredHosts.isEmpty) {
-        msg.getMessage match {
-          case request : Request[Any,Any] => {
-            if (mirroredHosts.containsKey(request.node.id)) {
+
+    override def writeRequested(ctx: ChannelHandlerContext, msg: MessageEvent): Unit = {
+      try {
+        if (!mirroredHosts.isEmpty) {
+          msg.getMessage match {
+            case request: Request[Any, Any] => {
               val mirroredNode = mirroredHosts.get(request.node.id)
-              if (request.node.url != mirroredNode.url) {
-                // This is a production request which we have to mirror.
-                if (canServeRequestStrategy.get.canServeRequest(mirroredNode)) {
-                  try {
-                    log.debug("mirroring message from : %s to %s".format(request.node.url, mirroredNode.url))
-                    val newRequest = createMirrorRequest(request, mirroredNode)
+              try {
+                if (mirroredNode != null) {
+                  if (request.node.url != mirroredNode.url) {
+                    // This is a production request which we have to mirror.
+                    if (canServeRequestStrategy.get.canServeRequest(mirroredNode)) {
+                      try {
+                        log.debug("mirroring message from : %s to %s".format(request.node.url, mirroredNode.url))
+                        val newRequest = createMirrorRequest(request, mirroredNode)
 
-                    darkCanaryResponseHandler match {
-                      case Some(responseHandler) => {
-                        hostRequestMap.put(request.id, request)
-                        hostToMirror.put(request.id, newRequest.id)
-                        mirrorToHost.put(newRequest.id, request.id)
+                        darkCanaryResponseHandler match {
+                          case Some(responseHandler) => {
+                            hostRequestMap.put(request.id, request)
+                            hostToMirror.put(request.id, newRequest.id)
+                            mirrorToHost.put(newRequest.id, request.id)
 
-                        responseHandler.downstreamCallback(request.id, request, newRequest)
+                            responseHandler.downstreamCallback(request.id, request, newRequest)
+                          }
+                          case None =>
+                        }
+
+                        mirrorRequestMap.put(newRequest.id, newRequest)
+                        clusterIoClient.get.sendMessage(newRequest.node, newRequest)
                       }
-                      case None =>
-                    }
-
-                    mirrorRequestMap.put(newRequest.id, newRequest)
-                    clusterIoClient.get.sendMessage(newRequest.node, newRequest)
-                  }
-                  catch {
-                    case e: Exception => {
-                      log.error("Exception while mirroring request to %s. Message: %s".format(mirroredNode.url,
-                        e.getMessage))
-                      log.error("Stack trace : %s".format(e.getStackTraceString))
                     }
                   }
+                }
+              } catch {
+                case e: Exception => {
+                  log.error("Exception while mirroring request to %s. Message: %s".format(mirroredNode.url,
+                    e.getMessage))
+                  log.error("Stack trace : %s".format(e.getStackTraceString))
                 }
               }
             }
           }
         }
-      }
-      super.writeRequested(ctx, msg)  // will call ctx.sendDownstream(msg)
+      } catch {
+        case e: Exception => {
+          log.error("Exception while try to get mirrored host information from mirroredHosts map. " +
+            "This error indicates that there might be concurrency issues in the usages of the mirroredHosts map." +
+            "Need to resolve the concurrency issues.")
+          log.error("Stack trace : %s".format(e.getStackTraceString))
+        }
+          super.writeRequested(ctx, msg)
+      } // will call ctx.sendDownstream(msg)
     }
   }
 
