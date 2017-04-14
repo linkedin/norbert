@@ -199,9 +199,8 @@ class DarkCanaryChannelHandler extends Logging {
                 }
               } catch {
                 case e: Exception => {
-                  log.error("Exception while mirroring request to %s. Message: %s".format(mirroredNode.url,
+                  log.error(e, "Exception while mirroring request to %s. Message: %s".format(mirroredNode.url,
                     e.getMessage))
-                  log.error("Stack trace : %s".format(e.getStackTraceString))
                 }
               }
             }
@@ -209,10 +208,9 @@ class DarkCanaryChannelHandler extends Logging {
         }
       } catch {
         case e: Exception => {
-          log.error("Exception while try to get mirrored host information from mirroredHosts map. " +
+          log.error(e, "Exception while try to get mirrored host information from mirroredHosts map. " +
             "This error indicates that there might be concurrency issues in the usages of the mirroredHosts map." +
             "Need to resolve the concurrency issues.")
-          log.error("Stack trace : %s".format(e.getStackTraceString))
         }
           super.writeRequested(ctx, msg)
       } // will call ctx.sendDownstream(msg)
