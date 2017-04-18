@@ -212,8 +212,8 @@ class DarkCanaryChannelHandler extends Logging {
             "This error indicates that there might be concurrency issues in the usages of the mirroredHosts map." +
             "Need to resolve the concurrency issues.")
         }
-          super.writeRequested(ctx, msg)
-      } // will call ctx.sendDownstream(msg)
+      }
+      super.writeRequested(ctx, msg) // will call ctx.sendDownstream(msg)
     }
   }
 
