@@ -132,11 +132,11 @@ class ThreadPoolMessageExecutor(clientName: Option[String],
 
   val requestQueue = new ArrayBlockingQueue[Runnable](maxWaitingQueueSize)
 
-  val statsJmx = JMX.register(new RequestProcessorMBeanImpl(clientName, serviceName, statsActor, requestQueue, threadPool))
-
   private val threadPool = new ThreadPoolExecutor(corePoolSize, maxPoolSize, keepAliveTime, TimeUnit.SECONDS, requestQueue,
     new NamedPoolThreadFactory("norbert-message-executor")
   )
+
+  val statsJmx = JMX.register(new RequestProcessorMBeanImpl(clientName, serviceName, statsActor, requestQueue, threadPool))
 
   def setRequestTimeout(newValue : Long) = {
     requestTimeout = newValue
