@@ -25,4 +25,5 @@ rootProject.children.each {
   if (scalaPattern.matches() && modulesToCrossBuild.contains(scalaPattern.group(1))) {
     it.projectDir = new File(settingsDir, scalaPattern.group(1))
   }
+
 }
