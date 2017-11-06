@@ -114,6 +114,12 @@ abstract class BaseNettyNetworkClient(clientConfig: NetworkClientConfig) extends
         case Some(serviceName) => p.addLast("darkDownstreamCanaryHandler", darkCanaryDownstreamHandler)
         case None =>  // Do nothing. We register dark canary handlers only if a dark canary service name is specified.
       }
+
+      clientConfig.clientSslChannelHandler match {
+        case Some(clientSslChannelHandlero) => p.addFirst("clientSslChannelHandler", clientSslChannelHandlero)
+        case None =>
+      }
+
       p
     }
   })

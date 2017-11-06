@@ -22,14 +22,14 @@ import com.linkedin.norbert.network.garbagecollection.{GcParamWrapper, GcDetecto
 import org.jboss.netty.bootstrap.ServerBootstrap
 import org.jboss.netty.channel.socket.nio.NioServerSocketChannelFactory
 import org.jboss.netty.handler.logging.LoggingHandler
-import org.jboss.netty.handler.codec.frame.{LengthFieldBasedFrameDecoder, LengthFieldPrepender}
+import org.jboss.netty.handler.codec.frame.{FrameDecoder, LengthFieldBasedFrameDecoder, LengthFieldPrepender}
 import org.jboss.netty.handler.codec.protobuf.{ProtobufDecoder, ProtobufEncoder}
 import org.jboss.netty.channel.group.DefaultChannelGroup
 import server._
 import com.linkedin.norbert.cluster.{Node, ClusterClient, ClusterClientComponent}
 import protos.NorbertProtos
 import com.linkedin.norbert.norbertutils.{SystemClockComponent, NamedPoolThreadFactory}
-import org.jboss.netty.channel.{Channels, ChannelPipelineFactory}
+import org.jboss.netty.channel.{SimpleChannelHandler, Channels, ChannelPipelineFactory}
 
 class NetworkServerConfig {
   var clusterClient: ClusterClient = _
@@ -52,6 +52,7 @@ class NetworkServerConfig {
   var shutdownPauseMultiplier = NetworkDefaults.SHUTDOWN_PAUSE_MULTIPLIER
 
   var gcParams = NetworkDefaults.GC_PARAMS
+  var serverSslFrameDecoder: Option[FrameDecoder] = None
 }
 
 class NettyNetworkServer(serverConfig: NetworkServerConfig) extends NetworkServer with ClusterClientComponent with NettyClusterIoServerComponent
@@ -125,6 +126,10 @@ class NettyNetworkServer(serverConfig: NetworkServerConfig) extends NetworkServe
       p.addLast("requestFilterHandler", serverFilterChannelHandler)
       p.addLast("requestHandler", handler)
 
+      serverConfig.serverSslFrameDecoder match {
+        case Some(serverSslFrameDecodero) => p.addFirst("ssl-protocol-detect", serverSslFrameDecodero)
+        case None =>
+      }
       p
     }
   })

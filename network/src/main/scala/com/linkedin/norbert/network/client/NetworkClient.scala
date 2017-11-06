@@ -20,6 +20,7 @@ package client
 import java.util.UUID
 import java.util.concurrent.Future
 import loadbalancer.{LoadBalancerFactory, LoadBalancer, LoadBalancerFactoryComponent}
+import org.jboss.netty.channel.SimpleChannelHandler
 import server.{MessageExecutorComponent, NetworkServer}
 import cluster._
 import network.common._
@@ -72,6 +73,8 @@ class NetworkClientConfig {
   var duplicatesOk:Boolean = false
 
   var routingAwayCallback: Option[ClientStatisticsRequestStrategy.RoutingAwayCallback] = None
+
+  var clientSslChannelHandler: Option[SimpleChannelHandler] = None
 }
 
 object NetworkClient {
