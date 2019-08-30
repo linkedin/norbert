@@ -1,0 +1,39 @@
+apply plugin: "maven-publish"
+apply plugin: "com.jfrog.bintray"
+
+task sourcesJar(type: Jar) {
+    archiveClassifier = 'sources'
+    from sourceSets.main.allJava
+}
+
+task javadocJar(type: Jar) {
+    archiveClassifier = 'javadoc'
+    from javadoc.destinationDir
+}
+
+publishing {
+    //docs: https://docs.gradle.org/current/userguide/publishing_maven.html
+    publications {
+        maven(MavenPublication) {
+            groupId = 'com.linkedin.norbert'
+            from components.java
+            artifact sourcesJar
+            artifact javadocJar
+        }
+    }
+}
+
+bintray {   
+    //docs: https://github.com/bintray/gradle-bintray-plugin
+    user = System.getenv("BINTRAY_API_USER")
+    key = System.getenv("BINTRAY_API_KEY")
+    publications = ['maven']
+    publish = true
+    pkg {
+        repo = 'maven'
+        name = 'norbert'
+        userOrg = 'linkedin'
+        licenses = ['Apache-2.0']
+        vcsUrl = 'https://github.com/linkedin/norbert.git'
+    }
+} 

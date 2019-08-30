@@ -1,3 +1,12 @@
+buildscript {
+    repositories {
+        jcenter()
+    }
+    dependencies {
+        classpath 'com.jfrog.bintray.gradle:gradle-bintray-plugin:1.8.4'
+    }
+}
+
 project.ext.isDefaultEnvironment = !project.hasProperty('overrideBuildEnvironment')
 
 File getEnvironmentScript()
@@ -22,6 +31,8 @@ subprojects {
     project.dependencies {
       testCompile externalDependency.junit
     }
+
+    project.apply from: "$rootDir/gradle/publishing.gradle"    
   }
 
   def projectScalaVersion = properties.targetScalaVersions.split(',').find { name.contains(getScalaSuffix(it)) }
