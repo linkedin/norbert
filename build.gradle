@@ -39,9 +39,12 @@ subprojects {
   ext.scalaVersion = projectScalaVersion ? projectScalaVersion : properties.defaultScalaVersion
   ext.scalaSuffix = getScalaSuffix(ext.scalaVersion)
 
+  // Building with non-default protobuf version requires that proto files are re-compiled!
+  ext.projectProtobufVersion = properties.targetProtobufVersion ? properties.targetProtobufVersion : properties.defaultProtobufVersion
+
   ext.externalDependency = [
     'zookeeper':'org.apache.zookeeper:zookeeper:3.3.4',
-    'protobuf':'com.google.protobuf:protobuf-java:2.4.0a',
+    'protobuf':"com.google.protobuf:protobuf-java:${ext.projectProtobufVersion}",
     'log4j':'log4j:log4j:1.2.17',
     'netty':'io.netty:netty:3.7.0.Final',
     'slf4jApi':'org.slf4j:slf4j-api:1.7.5',

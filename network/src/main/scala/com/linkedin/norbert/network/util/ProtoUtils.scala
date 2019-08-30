@@ -12,8 +12,30 @@ import java.lang.reflect.{Field, Constructor}
  * to bypass those.
  */
 object ProtoUtils extends Logging {
+  private val ByteStringClass = classOf[ByteString]
+  // Protobuf 2.6 has protected class LiteralByteString
+  private val LiteralByteStringClass: Class[ByteString] = try {
+    val c = classOf[ByteString].getClassLoader().loadClass("com.google.protobuf.LiteralByteString")
+    c match {
+      case c2: Class[ByteString] => c2
+      case _ => throw new ClassCastException
+    }
+  } catch {
+    case ex: ClassNotFoundException => null
+    case ex: Exception =>
+      log.warn(ex, "Cannot eliminate a copy when converting a byte[] to a ByteString, failed to find LiteralByteString")
+      null
+  }
+
   private val byteStringConstructor: Constructor[ByteString] = try {
-    val c = classOf[ByteString].getDeclaredConstructor(classOf[Array[Byte]])
+    var c:Constructor[ByteString] = null
+    if(LiteralByteStringClass != null) {
+      // Protobuf 2.6
+      c = LiteralByteStringClass.getDeclaredConstructor(classOf[Array[Byte]])
+    }else{
+      // Protobuf 2.4
+      c = classOf[ByteString].getDeclaredConstructor(classOf[Array[Byte]])
+    }
     c.setAccessible(true)
     c
   } catch {
@@ -23,7 +45,14 @@ object ProtoUtils extends Logging {
   }
 
   private val byteStringField: Field = try {
-    val f = classOf[ByteString].getDeclaredField("bytes")
+    var f:Field = null
+    if(LiteralByteStringClass != null) {
+      // Protobuf 2.6
+      f = LiteralByteStringClass.getDeclaredField("bytes")
+    }else{
+      // Protobuf 2.4
+      f = classOf[ByteString].getDeclaredField("bytes")
+    }
     f.setAccessible(true)
     f
   } catch {
@@ -66,7 +95,15 @@ object ProtoUtils extends Logging {
   private final def fastByteStringToByteArray(byteString: ByteString): Array[Byte] = {
     if (byteStringField != null)
       try {
-        byteStringField.get(byteString).asInstanceOf[Array[Byte]]
+        byteString.getClass() match {
+          case ByteStringClass | LiteralByteStringClass =>
+            // Protobuf 2.4 uses plain ByteString. 2.6 uses LiterealByteString (LiteralByteStringClass is null if 2.4 is used)
+            byteStringField.get(byteString).asInstanceOf[Array[Byte]]
+          case _ =>
+            // 2.6 may use "RopeByteString" too.. Not sure if we would actually see that anytime, but warn and use regular method if so.
+            log.warn("Encountered ByteString of class " + byteString.getClass().getName()+", falling back to safe method")
+            slowByteStringToByteArray(byteString)
+        }
       } catch {
         case ex: Exception =>
           log.warn(ex, "Encountered exception accessing the private ByteString bytes field, falling back to safe method")
