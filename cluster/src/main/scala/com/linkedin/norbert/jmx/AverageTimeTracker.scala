@@ -40,7 +40,6 @@ class FinishedRequestTimeTracker(clock: Clock, interval: Long) {
         return
 
       val (completion, processingTime) = head
-      //println("QQ " +  head + " : " + (clock.getCurrentTimeOffsetMicroseconds - completion) + ":" + interval)
       if (clock.getCurrentTimeOffsetMicroseconds - completion > interval) {
         q.remove(head)
       } else {
