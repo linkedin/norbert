@@ -15,10 +15,10 @@
  */
 
 /**
- * @author: sishah
- * @date: 07/07/15
- * @version: 1.0
- */
+  * @author: sishah
+  * @date: 07/07/15
+  * @version: 1.0
+  */
 package com.linkedin.norbert
 package network
 package server
@@ -28,69 +28,85 @@ import com.linkedin.norbert.network.garbagecollection.GcParamWrapper
 
 class GcAwareMessageExecutorSpec extends MessageExecutorSpec {
 
-  object nodeTypes extends Enumeration {
-    val noNode, goodNode, badNode = Value
-  }
+  trait GcAwareMessageExecutorSetup extends MessageExecutorSetup {
 
-  val cycleTime = 6000
-  val slotTime = 2000
-  val slaTime = 1000
+    object nodeTypes extends Enumeration {
+      val noNode, goodNode, badNode = Value
+    }
 
-  // Buffer time, in milliseconds, to prevent test cases failing at slot transition boundaries.
-  // i.e. we wait this amount of time into a particular slot before testing
-  val slackTime = 10
+    val cycleTime = 6000
+    val slotTime = 2000
+    val slaTime = 1000
 
-  val goodGcParams = new GcParamWrapper(slaTime, cycleTime, slotTime)
+    // Buffer time, in milliseconds, to prevent test cases failing at slot transition boundaries.
+    // i.e. we wait this amount of time into a particular slot before testing
+    val slackTime = 10
 
-  val badNode = Node(1, "localhost:31313", true)
-  def noNode:Node = {throw new NetworkServerNotBoundException}
-  val goodNode = Node(1, "localhost:31313", true, Set.empty, None, None, Some(0))
+    val goodGcParams = new GcParamWrapper(slaTime, cycleTime, slotTime)
 
-  var nodeFlag = nodeTypes.badNode
+    val badNode = Node(1, "localhost:31313", true)
 
-  def getNode = {
+    def noNode: Node = {
+      throw new NetworkServerNotBoundException
+    }
 
-    Some (
-      nodeFlag match {
-        case nodeTypes.badNode => badNode
-        case nodeTypes.noNode => noNode
-        case nodeTypes.goodNode => goodNode
-      }
+    val goodNode = Node(1, "localhost:31313", true, Set.empty, None, None, Some(0))
+
+    var nodeFlag = nodeTypes.badNode
+
+    def getNode = {
+
+      Some(
+        nodeFlag match {
+          case nodeTypes.badNode => badNode
+          case nodeTypes.noNode => noNode
+          case nodeTypes.goodNode => goodNode
+        }
+      )
+
+    }
+
+    // MessageExecutorSpec by default runs all tests with no GcParams and no defined node.
+    // This spec overrides the message executor to have valid GcParams, and a node based on a flag.
+    override val messageExecutor = new ThreadPoolMessageExecutor(None, "service",
+      messageHandlerRegistry,
+      filters,
+      1000L,
+      1,
+      1,
+      1,
+      100,
+      1000L,
+      -1,
+      goodGcParams,
+      getNode
     )
 
+    def waitTillStartOfNewCycle: Unit = {
+      println("Waiting till start of new cycle")
+      while (System.currentTimeMillis() % cycleTime != 0) {}
+    }
   }
 
-  // MessageExecutorSpec by default runs all tests with no GcParams and no defined node.
-  // This spec overrides the message executor to have valid GcParams, and a node based on a flag.
-  override val messageExecutor = new ThreadPoolMessageExecutor(None, "service",
-    messageHandlerRegistry,
-    filters,
-    1000L,
-    1,
-    1,
-    1,
-    100,
-    1000L,
-    -1,
-    goodGcParams,
-    getNode
-  )
-
-  "GcAwareMessageExecutor" should {
-
-    doAfter {
+  trait AfterSpecSetup extends GcAwareMessageExecutorSetup {
+    def after = {
       messageExecutor.shutdown
     }
 
+  }
+
+  "GcAwareMessageExecutor" should {
+
+
     //No node is bound
-    "successfully respond (with no bound node) in" in {
+    "successfully respond (with no bound node) in" in new GcAwareMessageExecutorSetup {
       nodeFlag = nodeTypes.noNode
 
       generalExecutorTests
     }
 
     //These tests occur outside the GC period
-    "successfully respond (with a not-currently-GCing node) in" in {
+    "successfully respond (with a not-currently-GCing node) in" in new AfterSpecSetup {
 
       nodeFlag = nodeTypes.goodNode
 
@@ -99,11 +115,5 @@ class GcAwareMessageExecutorSpec extends MessageExecutorSpec {
 
       generalExecutorTests
     }
-
-  }
-
-  def waitTillStartOfNewCycle: Unit = {
-    println("Waiting till start of new cycle")
-    while (System.currentTimeMillis() % cycleTime != 0) {}
   }
 }

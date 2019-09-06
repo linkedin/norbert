@@ -7,12 +7,9 @@ dependencies {
   compile externalDependency.netty
   compile externalDependency.slf4jApi
   compile externalDependency.slf4jLog4j
-  if (scalaVersion.startsWith('2.10')) {
-    compile externalDependency.scalaActors
-  }
+  compile externalDependency.scalaActors
 
-  testCompile externalDependency.specs
-  testCompile externalDependency.mockitoAll
+  testCompile externalDependency.specs2
   testCompile externalDependency.cglib
   testCompile externalDependency.objenesis
   testCompile externalDependency.junit

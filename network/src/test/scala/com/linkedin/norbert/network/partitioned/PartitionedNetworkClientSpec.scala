@@ -17,34 +17,45 @@ package com.linkedin.norbert
 package network
 package partitioned
 
-import common.{Endpoint, ClusterIoClientComponent, BaseNetworkClientSpecification}
-import loadbalancer._
 import java.util.concurrent.ExecutionException
-import cluster.{Node, InvalidClusterException, ClusterDisconnectedException, ClusterClientComponent}
-import scala.Left
-import scala.Some
 
-class PartitionedNetworkClientSpec extends BaseNetworkClientSpecification {
-  val networkClient = new PartitionedNetworkClient[Int] with ClusterClientComponent with ClusterIoClientComponent
+import com.linkedin.norbert.cluster.{ClusterClientComponent, ClusterDisconnectedException, InvalidClusterException, Node}
+import com.linkedin.norbert.network.common.{BaseNetworkClientSpecification, ClusterIoClientComponent, Endpoint, SampleMessage}
+import com.linkedin.norbert.network.partitioned.loadbalancer._
+import org.specs2.mock.Mockito
+import org.specs2.mutable.SpecificationWithJUnit
+
+class PartitionedNetworkClientSpec extends SpecificationWithJUnit with Mockito with SampleMessage {
+
+  trait PartitionedNetworkClientSetup extends BaseNetworkClientSpecification {
+    val networkClient = new PartitionedNetworkClient[Int] with ClusterClientComponent with ClusterIoClientComponent
       with PartitionedLoadBalancerFactoryComponent[Int] {
-    val lb = mock[PartitionedLoadBalancer[Int]]
-    val loadbalancer = new PartitionedLoadBalancer[Int] {
-      def nextNode(id: Int, capability: Option[Long], permanentCapability: Option[Long]) = lb.nextNode(id, capability, permanentCapability)
-      def nodesForOneReplica(id: Int, capability: Option[Long], permanentCapability: Option[Long]) = lb.nodesForOneReplica(id, capability, permanentCapability)
-      def nodesForPartitionedId(id: Int, capability: Option[Long], permanentCapability: Option[Long]) = lb.nodesForPartitionedId(id, capability, permanentCapability)
-      def nodesForPartitions(id: Int, partitions: Set[Int], capability: Option[Long], permanentCapability: Option[Long]) = lb.nodesForPartitions(id, partitions, capability, permanentCapability)
+      val lb = mock[PartitionedLoadBalancer[Int]]
+      val loadbalancer = new PartitionedLoadBalancer[Int] {
+        def nextNode(id: Int, capability: Option[Long], permanentCapability: Option[Long]) = lb.nextNode(id, capability, permanentCapability)
+
+        def nodesForOneReplica(id: Int, capability: Option[Long], permanentCapability: Option[Long]) = lb.nodesForOneReplica(id, capability, permanentCapability)
+
+        def nodesForPartitionedId(id: Int, capability: Option[Long], permanentCapability: Option[Long]) = lb.nodesForPartitionedId(id, capability, permanentCapability)
+
+        def nodesForPartitions(id: Int, partitions: Set[Int], capability: Option[Long], permanentCapability: Option[Long]) = lb.nodesForPartitions(id, partitions, capability, permanentCapability)
+      }
+      val loadBalancerFactory = mock[PartitionedLoadBalancerFactory[Int]]
+      val clusterIoClient = mock[ClusterIoClient]
+      val clusterClient = PartitionedNetworkClientSetup.this.clusterClient
     }
-    val loadBalancerFactory = mock[PartitionedLoadBalancerFactory[Int]]
-    val clusterIoClient = mock[ClusterIoClient]
-    val clusterClient = PartitionedNetworkClientSpec.this.clusterClient
+
+    def messageCustomizer(node: Node, ids: Set[Int]): Ping = new Ping
+
+    //  networkClient.messageRegistry.contains(any[Message]) returns true
   }
 
-//  networkClient.messageRegistry.contains(any[Message]) returns true
-
   "PartitionedNetworkClient" should {
-    "provide common functionality" in { sharedFunctionality }
+    "provide common functionality" in new PartitionedNetworkClientSetup {
+      sharedFunctionality
+    }
 
-    "throw ClusterDisconnectedException if the cluster is disconnected when a method is called" in {
+    "throw ClusterDisconnectedException if the cluster is disconnected when a method is called" in new PartitionedNetworkClientSetup {
       networkClient.start
 
       networkClient.broadcastMessage(request) must throwA[ClusterDisconnectedException]
@@ -55,7 +66,7 @@ class PartitionedNetworkClientSpec extends BaseNetworkClientSpecification {
       networkClient.sendMessage(Set(1, 2), request) must throwA[ClusterDisconnectedException]
     }
 
-    "throw ClusterShutdownException if the cluster is shut down when a method is called" in {
+    "throw ClusterShutdownException if the cluster is shut down when a method is called" in new PartitionedNetworkClientSetup {
       networkClient.shutdown
 
       networkClient.broadcastMessage(request) must throwA[NetworkShutdownException]
@@ -66,21 +77,21 @@ class PartitionedNetworkClientSpec extends BaseNetworkClientSpecification {
       networkClient.sendMessage(Set(1, 2), request) must throwA[NetworkShutdownException]
     }
 
-//    "throw an InvalidMessageException if an unregistered message is sent" in {
-//      clusterClient.nodes returns nodeSet
-//      clusterClient.isConnected returns true
-////      networkClient.messageRegistry.contains(any[Message]) returns false
-//
-//      networkClient.start
-//
-//      networkClient.broadcastMessage(request) must throwA[InvalidMessageException]
-//      networkClient.sendRequestToNode(request, nodes(1)) must throwA[InvalidMessageException]
-//      networkClient.sendRequest(1, request) must throwA[InvalidMessageException]
-//      networkClient.sendRequest(Set(1, 2), request) must throwA[InvalidMessageException]
-//    }
+    //    "throw an InvalidMessageException if an unregistered message is sent" in new PartitionedNetworkClientSetup {
+    //      clusterClient.nodes returns nodeSet
+    //      clusterClient.isConnected returns true
+    ////      networkClient.messageRegistry.contains(any[Message]) returns false
+    //
+    //      networkClient.start
+    //
+    //      networkClient.broadcastMessage(request) must throwA[InvalidMessageException]
+    //      networkClient.sendRequestToNode(request, nodes(1)) must throwA[InvalidMessageException]
+    //      networkClient.sendRequest(1, request) must throwA[InvalidMessageException]
+    //      networkClient.sendRequest(Set(1, 2), request) must throwA[InvalidMessageException]
+    //    }
 
     "when sendRequest(id, message) is called" in {
-      "send the provided message to the node specified by the load balancer for sendRequest" in {
+      "send the provided message to the node specified by the load balancer for sendRequest" in new PartitionedNetworkClientSetup {
         clusterClient.nodes returns nodeSet
         clusterClient.isConnected returns true
         networkClient.clusterIoClient.nodesChanged(nodeSet) returns endpoints
@@ -89,13 +100,13 @@ class PartitionedNetworkClientSpec extends BaseNetworkClientSpecification {
         //      doNothing.when(clusterIoClient).sendRequest(node, message, null)
 
         networkClient.start
-        networkClient.sendRequest(1, request) must notBeNull
+        networkClient.sendRequest(1, request) must_!= beNull
 
         there was one(networkClient.lb).nextNode(1, None, None)
         //      clusterIoClient.sendRequest(node, message, null) was called
       }
 
-      "send the provided message to the node specified by the load balancer for sendMessage" in {
+      "send the provided message to the node specified by the load balancer for sendMessage" in new PartitionedNetworkClientSetup {
         clusterClient.nodes returns nodeSet
         clusterClient.isConnected returns true
         networkClient.clusterIoClient.nodesChanged(nodeSet) returns endpoints
@@ -104,13 +115,13 @@ class PartitionedNetworkClientSpec extends BaseNetworkClientSpecification {
         //      doNothing.when(clusterIoClient).sendRequest(node, message, null)
 
         networkClient.start
-        networkClient.sendMessage(1, request) must notBeNull
+        networkClient.sendMessage(1, request) must_!= beNull
 
         there was one(networkClient.lb).nextNode(1, None, None)
         //      clusterIoClient.sendRequest(node, message, null) was called
       }
 
-      "send the provided message to the node specified by the load balancer filtering based on capability for sendRequest" in {
+      "send the provided message to the node specified by the load balancer filtering based on capability for sendRequest" in new PartitionedNetworkClientSetup {
         clusterClient.nodes returns nodeSet
         clusterClient.isConnected returns true
         networkClient.clusterIoClient.nodesChanged(nodeSet) returns endpoints
@@ -118,13 +129,13 @@ class PartitionedNetworkClientSpec extends BaseNetworkClientSpecification {
         networkClient.lb.nextNode(1, Some(0x1), Some(0x2)) returns Some(nodes(1))
 
         networkClient.start
-        networkClient.sendRequest(1, request, Some(0x1L), Some(2L)) must notBeNull
+        networkClient.sendRequest(1, request, Some(0x1L), Some(2L)) must_!= beNull
 
         there was one(networkClient.lb).nextNode(1, Some(0x1L), Some(2L))
         there was no(networkClient.lb).nextNode(1, None, None)
       }
 
-      "send the provided message to the node specified by the load balancer filtering based on capability fir sendMessage" in {
+      "send the provided message to the node specified by the load balancer filtering based on capability fir sendMessage" in new PartitionedNetworkClientSetup {
         clusterClient.nodes returns nodeSet
         clusterClient.isConnected returns true
         networkClient.clusterIoClient.nodesChanged(nodeSet) returns endpoints
@@ -132,13 +143,13 @@ class PartitionedNetworkClientSpec extends BaseNetworkClientSpecification {
         networkClient.lb.nextNode(1, Some(0x1), Some(0x2)) returns Some(nodes(1))
 
         networkClient.start
-        networkClient.sendMessage(1, request, Some(0x1L), Some(2L)) must notBeNull
+        networkClient.sendMessage(1, request, Some(0x1L), Some(2L)) must_!= beNull
 
         there was one(networkClient.lb).nextNode(1, Some(0x1L), Some(2L))
         there was no(networkClient.lb).nextNode(1, None, None)
       }
 
-      "throw InvalidClusterException if there is no load balancer instance when sendRequest is called" in {
+      "throw InvalidClusterException if there is no load balancer instance when sendRequest is called" in new PartitionedNetworkClientSetup {
         clusterClient.nodes returns nodeSet
         clusterClient.isConnected returns true
         networkClient.clusterIoClient.nodesChanged(nodeSet) returns endpoints
@@ -151,7 +162,7 @@ class PartitionedNetworkClientSpec extends BaseNetworkClientSpecification {
         //      clusterIoClient.sendRequest(node, message, null) wasnt called
       }
 
-      "throw InvalidClusterException if there is no load balancer instance when sendMessage is called" in {
+      "throw InvalidClusterException if there is no load balancer instance when sendMessage is called" in new PartitionedNetworkClientSetup {
         clusterClient.nodes returns nodeSet
         clusterClient.isConnected returns true
         networkClient.clusterIoClient.nodesChanged(nodeSet) returns endpoints
@@ -164,7 +175,7 @@ class PartitionedNetworkClientSpec extends BaseNetworkClientSpecification {
         //      clusterIoClient.sendRequest(node, message, null) wasnt called
       }
 
-      "throw NoSuchNodeException if load balancer returns None when sendRequest is called" in {
+      "throw NoSuchNodeException if load balancer returns None when sendRequest is called" in new PartitionedNetworkClientSetup {
         clusterClient.nodes returns nodeSet
         clusterClient.isConnected returns true
         networkClient.clusterIoClient.nodesChanged(nodeSet) returns endpoints
@@ -179,7 +190,7 @@ class PartitionedNetworkClientSpec extends BaseNetworkClientSpecification {
         //      clusterIoClient.sendRequest(node, message, null) wasnt called
       }
 
-      "throw NoSuchNodeException if load balancer returns None when sendMessage is called" in {
+      "throw NoSuchNodeException if load balancer returns None when sendMessage is called" in new PartitionedNetworkClientSetup {
         clusterClient.nodes returns nodeSet
         clusterClient.isConnected returns true
         networkClient.clusterIoClient.nodesChanged(nodeSet) returns endpoints
@@ -195,7 +206,8 @@ class PartitionedNetworkClientSpec extends BaseNetworkClientSpecification {
       }
     }
 
-    "when sendRequest(ids, message) is called" in {
+
+    "when sendRequest(ids, message) is called" in new PartitionedNetworkClientSetup {
       "send the provided message to the node specified by the load balancer" in {
         clusterClient.nodes returns nodeSet
         clusterClient.isConnected returns true
@@ -208,7 +220,7 @@ class PartitionedNetworkClientSpec extends BaseNetworkClientSpecification {
         //      doNothing.when(clusterIoClient).sendRequest(node, message, null)
 
         networkClient.start
-        networkClient.sendRequest(Set(1, 2, 3), request) must notBeNull
+        networkClient.sendRequest(Set(1, 2, 3), request) must not beNull
 
         got {
           one(networkClient.lb).nextNode(1, None, None)
@@ -230,7 +242,7 @@ class PartitionedNetworkClientSpec extends BaseNetworkClientSpecification {
         //      doNothing.when(clusterIoClient).sendRequest(node, message, null)
 
         networkClient.start
-        networkClient.sendMessage(Set(1, 2, 3), request) must notBeNull
+        networkClient.sendMessage(Set(1, 2, 3), request) must not beNull
 
         got {
           one(networkClient.lb).nextNode(1, None, None)
@@ -252,7 +264,7 @@ class PartitionedNetworkClientSpec extends BaseNetworkClientSpecification {
         //      doNothing.when(clusterIoClient).sendRequest(node, message, null)
 
         networkClient.start
-        networkClient.sendRequest(Set(1, 2, 3), request, Some(0xffL), Some(2L)) must notBeNull
+        networkClient.sendRequest(Set(1, 2, 3), request, Some(0xffL), Some(2L)) must not beNull
 
         got {
           no(networkClient.lb).nextNode(1, None, None)
@@ -278,7 +290,7 @@ class PartitionedNetworkClientSpec extends BaseNetworkClientSpecification {
         //      doNothing.when(clusterIoClient).sendRequest(node, message, null)
 
         networkClient.start
-        networkClient.sendMessage(Set(1, 2, 3), request, Some(0xffL), Some(2L)) must notBeNull
+        networkClient.sendMessage(Set(1, 2, 3), request, Some(0xffL), Some(2L)) must not beNull
 
         got {
           no(networkClient.lb).nextNode(1, None, None)
@@ -324,13 +336,13 @@ class PartitionedNetworkClientSpec extends BaseNetworkClientSpecification {
         networkClient.clusterIoClient.nodesChanged(nodeSet) returns endpoints
         networkClient.loadBalancerFactory.newLoadBalancer(endpoints) returns networkClient.loadbalancer
         networkClient.lb.nextNode(1, None, None) returns None
-//      doNothing.when(clusterIoClient).sendRequest(node, message, null)
+        //      doNothing.when(clusterIoClient).sendRequest(node, message, null)
 
         networkClient.start
         networkClient.sendRequest(Set(1, 2, 3), request) must throwA[NoNodesAvailableException]
 
         there was one(networkClient.lb).nextNode(1, None, None)
-//      clusterIoClient.sendRequest(node, message, null) wasnt called
+        //      clusterIoClient.sendRequest(node, message, null) wasnt called
       }
 
       "throw NoSuchNodeException if load balancer returns None when sendMessage is called" in {
@@ -350,131 +362,131 @@ class PartitionedNetworkClientSpec extends BaseNetworkClientSpecification {
     }
 
 
-  "when sendRequest(ids, message, messageCustomizer) is called" in {
-    "send the provided message to the node specified by the load balancer" in {
-      clusterClient.nodes returns nodeSet
-      clusterClient.isConnected returns true
-      networkClient.clusterIoClient.nodesChanged(nodeSet) returns endpoints
-      networkClient.loadBalancerFactory.newLoadBalancer(endpoints) returns networkClient.loadbalancer
-      List(1, 2, 3).foreach(networkClient.lb.nextNode(_, None, None) returns Some(Node(1, "localhost:31313", true)))
+    "when sendRequest(ids, message, messageCustomizer) is called" in {
+      "send the provided message to the node specified by the load balancer" in new PartitionedNetworkClientSetup {
+        clusterClient.nodes returns nodeSet
+        clusterClient.isConnected returns true
+        networkClient.clusterIoClient.nodesChanged(nodeSet) returns endpoints
+        networkClient.loadBalancerFactory.newLoadBalancer(endpoints) returns networkClient.loadbalancer
+        List(1, 2, 3).foreach(networkClient.lb.nextNode(_, None, None) returns Some(Node(1, "localhost:31313", true)))
 
-      networkClient.start
-      networkClient.sendRequest(Set(1, 2, 3), messageCustomizer _)
+        networkClient.start
+        networkClient.sendRequest(Set(1, 2, 3), messageCustomizer _)
 
-      List(1, 2, 3).foreach(there was one(networkClient.lb).nextNode(_, None, None))
+        List(1, 2, 3).foreach(there was one(networkClient.lb).nextNode(_, None, None))
 
-      List(1, 2, 3).foreach(networkClient.lb.nextNode(_, Some(0x3L), Some(0L)) returns Some(Node(1, "localhost:31313", true)))
-      networkClient.sendRequest(Set(1, 2, 3), messageCustomizer _, Some(0x3L), Some(0L))
-      List(1, 2, 3).foreach(there was one(networkClient.lb).nextNode(_,Some(0x3L), Some(0L)))
-    }
-
-    "send the provided one way message to the node specified by the load balancer" in {
-      clusterClient.nodes returns nodeSet
-      clusterClient.isConnected returns true
-      networkClient.clusterIoClient.nodesChanged(nodeSet) returns endpoints
-      networkClient.loadBalancerFactory.newLoadBalancer(endpoints) returns networkClient.loadbalancer
-      List(1, 2, 3).foreach(networkClient.lb.nextNode(_, None, None) returns Some(Node(1, "localhost:31313", true)))
-
-      networkClient.start
-      networkClient.sendMessage(Set(1, 2, 3), messageCustomizer _)
-
-      List(1, 2, 3).foreach(there was one(networkClient.lb).nextNode(_, None, None))
-
-      List(1, 2, 3).foreach(networkClient.lb.nextNode(_, Some(0x3L), Some(0L)) returns Some(Node(1, "localhost:31313", true)))
-      networkClient.sendMessage(Set(1, 2, 3), messageCustomizer _, Some(0x3L), Some(0L))
-      List(1, 2, 3).foreach(there was one(networkClient.lb).nextNode(_,Some(0x3L), Some(0L)))
-    }
-
-    "call the message customizer" in {
-      var callCount = 0
-      var nodeMap = Map[Node, Set[Int]]()
-
-      def mc(node: Node, ids: Set[Int]): Ping = {
-        callCount += 1
-        nodeMap = nodeMap + (node -> ids)
-        new Ping
+        List(1, 2, 3).foreach(networkClient.lb.nextNode(_, Some(0x3L), Some(0L)) returns Some(Node(1, "localhost:31313", true)))
+        networkClient.sendRequest(Set(1, 2, 3), messageCustomizer _, Some(0x3L), Some(0L))
+        List(1, 2, 3).foreach(there was one(networkClient.lb).nextNode(_, Some(0x3L), Some(0L)))
       }
 
-      clusterClient.nodes returns nodeSet
-      clusterClient.isConnected returns true
-      networkClient.clusterIoClient.nodesChanged(nodeSet) returns endpoints
-      networkClient.loadBalancerFactory.newLoadBalancer(endpoints) returns networkClient.loadbalancer
-      List(1, 2).foreach(networkClient.lb.nextNode(_, None, None) returns Some(nodes(0)))
-      List(3, 4).foreach(networkClient.lb.nextNode(_, None, None) returns Some(nodes(1)))
+      "send the provided one way message to the node specified by the load balancer" in new PartitionedNetworkClientSetup {
+        clusterClient.nodes returns nodeSet
+        clusterClient.isConnected returns true
+        networkClient.clusterIoClient.nodesChanged(nodeSet) returns endpoints
+        networkClient.loadBalancerFactory.newLoadBalancer(endpoints) returns networkClient.loadbalancer
+        List(1, 2, 3).foreach(networkClient.lb.nextNode(_, None, None) returns Some(Node(1, "localhost:31313", true)))
 
-      networkClient.start
-      networkClient.sendRequest(Set(1, 2, 3, 4), mc _)
+        networkClient.start
+        networkClient.sendMessage(Set(1, 2, 3), messageCustomizer _)
 
-      callCount must be_==(2)
-      nodeMap.size must be_==(2)
-      nodeMap(nodes(0)) must haveTheSameElementsAs(Array(1, 2))
-      nodeMap(nodes(1)) must haveTheSameElementsAs(Array(3, 4))
-    }
+        List(1, 2, 3).foreach(there was one(networkClient.lb).nextNode(_, None, None))
 
-    "call the message customizer (one way message)" in {
-      var callCount = 0
-      var nodeMap = Map[Node, Set[Int]]()
-
-      def mc(node: Node, ids: Set[Int]): Ping = {
-        callCount += 1
-        nodeMap = nodeMap + (node -> ids)
-        new Ping
+        List(1, 2, 3).foreach(networkClient.lb.nextNode(_, Some(0x3L), Some(0L)) returns Some(Node(1, "localhost:31313", true)))
+        networkClient.sendMessage(Set(1, 2, 3), messageCustomizer _, Some(0x3L), Some(0L))
+        List(1, 2, 3).foreach(there was one(networkClient.lb).nextNode(_, Some(0x3L), Some(0L)))
       }
 
-      clusterClient.nodes returns nodeSet
-      clusterClient.isConnected returns true
-      networkClient.clusterIoClient.nodesChanged(nodeSet) returns endpoints
-      networkClient.loadBalancerFactory.newLoadBalancer(endpoints) returns networkClient.loadbalancer
-      List(1, 2).foreach(networkClient.lb.nextNode(_, None, None) returns Some(nodes(0)))
-      List(3, 4).foreach(networkClient.lb.nextNode(_, None, None) returns Some(nodes(1)))
+      "call the message customizer" in new PartitionedNetworkClientSetup {
+        var callCount = 0
+        var nodeMap = Map[Node, Set[Int]]()
 
-      networkClient.start
-      networkClient.sendMessage(Set(1, 2, 3, 4), mc _)
+        def mc(node: Node, ids: Set[Int]): Ping = {
+          callCount += 1
+          nodeMap = nodeMap + (node -> ids)
+          new Ping
+        }
 
-      callCount must be_==(2)
-      nodeMap.size must be_==(2)
-      nodeMap(nodes(0)) must haveTheSameElementsAs(Array(1, 2))
-      nodeMap(nodes(1)) must haveTheSameElementsAs(Array(3, 4))
-    }
+        clusterClient.nodes returns nodeSet
+        clusterClient.isConnected returns true
+        networkClient.clusterIoClient.nodesChanged(nodeSet) returns endpoints
+        networkClient.loadBalancerFactory.newLoadBalancer(endpoints) returns networkClient.loadbalancer
+        List(1, 2).foreach(networkClient.lb.nextNode(_, None, None) returns Some(nodes(0)))
+        List(3, 4).foreach(networkClient.lb.nextNode(_, None, None) returns Some(nodes(1)))
 
-    "treats an exception from the message customizer as a failed response" in {
-      def mc(node: Node, ids: Set[Int]): Ping = {
-        throw new Exception
+        networkClient.start
+        networkClient.sendRequest(Set(1, 2, 3, 4), mc _)
+
+        callCount must be_==(2)
+        nodeMap.size must be_==(2)
+        nodeMap(nodes(0)) mustEqual (Set(1, 2))
+        nodeMap(nodes(1)) mustEqual (Set(3, 4))
       }
 
-      clusterClient.nodes returns nodeSet
-      clusterClient.isConnected returns true
-      networkClient.clusterIoClient.nodesChanged(nodeSet) returns endpoints
-      networkClient.loadBalancerFactory.newLoadBalancer(endpoints) returns networkClient.loadbalancer
-      List(1, 2).foreach(networkClient.lb.nextNode(_, None, None) returns Some(nodes(0)))
+      "call the message customizer (one way message)" in new PartitionedNetworkClientSetup {
+        var callCount = 0
+        var nodeMap = Map[Node, Set[Int]]()
 
-      networkClient.start
-      val ri = networkClient.sendRequest(Set(1, 2), mc _)
-      ri.hasNext must beTrue
-      ri.next must throwA[ExecutionException]
-    }
+        def mc(node: Node, ids: Set[Int]): Ping = {
+          callCount += 1
+          nodeMap = nodeMap + (node -> ids)
+          new Ping
+        }
 
-      "throw InvalidClusterException if there is no load balancer instance when sendRequest is called" in {
+        clusterClient.nodes returns nodeSet
+        clusterClient.isConnected returns true
+        networkClient.clusterIoClient.nodesChanged(nodeSet) returns endpoints
+        networkClient.loadBalancerFactory.newLoadBalancer(endpoints) returns networkClient.loadbalancer
+        List(1, 2).foreach(networkClient.lb.nextNode(_, None, None) returns Some(nodes(0)))
+        List(3, 4).foreach(networkClient.lb.nextNode(_, None, None) returns Some(nodes(1)))
+
+        networkClient.start
+        networkClient.sendMessage(Set(1, 2, 3, 4), mc _)
+
+        callCount must be_==(2)
+        nodeMap.size must be_==(2)
+        nodeMap(nodes(0)) mustEqual (Set(1, 2))
+        nodeMap(nodes(1)) mustEqual (Set(3, 4))
+      }
+
+      "treats an exception from the message customizer as a failed response" in new PartitionedNetworkClientSetup {
+        def mc(node: Node, ids: Set[Int]): Ping = {
+          throw new Exception
+        }
+
+        clusterClient.nodes returns nodeSet
+        clusterClient.isConnected returns true
+        networkClient.clusterIoClient.nodesChanged(nodeSet) returns endpoints
+        networkClient.loadBalancerFactory.newLoadBalancer(endpoints) returns networkClient.loadbalancer
+        List(1, 2).foreach(networkClient.lb.nextNode(_, None, None) returns Some(nodes(0)))
+
+        networkClient.start
+        val ri = networkClient.sendRequest(Set(1, 2), mc _)
+        ri.hasNext must beTrue
+        ri.next must throwA[ExecutionException]
+      }
+
+      "throw InvalidClusterException if there is no load balancer instance when sendRequest is called" in new PartitionedNetworkClientSetup {
         clusterClient.nodes returns nodeSet
         clusterClient.isConnected returns true
         networkClient.clusterIoClient.nodesChanged(nodeSet) returns endpoints
         networkClient.loadBalancerFactory.newLoadBalancer(endpoints) throws new InvalidClusterException("")
-//      doNothing.when(clusterIoClient).sendRequest(node, message, null)
+        //      doNothing.when(clusterIoClient).sendRequest(node, message, null)
 
         networkClient.start
-        networkClient.sendRequest(Set(1, 2, 3), messageCustomizer _)  must throwA[InvalidClusterException]
-        networkClient.sendMessage(Set(1, 2, 3), messageCustomizer _)  must throwA[InvalidClusterException]
+        networkClient.sendRequest(Set(1, 2, 3), messageCustomizer _) must throwA[InvalidClusterException]
+        networkClient.sendMessage(Set(1, 2, 3), messageCustomizer _) must throwA[InvalidClusterException]
 
-//      clusterIoClient.sendRequest(node, message, null) wasnt called
+        //      clusterIoClient.sendRequest(node, message, null) wasnt called
       }
 
-      "throw NoSuchNodeException if load balancer returns None when sendRequest is called" in {
+      "throw NoSuchNodeException if load balancer returns None when sendRequest is called" in new PartitionedNetworkClientSetup {
         clusterClient.nodes returns nodeSet
         clusterClient.isConnected returns true
         networkClient.clusterIoClient.nodesChanged(nodeSet) returns endpoints
         networkClient.loadBalancerFactory.newLoadBalancer(endpoints) returns networkClient.loadbalancer
         networkClient.lb.nextNode(1, None, None) returns None
-//      doNothing.when(clusterIoClient).sendRequest(node, message, null)
+        //      doNothing.when(clusterIoClient).sendRequest(node, message, null)
 
         networkClient.start
         networkClient.sendRequest(Set(1, 2, 3), messageCustomizer _) must throwA[NoNodesAvailableException]
@@ -485,7 +497,7 @@ class PartitionedNetworkClientSpec extends BaseNetworkClientSpecification {
         // Test cases for fanout calls.
         networkClient.sendRequest(Set(1, 2, 3), 0, messageCustomizer _) must throwA[NoNodesAvailableException]
         networkClient.sendRequest(Set(1, 2, 3), 1, messageCustomizer _) must throwA[NoNodesAvailableException]
-//      clusterIoClient.sendRequest(node, message, null) wasnt called
+        //      clusterIoClient.sendRequest(node, message, null) wasnt called
       }
     }
 
@@ -493,7 +505,7 @@ class PartitionedNetworkClientSpec extends BaseNetworkClientSpecification {
 
       val MAX_RETRY = 3
 
-      "send the provided message to the node specified by the load balancer" in {
+      "send the provided message to the node specified by the load balancer" in new PartitionedNetworkClientSetup {
         clusterClient.nodes returns nodeSet
         clusterClient.isConnected returns true
         networkClient.clusterIoClient.nodesChanged(nodeSet) returns endpoints
@@ -506,7 +518,7 @@ class PartitionedNetworkClientSpec extends BaseNetworkClientSpecification {
         List(1, 2, 3).foreach(there was one(networkClient.lb).nextNode(_, None, None))
       }
 
-      "call the message customizer" in {
+      "call the message customizer" in new PartitionedNetworkClientSetup {
         var callCount = 0
         var nodeMap = Map[Node, Set[Int]]()
 
@@ -528,11 +540,11 @@ class PartitionedNetworkClientSpec extends BaseNetworkClientSpecification {
 
         callCount must be_==(2)
         nodeMap.size must be_==(2)
-        nodeMap(nodes(0)) must haveTheSameElementsAs(Array(1, 2))
-        nodeMap(nodes(1)) must haveTheSameElementsAs(Array(3, 4))
+        nodeMap(nodes(0)) mustEqual (Set(1, 2))
+        nodeMap(nodes(1)) mustEqual (Set(3, 4))
       }
 
-      "treats an exception from the message customizer as a failed response" in {
+      "treats an exception from the message customizer as a failed response" in new PartitionedNetworkClientSetup {
         def mc(node: Node, ids: Set[Int]): Ping = {
           throw new Exception
         }
@@ -555,20 +567,20 @@ class PartitionedNetworkClientSpec extends BaseNetworkClientSpecification {
         networkClient.sendRequest(Set(1, 2), 1, mc _, MAX_RETRY).next must throwA[ExecutionException]
       }
 
-      "throw InvalidClusterException if there is no load balancer instance when sendRequest is called" in {
+      "throw InvalidClusterException if there is no load balancer instance when sendRequest is called" in new PartitionedNetworkClientSetup {
         clusterClient.nodes returns nodeSet
         clusterClient.isConnected returns true
         networkClient.clusterIoClient.nodesChanged(nodeSet) returns endpoints
         networkClient.loadBalancerFactory.newLoadBalancer(endpoints) throws new InvalidClusterException("")
 
         networkClient.start
-        networkClient.sendRequest(Set(1, 2, 3), messageCustomizer _, MAX_RETRY)  must throwA[InvalidClusterException]
+        networkClient.sendRequest(Set(1, 2, 3), messageCustomizer _, MAX_RETRY) must throwA[InvalidClusterException]
 
-        networkClient.sendRequest(Set(1, 2, 3), 0, messageCustomizer _, MAX_RETRY)  must throwA[InvalidClusterException]
-        networkClient.sendRequest(Set(1, 2, 3), 1, messageCustomizer _, MAX_RETRY)  must throwA[InvalidClusterException]
+        networkClient.sendRequest(Set(1, 2, 3), 0, messageCustomizer _, MAX_RETRY) must throwA[InvalidClusterException]
+        networkClient.sendRequest(Set(1, 2, 3), 1, messageCustomizer _, MAX_RETRY) must throwA[InvalidClusterException]
       }
 
-      "throw NoSuchNodeException if load balancer returns None when sendRequest is called" in {
+      "throw NoSuchNodeException if load balancer returns None when sendRequest is called" in new PartitionedNetworkClientSetup {
         clusterClient.nodes returns nodeSet
         clusterClient.isConnected returns true
         networkClient.clusterIoClient.nodesChanged(nodeSet) returns endpoints
@@ -585,14 +597,13 @@ class PartitionedNetworkClientSpec extends BaseNetworkClientSpecification {
       }
     }
 
-
     "when sendRequestToReplicas(id, message) is called" in {
-      "send the provided message to every replica specified by the load balancer" in {
+      "send the provided message to every replica specified by the load balancer" in new PartitionedNetworkClientSetup {
         clusterClient.nodes returns nodeSet
         clusterClient.isConnected returns true
         networkClient.clusterIoClient.nodesChanged(nodeSet) returns endpoints
         networkClient.loadBalancerFactory.newLoadBalancer(endpoints) returns networkClient.loadbalancer
-        List(1,2,3).foreach(networkClient.lb.nodesForPartitionedId(_, None, None) returns nodeSet)
+        List(1, 2, 3).foreach(networkClient.lb.nodesForPartitionedId(_, None, None) returns nodeSet)
 
         networkClient.start
         networkClient.sendRequestToReplicas(2, request)
@@ -601,21 +612,21 @@ class PartitionedNetworkClientSpec extends BaseNetworkClientSpecification {
         }
       }
 
-      "send the provided message to every replica specified by the load balancer filtering capability" in {
+      "send the provided message to every replica specified by the load balancer filtering capability" in new PartitionedNetworkClientSetup {
         clusterClient.nodes returns nodeSet
         clusterClient.isConnected returns true
         networkClient.clusterIoClient.nodesChanged(nodeSet) returns endpoints
         networkClient.loadBalancerFactory.newLoadBalancer(endpoints) returns networkClient.loadbalancer
-        List(1,2,3).foreach(networkClient.lb.nodesForPartitionedId(_, Some(0xfL), Some(2L)) returns nodeSet)
+        List(1, 2, 3).foreach(networkClient.lb.nodesForPartitionedId(_, Some(0xfL), Some(2L)) returns nodeSet)
 
         networkClient.start
         networkClient.sendRequestToReplicas(2, request, 0, Some(0xfL), Some(2L))
         got {
-              one(networkClient.lb).nodesForPartitionedId(2, Some(0xfL), Some(2L))
-            }
+          one(networkClient.lb).nodesForPartitionedId(2, Some(0xfL), Some(2L))
+        }
       }
 
-      "throw InvalidClusterException if there is no loadbalancer instance when sendRequestToReplicas is called" in {
+      "throw InvalidClusterException if there is no loadbalancer instance when sendRequestToReplicas is called" in new PartitionedNetworkClientSetup {
         clusterClient.nodes returns nodeSet
         clusterClient.isConnected returns true
         networkClient.clusterIoClient.nodesChanged(nodeSet) returns endpoints
@@ -625,7 +636,7 @@ class PartitionedNetworkClientSpec extends BaseNetworkClientSpecification {
         networkClient.sendRequestToReplicas(3, request) must throwA[InvalidClusterException]
       }
 
-      "throw NoSuchNodeException if load balancer returns None when sendRequests is called" in {
+      "throw NoSuchNodeException if load balancer returns None when sendRequests is called" in new PartitionedNetworkClientSetup {
         clusterClient.nodes returns nodeSet
         clusterClient.isConnected returns true
         networkClient.clusterIoClient.nodesChanged(nodeSet) returns endpoints
@@ -636,10 +647,9 @@ class PartitionedNetworkClientSpec extends BaseNetworkClientSpecification {
         networkClient.sendRequestToReplicas(1, request) must throwA[NoNodesAvailableException]
         there was one(networkClient.lb).nodesForPartitionedId(1, None, None)
       }
-      
     }
 
-    "retryCallback should propagate server exception to underlying when" in {
+    "retryCallback should propagate server exception to underlying when" in new PartitionedNetworkClientSetup {
 
       val MAX_RETRY = 3
       var either: Either[Throwable, Ping] = null
@@ -647,7 +657,7 @@ class PartitionedNetworkClientSpec extends BaseNetworkClientSpecification {
 
       "exception does not provide RequestAccess" in {
         networkClient.retryCallback[Ping, Ping](callback, 0, None, None)(Left(new Exception)) // fallback to underlying
-        either must notBeNull
+        either must_!= beNull
         either.isLeft must beTrue
       }
 
@@ -657,9 +667,9 @@ class PartitionedNetworkClientSpec extends BaseNetworkClientSpecification {
           def request = req
         }
         networkClient.retryCallback[Ping, Ping](callback, MAX_RETRY, None, None)(Left(ra))
-        either must notBeNull
+        either must_!= beNull
         either.isLeft must beTrue
-        either.left.get mustEq ra
+        either.left.get mustEqual ra
       }
 
       "cannot locate next available node" in {
@@ -671,7 +681,7 @@ class PartitionedNetworkClientSpec extends BaseNetworkClientSpecification {
         networkClient.start
 
         networkClient.retryCallback[Ping, Ping](callback, MAX_RETRY, None, None)(Left(new RemoteException("FooClass", "ServerError")))
-        either must notBeNull
+        either must_!= beNull
         either.isLeft must beTrue
         either.left.get must haveClass[RemoteException]
       }
@@ -691,72 +701,88 @@ class PartitionedNetworkClientSpec extends BaseNetworkClientSpecification {
         }
 
         networkClient.retryCallback[Ping, Ping](callback, MAX_RETRY, None, None)(Left(ra))
-        either must notBeNull
+        either must_!= beNull
         either.isLeft must beTrue
-        either.left.get mustEq ra
+        either.left.get mustEqual ra
       }
 
-      "sendMessage: MAX_RETRY reached" in {
+      "sendMessage: MAX_RETRY reached" in new PartitionedNetworkClientSetup {
+        val baseClusterClient = clusterClient
         val nc2 = new PartitionedNetworkClient[Int] with ClusterClientComponent with ClusterIoClientComponent with PartitionedLoadBalancerFactoryComponent[Int] {
           val lb = new PartitionedLoadBalancer[Int] {
-            var iter = PartitionedNetworkClientSpec.this.nodes.iterator
-            def nextNode(id: Int, c: Option[Long] = None, pc : Option[Long] = None) = {
-              if (!iter.hasNext ) iter = PartitionedNetworkClientSpec.this.nodes.iterator
+            var iter = nodes.iterator
+
+            def nextNode(id: Int, c: Option[Long] = None, pc: Option[Long] = None) = {
+              if (!iter.hasNext) iter = nodes.iterator
               Some(iter.next)
             }
+
             def nodesForOneReplica(id: Int, c: Option[Long] = None, pc: Option[Long] = None) = null
-            def nodesForPartitionedId(id:Int, c: Option[Long] = None, pc: Option[Long] = None) = null
+
+            def nodesForPartitionedId(id: Int, c: Option[Long] = None, pc: Option[Long] = None) = null
+
             def nodesForPartitions(id: Int, partitions: Set[Int], c: Option[Long] = None, pc: Option[Long] = None) = null
           }
           val loadBalancerFactory = mock[PartitionedLoadBalancerFactory[Int]]
           val clusterIoClient = new ClusterIoClient {
             var invocationCount: Int = 0
+
             def sendMessage[RequestMsg, ResponseMsg](node: Node, requestCtx: Request[RequestMsg, ResponseMsg]) {
               invocationCount += 1
               requestCtx.onFailure(new Exception with RequestAccess[Request[RequestMsg, ResponseMsg]] {
                 def request = requestCtx
               })
             }
-            def nodesChanged(nodes: Set[Node]) = {PartitionedNetworkClientSpec.this.endpoints}
+
+            def nodesChanged(nodes: Set[Node]) = {
+              endpoints
+            }
+
             def shutdown {}
           }
-          val clusterClient = PartitionedNetworkClientSpec.this.clusterClient
+          val clusterClient = baseClusterClient
         }
         nc2.clusterClient.nodes returns nodeSet
         nc2.clusterClient.isConnected returns true
         nc2.loadBalancerFactory.newLoadBalancer(endpoints) returns nc2.lb
         nc2.start
-        val resIter = nc2.sendRequest(Set(1,2,3), messageCustomizer _, MAX_RETRY)
+        val resIter = nc2.sendRequest(Set(1, 2, 3), messageCustomizer _, MAX_RETRY)
         nc2.clusterIoClient.invocationCount mustEqual (MAX_RETRY * 4)
         while (resIter.hasNext) {
-          resIter.next must throwAnException[Exception]
+          resIter.next must throwA[Exception]
         }
-        val resIter2 = nc2.sendRequest(Set(1,2,3), 1, messageCustomizer _, MAX_RETRY)
+        val resIter2 = nc2.sendRequest(Set(1, 2, 3), 1, messageCustomizer _, MAX_RETRY)
         nc2.clusterIoClient.invocationCount mustEqual (MAX_RETRY * 8)
         while (resIter2.hasNext) {
-          resIter2.next must throwAnException[Exception]
+          resIter2.next must throwA[Exception]
         }
       }
-
     }
 
-    "sendMessage should automatically handle partial failures" in {
+    "sendMessage should automatically handle partial failures" in new PartitionedNetworkClientSetup {
       val MAX_RETRY = 3
+      val baseClusterClient = clusterClient
+      val baseEndpoints = endpoints
       val nc2 = new PartitionedNetworkClient[Int] with ClusterClientComponent with ClusterIoClientComponent with PartitionedLoadBalancerFactoryComponent[Int] {
         val lb = new PartitionedLoadBalancer[Int] {
-          val nodeIS = PartitionedNetworkClientSpec.this.nodes.toIndexedSeq
+          val nodeIS = nodes.toIndexedSeq
           var idx = 0
+
           def nextNode(id: Int, c: Option[Long] = None, pc: Option[Long] = None) = {
             idx = (idx + 1) % nodeIS.size
             Some(nodeIS(idx))
           }
+
           def nodesForOneReplica(id: Int, c: Option[Long] = None, pc: Option[Long] = None) = null
-          def nodesForPartitionedId(id:Int, c: Option[Long] = None, pc: Option[Long] = None) = null
-          def nodesForPartitions(id: Int, partitions: Set[Int], c: Option[Long] = None, pc: Option[Long] = None)= null
+
+          def nodesForPartitionedId(id: Int, c: Option[Long] = None, pc: Option[Long] = None) = null
+
+          def nodesForPartitions(id: Int, partitions: Set[Int], c: Option[Long] = None, pc: Option[Long] = None) = null
         }
         val loadBalancerFactory = mock[PartitionedLoadBalancerFactory[Int]]
         val clusterIoClient = new ClusterIoClient {
           var succ: Boolean = false
+
           def sendMessage[RequestMsg, ResponseMsg](node: Node, requestCtx: Request[RequestMsg, ResponseMsg]) {
             if (!succ) {
               succ = true
@@ -768,27 +794,34 @@ class PartitionedNetworkClientSpec extends BaseNetworkClientSpecification {
               requestCtx.onSuccess(requestCtx.outputSerializer.requestToBytes(requestCtx.message))
             }
           }
-          def nodesChanged(nodes: Set[Node]) = {PartitionedNetworkClientSpec.this.endpoints}
+
+          override def nodesChanged(nodes: Set[Node]) = {
+            baseEndpoints
+          }
+
           def shutdown {}
         }
-        val clusterClient = PartitionedNetworkClientSpec.this.clusterClient
+        val clusterClient = baseClusterClient
       }
       nc2.clusterClient.nodes returns nodeSet
       nc2.clusterClient.isConnected returns true
       nc2.loadBalancerFactory.newLoadBalancer(endpoints) returns nc2.lb
       nc2.start
-      val resIter = nc2.sendRequest[Ping, Ping](Set(1,2), messageCustomizer _, MAX_RETRY)
+      val resIter = nc2.sendRequest[Ping, Ping](Set(1, 2), messageCustomizer _, MAX_RETRY)
       while (resIter.hasNext) {
-        resIter.next mustNot throwAnException
+        resIter.next must_!= throwA[Exception]
       }
     }
 
-    "sendMessage should automatically handle partial failures and adjust response size dynamically" in {
+    "sendMessage should automatically handle partial failures and adjust response size dynamically" in new PartitionedNetworkClientSetup {
       val MAX_RETRY = 3
+      val baseClusterClient = clusterClient
+      val baseEndpoints = endpoints
       val nc2 = new PartitionedNetworkClient[Int] with ClusterClientComponent with ClusterIoClientComponent with PartitionedLoadBalancerFactoryComponent[Int] {
         val lb = new PartitionedLoadBalancer[Int] {
-          val nodeIS = PartitionedNetworkClientSpec.this.nodes.toIndexedSeq
+          val nodeIS = nodes.toIndexedSeq
           var count = 0
+
           def nextNode(id: Int, c: Option[Long] = None, pc: Option[Long] = None) = {
             var ret: Node = null
             if (count < 2)
@@ -798,13 +831,17 @@ class PartitionedNetworkClientSpec extends BaseNetworkClientSpecification {
             count += 1
             Some(ret)
           }
+
           def nodesForOneReplica(id: Int, c: Option[Long] = None, pc: Option[Long] = None) = null
-          def nodesForPartitionedId(id:Int, c: Option[Long] = None, pc: Option[Long] = None) = null
+
+          def nodesForPartitionedId(id: Int, c: Option[Long] = None, pc: Option[Long] = None) = null
+
           def nodesForPartitions(id: Int, partitions: Set[Int], c: Option[Long] = None, pc: Option[Long] = None) = null
         }
         val loadBalancerFactory = mock[PartitionedLoadBalancerFactory[Int]]
         val clusterIoClient = new ClusterIoClient {
           var failOnce: Boolean = true
+
           def sendMessage[RequestMsg, ResponseMsg](node: Node, requestCtx: Request[RequestMsg, ResponseMsg]) {
             if (failOnce) {
               failOnce = false
@@ -815,55 +852,70 @@ class PartitionedNetworkClientSpec extends BaseNetworkClientSpecification {
               requestCtx.onSuccess(requestCtx.outputSerializer.requestToBytes(requestCtx.message))
             }
           }
-          def nodesChanged(nodes: Set[Node]) = {PartitionedNetworkClientSpec.this.endpoints}
+
+          def nodesChanged(nodes: Set[Node]): Set[Endpoint] = {
+            baseEndpoints
+          }
+
           def shutdown {}
         }
-        val clusterClient = PartitionedNetworkClientSpec.this.clusterClient
+        val clusterClient = baseClusterClient
       }
       nc2.clusterClient.nodes returns nodeSet
       nc2.clusterClient.isConnected returns true
       nc2.loadBalancerFactory.newLoadBalancer(endpoints) returns nc2.lb
       nc2.start
-      val resIter = nc2.sendRequest[Ping, Ping](Set(0,1), messageCustomizer _, MAX_RETRY)
+      val resIter = nc2.sendRequest[Ping, Ping](Set(0, 1), messageCustomizer _, MAX_RETRY)
       var num = 0
       while (resIter.hasNext) {
         num += 1
-        resIter.next mustNot throwAnException
+        resIter.next must_!= throwA[Exception]
       }
-      num mustEq 2
+      num mustEqual 2
 
-      val resIter2 = nc2.sendRequest[Ping, Ping](Set(0,1), messageCustomizer _, MAX_RETRY)
+      val resIter2 = nc2.sendRequest[Ping, Ping](Set(0, 1), messageCustomizer _, MAX_RETRY).toIterator
       num = 0
       while (resIter2.hasNext) {
         num += 1
-        resIter2.next mustNot throwAnException
+        resIter2.next must_!= throwA[Exception]
       }
-      num mustEq 2
+      num mustEqual 2
     }
 
 
-    "calculateNodesFromIds should properly exclude failing node" in {
+    "calculateNodesFromIds should properly exclude failing node" in new PartitionedNetworkClientSetup {
+      val baseClusterClient = clusterClient
+      val baseEndpoints = endpoints
       val nc2 = new PartitionedNetworkClient[Int] with ClusterClientComponent with ClusterIoClientComponent with PartitionedLoadBalancerFactoryComponent[Int] {
         val lb = new PartitionedLoadBalancer[Int] {
-          val iter = PartitionedNetworkClientSpec.this.nodes.iterator
+          val iter = nodes.iterator
+
           def nextNode(id: Int, c: Option[Long] = None, pc: Option[Long] = None) = Some(iter.next)
+
           def nodesForOneReplica(id: Int, c: Option[Long] = None, pc: Option[Long] = None) = null
-          def nodesForPartitionedId(id:Int, c: Option[Long] = None, pc: Option[Long] = None) = null
+
+          def nodesForPartitionedId(id: Int, c: Option[Long] = None, pc: Option[Long] = None) = null
+
           def nodesForPartitions(id: Int, partitions: Set[Int], c: Option[Long] = None, pc: Option[Long] = None) = null
         }
         val loadBalancerFactory = mock[PartitionedLoadBalancerFactory[Int]]
         val clusterIoClient = new ClusterIoClient {
           var invocationCount: Int = 0
+
           def sendMessage[RequestMsg, ResponseMsg](node: Node, requestCtx: Request[RequestMsg, ResponseMsg]) {
             invocationCount += 1
             requestCtx.onFailure(new Exception with RequestAccess[Request[RequestMsg, ResponseMsg]] {
               def request = requestCtx
             })
           }
-          def nodesChanged(nodes: Set[Node]) = {PartitionedNetworkClientSpec.this.endpoints}
+
+          def nodesChanged(nodes: Set[Node]) = {
+            baseEndpoints
+          }
+
           def shutdown {}
         }
-        val clusterClient = PartitionedNetworkClientSpec.this.clusterClient
+        val clusterClient = baseClusterClient
       }
       nc2.clusterClient.nodes returns nodeSet
       nc2.clusterClient.isConnected returns true
@@ -873,32 +925,43 @@ class PartitionedNetworkClientSpec extends BaseNetworkClientSpecification {
       val failingNode = nodes(0)
       val failingNodes = Set(failingNode)
       var nodes2Ids = nc2.calculateNodesFromIds(Set(1), failingNodes, 3, None, None)
-      nodes2Ids must notBeNull
-      nodes2Ids.keys must notHave(failingNodes)
+      nodes2Ids must_!= beNull
+      nodes2Ids.keys must not contain (failingNodes)
     }
 
-    "calculateNodesFromIds should properly exclude failing nodes in excluded set" in {
+    "calculateNodesFromIds should properly exclude failing nodes in excluded set" in new PartitionedNetworkClientSetup {
+      val baseClusterClient = clusterClient
+      val baseEndpoints = endpoints
       val nc2 = new PartitionedNetworkClient[Int] with ClusterClientComponent with ClusterIoClientComponent with PartitionedLoadBalancerFactoryComponent[Int] {
         val lb = new PartitionedLoadBalancer[Int] {
-          val iter = PartitionedNetworkClientSpec.this.nodes.iterator
+          val iter = nodes.iterator
+
           def nextNode(id: Int, c: Option[Long] = None, pc: Option[Long] = None) = Some(iter.next)
+
           def nodesForOneReplica(id: Int, c: Option[Long] = None, pc: Option[Long] = None) = null
-          def nodesForPartitionedId(id:Int, c: Option[Long] = None, pc: Option[Long] = None) = null
+
+          def nodesForPartitionedId(id: Int, c: Option[Long] = None, pc: Option[Long] = None) = null
+
           def nodesForPartitions(id: Int, partitions: Set[Int], c: Option[Long] = None, pc: Option[Long] = None) = null
         }
         val loadBalancerFactory = mock[PartitionedLoadBalancerFactory[Int]]
         val clusterIoClient = new ClusterIoClient {
           var invocationCount: Int = 0
+
           def sendMessage[RequestMsg, ResponseMsg](node: Node, requestCtx: Request[RequestMsg, ResponseMsg]) {
             invocationCount += 1
             requestCtx.onFailure(new Exception with RequestAccess[Request[RequestMsg, ResponseMsg]] {
               def request = requestCtx
             })
           }
-          def nodesChanged(nodes: Set[Node]) = {PartitionedNetworkClientSpec.this.endpoints}
+
+          def nodesChanged(nodes: Set[Node]) = {
+            baseEndpoints
+          }
+
           def shutdown {}
         }
-        val clusterClient = PartitionedNetworkClientSpec.this.clusterClient
+        val clusterClient = baseClusterClient
       }
       nc2.clusterClient.nodes returns nodeSet
       nc2.clusterClient.isConnected returns true
@@ -907,32 +970,43 @@ class PartitionedNetworkClientSpec extends BaseNetworkClientSpecification {
 
       val failingNodes = Set(nodes(0), nodes(1))
       var nodes2Ids = nc2.calculateNodesFromIds(Set(1), failingNodes, 3, None, None)
-      nodes2Ids must notBeNull
-      nodes2Ids.keys must notHave(failingNodes)
+      nodes2Ids must_!= beNull
+      nodes2Ids.keys must not contain (failingNodes)
     }
 
-    "calculateNodesFromIds should throw NoNodesAvailableException if non-failing nodes not found" in {
+    "calculateNodesFromIds should throw NoNodesAvailableException if non-failing nodes not found" in new PartitionedNetworkClientSetup {
+      val baseClusterClient = clusterClient
+      val baseEndpoints = endpoints
       val nc2 = new PartitionedNetworkClient[Int] with ClusterClientComponent with ClusterIoClientComponent with PartitionedLoadBalancerFactoryComponent[Int] {
         val lb = new PartitionedLoadBalancer[Int] {
-          val iter = PartitionedNetworkClientSpec.this.nodes.iterator
+          val iter = nodes.iterator
+
           def nextNode(id: Int, c: Option[Long] = None, pc: Option[Long] = None) = if (iter.hasNext) Some(iter.next) else None
+
           def nodesForOneReplica(id: Int, c: Option[Long] = None, pc: Option[Long] = None) = null
-          def nodesForPartitionedId(id:Int, c: Option[Long] = None, pc: Option[Long] = None) = null
+
+          def nodesForPartitionedId(id: Int, c: Option[Long] = None, pc: Option[Long] = None) = null
+
           def nodesForPartitions(id: Int, partitions: Set[Int], c: Option[Long] = None, pc: Option[Long] = None) = null
         }
         val loadBalancerFactory = mock[PartitionedLoadBalancerFactory[Int]]
         val clusterIoClient = new ClusterIoClient {
           var invocationCount: Int = 0
+
           def sendMessage[RequestMsg, ResponseMsg](node: Node, requestCtx: Request[RequestMsg, ResponseMsg]) {
             invocationCount += 1
             requestCtx.onFailure(new Exception with RequestAccess[Request[RequestMsg, ResponseMsg]] {
               def request = requestCtx
             })
           }
-          def nodesChanged(nodes: Set[Node]) = {PartitionedNetworkClientSpec.this.endpoints}
+
+          def nodesChanged(nodes: Set[Node]) = {
+            baseEndpoints
+          }
+
           def shutdown {}
         }
-        val clusterClient = PartitionedNetworkClientSpec.this.clusterClient
+        val clusterClient = baseClusterClient
       }
       nc2.clusterClient.nodes returns nodeSet
       nc2.clusterClient.isConnected returns true
@@ -943,9 +1017,10 @@ class PartitionedNetworkClientSpec extends BaseNetworkClientSpecification {
       nc2.calculateNodesFromIds(Set(1), failingNodes, 3, None, None) must throwA[NoNodesAvailableException]
     }
 
-    "when sendRequest is called with a response aggregator" in {
-      "it calls the response aggregator" in {
+    "when sendRequest is called with a response aggregator" in new PartitionedNetworkClientSetup {
+      "it calls the response aggregator" in new PartitionedNetworkClientSetup {
         var callCount = 0
+
         def ag(ri: ResponseIterator[Ping]) = {
           callCount += 1
           123454321
@@ -971,7 +1046,7 @@ class PartitionedNetworkClientSpec extends BaseNetworkClientSpecification {
         callCount must be_==(3)
       }
 
-      "it rethrows exceptions thrown by the response aggregator" in {
+      "it rethrows exceptions thrown by the response aggregator" in new PartitionedNetworkClientSetup {
         def ag(ri: ResponseIterator[Ping]): Int = {
           throw new Exception
         }
@@ -989,7 +1064,7 @@ class PartitionedNetworkClientSpec extends BaseNetworkClientSpecification {
         networkClient.sendRequest(Set(1, 2), 1, (node: Node, ids: Set[Int]) => request, ag _) must throwA[Exception]
       }
 
-      "Automatically fix partitioned requests " in {
+      "Automatically fix partitioned requests " in new PartitionedNetworkClientSetup {
         val testData = Map(
           Node(id = 0, url = "", available = true, partitionIds = Set(1, 2, 3)) -> Set(1, 2),
           Node(id = 1, url = "", available = true, partitionIds = Set(1, 2, 3)) -> Set(2, 3))
@@ -1003,6 +1078,4 @@ class PartitionedNetworkClientSpec extends BaseNetworkClientSpecification {
       }
     }
   }
-
-  def messageCustomizer(node: Node, ids: Set[Int]): Ping = new Ping
 }

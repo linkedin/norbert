@@ -15,13 +15,13 @@ package com.linkedin.norbert.norbertutils
 * License for the specific language governing permissions and limitations under
 * the License.
 */
-import org.specs.SpecificationWithJUnit
-import org.specs.mock.Mockito
-import org.specs.util.WaitFor
-import actors._
-import actors.Actor._
+
+import org.specs2.mutable.SpecificationWithJUnit
+
+import scala.actors._
 
 class KeepAliveActorSpec extends SpecificationWithJUnit {
+
   case class Divide(n: Int, d: Int)
 
   class TestActor extends Actor {
@@ -34,6 +34,7 @@ class KeepAliveActorSpec extends SpecificationWithJUnit {
 
     this ! LinkActor(KeepAliveActor)
   }
+
   "KeepAliveActor" should {
     "Keep an actor alive" in {
       val actor = new TestActor

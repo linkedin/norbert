@@ -16,7 +16,7 @@
 package com.linkedin.norbert
 package jmx
 
-import org.specs.SpecificationWithJUnit
+import org.specs2.mutable.SpecificationWithJUnit
 
 class JMXSpec extends SpecificationWithJUnit {
   "JMX" should {
@@ -25,5 +25,4 @@ class JMXSpec extends SpecificationWithJUnit {
       JMX.map.getOrElse("hello world", -1) must be_==(0)
     }
   }
-} 
-
+}

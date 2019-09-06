@@ -17,79 +17,87 @@ package com.linkedin.norbert
 package network
 package common
 
-import org.specs.SpecificationWithJUnit
-import org.specs.mock.Mockito
+import org.specs2.mutable.SpecificationWithJUnit
+import org.specs2.mock.Mockito
 import client.NetworkClient
 import client.loadbalancer.{LoadBalancer, LoadBalancerFactory, LoadBalancerFactoryComponent}
 import server._
 import cluster.{ClusterClient, ClusterClientComponent, Node}
 import com.google.protobuf.Message
+import org.specs2.specification.Scope
 
 import scala.collection.mutable.MutableList
 
 class LocalMessageExecutionSpec extends SpecificationWithJUnit with Mockito with SampleMessage {
-  val clusterClient = mock[ClusterClient]
 
-  val messageExecutor = new MessageExecutor {
-    var called = false
-    var request: Any = _
-    val filters = new MutableList[Filter]
-    def shutdown = {}
+  trait LocalMessageExecutionSetup extends Scope {
+    val clusterClient = mock[ClusterClient]
 
-    def executeMessage[RequestMsg, ResponseMsg] (request: RequestMsg, messageName: String,
-                                          responseHandler: Option[(Either[Exception, ResponseMsg]) => Unit],
-                                          context: Option[RequestContext] = None) = {
-      called = true
-      this.request = request
+    val messageExecutor = new MessageExecutor {
+      var called = false
+      var request: Any = _
+      val filters = new MutableList[Filter]
 
-      val response = null.asInstanceOf[ResponseMsg]
+      def shutdown = {}
 
-      responseHandler.get(Right(response))
+      def executeMessage[RequestMsg, ResponseMsg](request: RequestMsg, messageName: String,
+        responseHandler: Option[(Either[Exception, ResponseMsg]) => Unit],
+        context: Option[RequestContext] = None) = {
+        called = true
+        this.request = request
+
+        val response = null.asInstanceOf[ResponseMsg]
+
+        responseHandler.get(Right(response))
+      }
     }
-  }
 
-  val networkClient = new NetworkClient with ClusterClientComponent with ClusterIoClientComponent with LoadBalancerFactoryComponent
+    val networkClient = new NetworkClient with ClusterClientComponent with ClusterIoClientComponent with LoadBalancerFactoryComponent
       with MessageExecutorComponent with LocalMessageExecution {
-    val lb = mock[LoadBalancer]
-    val loadBalancerFactory = mock[LoadBalancerFactory]
-    val clusterIoClient = mock[ClusterIoClient]
-//    val messageRegistry = mock[MessageRegistry]
-    val clusterClient = LocalMessageExecutionSpec.this.clusterClient
-    val messageExecutor = LocalMessageExecutionSpec.this.messageExecutor
-    val myNode = Node(1, "localhost:31313", true)
+      val lb = mock[LoadBalancer]
+      val loadBalancerFactory = mock[LoadBalancerFactory]
+      val clusterIoClient = mock[ClusterIoClient]
+      //    val messageRegistry = mock[MessageRegistry]
+      val clusterClient = LocalMessageExecutionSetup.this.clusterClient
+      val messageExecutor = LocalMessageExecutionSetup.this.messageExecutor
+      val myNode = Node(1, "localhost:31313", true)
+    }
+
+
+    val nodes = Set(Node(1, "", true), Node(2, "", true), Node(3, "", true))
+    val endpoints = nodes.map { n =>
+      new Endpoint {
+        def node = n
+
+        def canServeRequests = true
+      }
+    }
+    val message = mock[Message]
+
+    //  networkClient.messageRegistry.contains(any[Message]) returns true
+    clusterClient.nodes returns nodes
+    clusterClient.isConnected returns true
+    networkClient.clusterIoClient.nodesChanged(nodes) returns endpoints
+    networkClient.loadBalancerFactory.newLoadBalancer(endpoints) returns networkClient.lb
   }
-
-
-  val nodes = Set(Node(1, "", true), Node(2, "", true), Node(3, "", true))
-  val endpoints = nodes.map { n => new Endpoint {
-    def node = n
-    def canServeRequests = true
-  }}
-  val message = mock[Message]
-
-//  networkClient.messageRegistry.contains(any[Message]) returns true
-  clusterClient.nodes returns nodes
-  clusterClient.isConnected returns true
-  networkClient.clusterIoClient.nodesChanged(nodes) returns endpoints
-  networkClient.loadBalancerFactory.newLoadBalancer(endpoints) returns networkClient.lb
 
   "LocalMessageExecution" should {
-    "call the MessageExecutor if myNode is equal to the node the request is to be sent to" in {
+    "call the MessageExecutor if myNode is equal to the node the request is to be sent to" in new LocalMessageExecutionSetup {
       networkClient.lb.nextNode(None, None) returns Some(networkClient.myNode)
 
       networkClient.start
 
-      networkClient.sendRequest(request) must notBeNull
+      networkClient.sendRequest(request) must not beNull
 
       messageExecutor.called must beTrue
       messageExecutor.request must be_==(request)
     }
 
-    "not call the MessageExecutor if myNode is not equal to the node the request is to be sent to" in {
+    "not call the MessageExecutor if myNode is not equal to the node the request is to be sent to" in new LocalMessageExecutionSetup {
       networkClient.lb.nextNode(None, None) returns Some(Node(2, "", true))
 
       networkClient.start
-      networkClient.sendRequest(request) must notBeNull
+      networkClient.sendRequest(request) must not beNull
 
       messageExecutor.called must beFalse
     }

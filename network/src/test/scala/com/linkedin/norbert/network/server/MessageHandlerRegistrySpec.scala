@@ -17,45 +17,48 @@ package com.linkedin.norbert
 package network
 package server
 
-import org.specs.SpecificationWithJUnit
-import org.specs.mock.Mockito
-import common.SampleMessage
+import com.linkedin.norbert.network.common.SampleMessage
+import org.specs2.mock.Mockito
+import org.specs2.mutable.SpecificationWithJUnit
+import org.specs2.specification.Scope
 
 class MessageHandlerRegistrySpec extends SpecificationWithJUnit with Mockito with SampleMessage {
-  val messageHandlerRegistry = new MessageHandlerRegistry
 
-  var handled: Ping = _
-  val handler = (ping: Ping) => {
-    handled = ping
-    ping
+  trait MessageHandlerRegistrySetup extends Scope {
+    val messageHandlerRegistry = new MessageHandlerRegistry
+
+    var handled: Ping = _
+    val handler = (ping: Ping) => {
+      handled = ping
+      ping
+    }
   }
 
-
   "MessageHandlerRegistry" should {
-    "return the handler for the specified request message" in {
+    "return the handler for the specified request message" in new MessageHandlerRegistrySetup {
       messageHandlerRegistry.registerHandler(handler)
 
       val h = messageHandlerRegistry.getHandler[Ping, Ping](Ping.PingSerializer.requestName) match {
-        case sync: SyncHandlerEntry[Ping,Ping] => sync.handler
+        case sync: SyncHandlerEntry[Ping, Ping] => sync.handler
       }
 
       h(request) must be_==(request)
       handled must be_==(request)
     }
 
-    "throw an InvalidMessageException if no sync handler is registered" in {
+    "throw an InvalidMessageException if no sync handler is registered" in new MessageHandlerRegistrySetup {
       messageHandlerRegistry.getHandler(Ping.PingSerializer.requestName) must throwA[InvalidMessageException]
     }
 
-    "throw an InvalidMessageException if no async handler is registered" in {
+    "throw an InvalidMessageException if no async handler is registered" in new MessageHandlerRegistrySetup {
       messageHandlerRegistry.getHandler(Ping.PingSerializer.requestName) must throwA[InvalidMessageException]
     }
 
-    "return true if the provided response is a valid response for the given request" in {
+    "return true if the provided response is a valid response for the given request" in new MessageHandlerRegistrySetup {
       messageHandlerRegistry.registerHandler(handler)
     }
 
-    "return false if the provided response is not a valid response for the given request" in {
+    "return false if the provided response is not a valid response for the given request" in new MessageHandlerRegistrySetup {
       messageHandlerRegistry.registerHandler(handler)
     }
   }

@@ -38,7 +38,7 @@ object ClusterDependencies {
   val PROTOBUF_VER = "2.4.0a"
   val LOG4J_VER = "1.2.16"
 
-  val SPECS_VER = "1.6.7"
+  val SPECS_VER = "1.6.9"
   val MOCKITO_VER = "1.8.4"
   val CGLIB_VER = "2.1_3"
   val OBJENESIS = "1.0"
@@ -60,7 +60,7 @@ object ClusterDependencies {
 
   val junit = "junit" % "junit" % JUNIT_VER % "test"
 
-  val deps = Seq(zookeeper, protobuf, log4j, specs, mockito, cglib, objenesis, junit)
+  val deps = Seq(zookeeper, protobuf, log4j, specs, xml, mockito, cglib, objenesis, junit)
 }
 
 object NetworkDependencies {

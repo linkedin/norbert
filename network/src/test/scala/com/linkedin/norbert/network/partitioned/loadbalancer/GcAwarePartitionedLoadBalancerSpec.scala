@@ -19,105 +19,107 @@ import com.linkedin.norbert.cluster.{InvalidClusterException, Node}
 import com.linkedin.norbert.network.NoNodesAvailableException
 import com.linkedin.norbert.network.common.Endpoint
 import com.linkedin.norbert.network.partitioned.loadbalancer.gcaware.GcAwarePartitionedLoadBalancerFactory
-import org.specs.SpecificationWithJUnit
-import org.specs.util.WaitFor
+import com.linkedin.norbert.util.WaitFor
+import org.specs2.mutable.SpecificationWithJUnit
+import org.specs2.specification.Scope
 
 
 /**
- * @author: sishah
- * @date: 06/18/15
- * @version: 1.0
- */
+  * @author: sishah
+  * @date: 06/18/15
+  * @version: 1.0
+  */
 
 class GcAwarePartitionedLoadBalancerSpec extends SpecificationWithJUnit with WaitFor {
 
-  val cycleTime = 6000
-  val slotTime = 2000
+  trait GcAwarePartitionedLoadBalancerSetup extends Scope {
+    val cycleTime = 6000
+    val slotTime = 2000
 
-  // Buffer time, in milliseconds, to prevent test cases failing at slot transition boundaries.
-  // i.e. we wait this amount of time into a particular slot before testing
-  val slackTime = 10
+    // Buffer time, in milliseconds, to prevent test cases failing at slot transition boundaries.
+    // i.e. we wait this amount of time into a particular slot before testing
+    val slackTime = 10
 
-  class TestLBF(numPartitions: Int, csr: Boolean = true)
-        extends GcAwarePartitionedLoadBalancerFactory[Int](numPartitions, cycleTime, slotTime, csr)
-  {
-    protected def calculateHash(id: Int) = HashFunctions.fnv(BigInt(id).toByteArray)
+    class TestLBF(numPartitions: Int, csr: Boolean = true)
+      extends GcAwarePartitionedLoadBalancerFactory[Int](numPartitions, cycleTime, slotTime, csr) {
+      protected def calculateHash(id: Int) = HashFunctions.fnv(BigInt(id).toByteArray)
 
-    def getNumPartitions(endpoints: Set[Endpoint]) = numPartitions
-  }
-
-  val loadBalancerFactory = new TestLBF(6)
-
-  class TestEndpoint(val node: Node, var csr: Boolean) extends Endpoint {
-    def canServeRequests = csr
-
-    def setCsr(ncsr: Boolean) {
-      csr = ncsr
+      def getNumPartitions(endpoints: Set[Endpoint]) = numPartitions
     }
-  }
 
-  def toEndpoints(nodes: Set[Node]): Set[Endpoint] = nodes.map(n => new TestEndpoint(n, true))
+    val loadBalancerFactory = new TestLBF(6)
 
-  def markUnavailable(endpoints: Set[Endpoint], id: Int) {
-    endpoints.foreach { endpoint =>
-      if (endpoint.node.id == id) {
-        endpoint.asInstanceOf[TestEndpoint].setCsr(false)
+    class TestEndpoint(val node: Node, var csr: Boolean) extends Endpoint {
+      def canServeRequests = csr
+
+      def setCsr(ncsr: Boolean) {
+        csr = ncsr
       }
     }
+
+    def toEndpoints(nodes: Set[Node]): Set[Endpoint] = nodes.map(n => new TestEndpoint(n, true))
+
+    def markUnavailable(endpoints: Set[Endpoint], id: Int) {
+      endpoints.foreach { endpoint =>
+        if (endpoint.node.id == id) {
+          endpoint.asInstanceOf[TestEndpoint].setCsr(false)
+        }
+      }
+    }
+
+    val node1 = new Node(1, "node 1", true, Set(0, 1, 2), None, None, Some(0))
+    val node2 = new Node(2, "node 2", true, Set(3, 4, 5), None, None, Some(0))
+    val node3 = new Node(3, "node 3", true, Set(1, 2, 3), None, None, Some(1))
+    val node4 = new Node(4, "node 4", true, Set(4, 5, 0), None, None, Some(1))
+    val node5 = new Node(5, "node 5", true, Set(1, 2, 3), None, None, Some(2))
+    val node6 = new Node(6, "node 6", true, Set(4, 5, 0), None, None, Some(2))
+
+    val nodes = Set(node1, node2, node3, node4, node5, node6)
   }
 
-  val node1 = new Node(1, "node 1", true, Set(0,1,2), None, None, Some(0))
-  val node2 = new Node(2, "node 2", true, Set(3,4,5), None, None, Some(0))
-  val node3 = new Node(3, "node 3", true, Set(1,2,3), None, None, Some(1))
-  val node4 = new Node(4, "node 4", true, Set(4,5,0), None, None, Some(1))
-  val node5 = new Node(5, "node 5", true, Set(1,2,3), None, None, Some(2))
-  val node6 = new Node(6, "node 6", true, Set(4,5,0), None, None, Some(2))
-
-  val nodes = Set(node1, node2, node3, node4, node5, node6)
-
   "Set cover GC-aware load balancer" should {
-    "nodesForPartitions returns nodes cover the input partitioned Ids" in {
+    "nodesForPartitions returns nodes cover the input partitioned Ids" in new GcAwarePartitionedLoadBalancerSetup {
       val loadbalancer = loadBalancerFactory.newLoadBalancer(toEndpoints(nodes))
-      val res = loadbalancer.nodesForPartitionedIds(Set(0,1,3,4), Some(0L), Some(0L))
+      val res = loadbalancer.nodesForPartitionedIds(Set(0, 1, 3, 4), Some(0L), Some(0L))
       res.values.flatten.toSet must be_==(Set(1, 0, 3, 4))
     }
 
-    "nodesForPartitions returns partial results when not all partitions available" in {
+    "nodesForPartitions returns partial results when not all partitions available" in new GcAwarePartitionedLoadBalancerSetup {
       val endpoints = toEndpoints(nodes)
       markUnavailable(endpoints, 1)
       markUnavailable(endpoints, 3)
       markUnavailable(endpoints, 5)
 
       val loadbalancer = loadBalancerFactory.newLoadBalancer(endpoints)
-      val res = loadbalancer.nodesForPartitionedIds(Set(3,5), Some(0L), Some(0L))
-      res must be_== (Map())
+      val res = loadbalancer.nodesForPartitionedIds(Set(3, 5), Some(0L), Some(0L))
+      res must be_==(Map())
     }
 
-    "throw NoNodeAvailable if partition is missing and serveRequestsIfPartitionMissing set to false" in {
+    "throw NoNodeAvailable if partition is missing and serveRequestsIfPartitionMissing set to false" in new GcAwarePartitionedLoadBalancerSetup {
       val endpoints = toEndpoints(nodes)
       val loadbalancer = new TestLBF(6, false).newLoadBalancer(endpoints)
-      val res = loadbalancer.nodesForPartitionedIds(Set(1,3,4,5), Some(0L), Some(0L))
-      res.values.flatten.toSet must be_==(Set(1,3,4,5))
+      val res = loadbalancer.nodesForPartitionedIds(Set(1, 3, 4, 5), Some(0L), Some(0L))
+      res.values.flatten.toSet must be_==(Set(1, 3, 4, 5))
 
       markUnavailable(endpoints, 1)
       markUnavailable(endpoints, 3)
       markUnavailable(endpoints, 5)
-      loadbalancer.nodesForPartitionedIds(Set(1,3,4,5), Some(0L), Some(0L)) must throwA[NoNodesAvailableException]
+      loadbalancer.nodesForPartitionedIds(Set(1, 3, 4, 5), Some(0L), Some(0L)) must throwA[NoNodesAvailableException]
     }
 
-    "not throw InvalidClusterException if a node doesn't have an offset" in {
-      val badNode = new Node(2, "node 2", true, Set(3,4,5))
+    "not throw InvalidClusterException if a node doesn't have an offset" in new GcAwarePartitionedLoadBalancerSetup {
+      val badNode = new Node(2, "node 2", true, Set(3, 4, 5))
 
-      val badNodeSet = Set(new Node(1, "node 1", true, Set(0,1,2), None, None, Some(0)),
+      val badNodeSet = Set(new Node(1, "node 1", true, Set(0, 1, 2), None, None, Some(0)),
         badNode,
-        new Node(3, "node 3", true, Set(1,2,3), None, None, Some(1)),
-        new Node(4, "node 4", true, Set(4,5,0), None, None, Some(1)))
+        new Node(3, "node 3", true, Set(1, 2, 3), None, None, Some(1)),
+        new Node(4, "node 4", true, Set(4, 5, 0), None, None, Some(1)))
 
       val endpoints = toEndpoints(badNodeSet)
-      loadBalancerFactory.newLoadBalancer(endpoints) mustNot throwA[InvalidClusterException]
+      loadBalancerFactory.newLoadBalancer(endpoints) must_!= throwA[InvalidClusterException]
       val loadbalancer = loadBalancerFactory.newLoadBalancer(endpoints)
 
-      while(System.currentTimeMillis()%cycleTime != 0){}
+      while (System.currentTimeMillis() % cycleTime != 0) {}
       waitFor((slotTime + slackTime).ms)
 
       val idCorrespondingToPartition4 = 1318
@@ -126,28 +128,27 @@ class GcAwarePartitionedLoadBalancerSpec extends SpecificationWithJUnit with Wai
 
     }
 
-    "not return a Node which is currently GCing" in {
+    "not return a Node which is currently GCing" in new GcAwarePartitionedLoadBalancerSetup {
       val loadbalancer = loadBalancerFactory.newLoadBalancer(toEndpoints(nodes))
-      while(System.currentTimeMillis()%cycleTime != 0){}
+      while (System.currentTimeMillis() % cycleTime != 0) {}
 
       val idCorrespondingToPartition1 = 1210
       val idCorrespondingToPartition4 = 1318
 
-      val possibleNodeSet = scala.collection.mutable.Set(node3,node5)
+      val possibleNodeSet = scala.collection.mutable.Set(node3, node5)
       val res = loadbalancer.nextNode(idCorrespondingToPartition1)
       res must beSome[Node].which(possibleNodeSet must contain(_))
       possibleNodeSet remove res.get
       val res2 = loadbalancer.nextNode(idCorrespondingToPartition1)
       res2 must beSome[Node].which(possibleNodeSet must contain(_))
 
-      while(System.currentTimeMillis()%slotTime != 0){}
-      val possibleNodeSet2 = scala.collection.mutable.Set(node2,node6)
+      while (System.currentTimeMillis() % slotTime != 0) {}
+      val possibleNodeSet2 = scala.collection.mutable.Set(node2, node6)
       val res3 = loadbalancer.nextNode(idCorrespondingToPartition4)
       res3 must beSome[Node].which(possibleNodeSet2 must contain(_))
       possibleNodeSet2 remove res3.get
       val res4 = loadbalancer.nextNode(idCorrespondingToPartition4)
       res4 must beSome[Node].which(possibleNodeSet2 must contain(_))
     }
-
   }
 }

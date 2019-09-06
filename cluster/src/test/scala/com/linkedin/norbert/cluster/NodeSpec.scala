@@ -16,25 +16,29 @@
 package com.linkedin.norbert
 package cluster
 
-import org.specs.SpecificationWithJUnit
-import protos.NorbertProtos
+import com.linkedin.norbert.protos.NorbertProtos
+import org.specs2.mutable.SpecificationWithJUnit
+import org.specs2.specification.Scope
 
 class NodeSpec extends SpecificationWithJUnit {
+
+  trait NodeSetup extends Scope {
+    val builder = NorbertProtos.Node.newBuilder
+  }
+
   "Node" should {
-    "serialize into the correct format" in {
-      val builder = NorbertProtos.Node.newBuilder
+    "serialize into the correct format" in new NodeSetup {
       builder.setId(1)
       builder.setUrl("localhost:31313")
       builder.addPartition(0).addPartition(1)
-      builder.setPersistentCapability(2L)//right not the only one we care about is 2
+      builder.setPersistentCapability(2L) //right not the only one we care about is 2
       val expectedBytes = builder.build.toByteArray.toList
 
       val nodeBytes = Node.nodeToByteArray(Node(1, "localhost:31313", false, Set(0, 1), Some(0L), Some(2L)))
       nodeBytes.toList must be_==(expectedBytes)
     }
 
-    "deserialize into the corrent Node" in {
-      val builder = NorbertProtos.Node.newBuilder
+    "deserialize into the corrent Node" in new NodeSetup {
       builder.setId(1)
       builder.setUrl("localhost:31313")
       builder.addPartition(0).addPartition(1)

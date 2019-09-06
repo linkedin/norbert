@@ -17,26 +17,31 @@ package com.linkedin.norbert
 package cluster
 package memory
 
-import org.specs.SpecificationWithJUnit
+import org.specs2.mutable.SpecificationWithJUnit
+import org.specs2.specification.{After, Scope}
 
 class InMemoryClusterClientSpec extends SpecificationWithJUnit {
-  val clusterClient = new InMemoryClusterClient("test")
-  clusterClient.start
-  clusterClient.awaitConnectionUninterruptibly
+
+  trait InMemoryClusterClientSetup extends Scope with After {
+    val clusterClient = new InMemoryClusterClient("test")
+    clusterClient.start
+    clusterClient.awaitConnectionUninterruptibly
+
+    def after = {
+      clusterClient.shutdown
+    }
+  }
 
   "InMemoryClusterClient" should {
 
-    doAfter {
-      clusterClient.shutdown
-    }
-
-    "start with no nodes" in {
+    "start with no nodes" in new InMemoryClusterClientSetup {
       clusterClient.nodes.size must be_==(0)
     }
 
-    "add the node" in {
-      clusterClient.addNode(1, "test") must notBeNull
+    "add the node" in new InMemoryClusterClientSetup {
+      clusterClient.addNode(1, "test") must_!= beNull
       val nodes = clusterClient.nodes
+
       nodes.size must be_==(1)
       nodes.foreach { node =>
         node.id must be_==(1)
@@ -45,12 +50,12 @@ class InMemoryClusterClientSpec extends SpecificationWithJUnit {
       }
     }
 
-    "throw an InvalidNodeException if the node already exists" in {
-      clusterClient.addNode(1, "test") must notBeNull
+    "throw an InvalidNodeException if the node already exists" in new InMemoryClusterClientSetup {
+      clusterClient.addNode(1, "test") must_!= beNull
       clusterClient.addNode(1, "test") must throwA[InvalidNodeException]
     }
 
-    "add the node as available" in {
+    "add the node as available" in new InMemoryClusterClientSetup {
       clusterClient.markNodeAvailable(1)
       clusterClient.addNode(1, "test")
       val nodes = clusterClient.nodes
@@ -59,14 +64,14 @@ class InMemoryClusterClientSpec extends SpecificationWithJUnit {
       }
     }
 
-    "remove the node" in {
+    "remove the node" in new InMemoryClusterClientSetup {
       clusterClient.addNode(1, "test")
       clusterClient.nodes.size must be_==(1)
       clusterClient.removeNode(1)
       clusterClient.nodes.size must be_==(0)
     }
 
-    "mark the node available" in {
+    "mark the node available" in new InMemoryClusterClientSetup {
       clusterClient.addNode(1, "test")
       var nodes = clusterClient.nodes
       nodes.foreach { node =>
@@ -79,7 +84,7 @@ class InMemoryClusterClientSpec extends SpecificationWithJUnit {
       }
     }
 
-    "mark the node unavailable" in {
+    "mark the node unavailable" in new InMemoryClusterClientSetup {
       clusterClient.markNodeAvailable(1)
       clusterClient.addNode(1, "test")
       var nodes = clusterClient.nodes

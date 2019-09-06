@@ -16,8 +16,8 @@
 package com.linkedin.norbert
 package jmx
 
-import org.specs.SpecificationWithJUnit
-import norbertutils.{SystemClock, MockClock, Clock, ClockComponent}
+import com.linkedin.norbert.norbertutils.MockClock
+import org.specs2.mutable.SpecificationWithJUnit
 
 class RequestTimeTrackerSpec extends SpecificationWithJUnit {
   val mockClock = new MockClock
@@ -26,15 +26,15 @@ class RequestTimeTrackerSpec extends SpecificationWithJUnit {
     "cleanup request maps properly" in {
       val a = new RequestTimeTracker[Int](mockClock, 100)
       var t = 0
-      (1 to 100).foreach{ k =>
-        a.beginRequest(k,t)
+      (1 to 100).foreach { k =>
+        a.beginRequest(k, t)
         mockClock.currentTime = t
         t = t + 1
-        a.beginNetty(k,t)
+        a.beginNetty(k, t)
         mockClock.currentTime = t
         t = t + 1
       }
-      (1 to 100).foreach{ k =>
+      (1 to 100).foreach { k =>
         a.endNetty(k)
         a.endRequest(k)
       }
@@ -45,11 +45,11 @@ class RequestTimeTrackerSpec extends SpecificationWithJUnit {
     "use reset properly" in {
       val a = new RequestTimeTracker[Int](mockClock, 100)
       var t = 0
-      (1 to 100).foreach{ k =>
-        a.beginRequest(k,t)
+      (1 to 100).foreach { k =>
+        a.beginRequest(k, t)
         mockClock.currentTime = t
         t = t + 1
-        a.beginNetty(k,t)
+        a.beginNetty(k, t)
         mockClock.currentTime = t
         t = t + 1
         a.endNetty(k)
@@ -59,6 +59,5 @@ class RequestTimeTrackerSpec extends SpecificationWithJUnit {
       a.pendingNettyTimeTracker.total must be_==(0)
       a.pendingRequestTimeTracker.total must be_==(0)
     }
-
   }
 }

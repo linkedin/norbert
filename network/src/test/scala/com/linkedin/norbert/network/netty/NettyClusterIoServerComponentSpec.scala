@@ -17,27 +17,32 @@ package com.linkedin.norbert
 package network
 package netty
 
-import org.specs.SpecificationWithJUnit
-import org.specs.mock.Mockito
-import org.jboss.netty.bootstrap.ServerBootstrap
 import java.net.InetSocketAddress
-import org.jboss.netty.channel.{ChannelFuture, Channel}
-import org.jboss.netty.channel.group.{ChannelGroupFuture, ChannelGroup}
-import cluster.{InvalidNodeException, Node}
 
-class NettyClusterIoServerComponentSpec extends SpecificationWithJUnit with Mockito with NettyClusterIoServerComponent {
-  val bootstrap = mock[ServerBootstrap]
-  val channelGroup = mock[ChannelGroup]
-  val clusterIoServer = new NettyClusterIoServer(bootstrap, channelGroup)
+import com.linkedin.norbert.cluster.{InvalidNodeException, Node}
+import org.jboss.netty.bootstrap.ServerBootstrap
+import org.jboss.netty.channel.group.{ChannelGroup, ChannelGroupFuture}
+import org.jboss.netty.channel.{Channel, ChannelFuture}
+import org.specs2.mock.Mockito
+import org.specs2.mutable.SpecificationWithJUnit
+import org.specs2.specification.Scope
+
+class NettyClusterIoServerComponentSpec extends SpecificationWithJUnit with Mockito {
+
+  trait NettyClusterIoServerSetup extends Scope with NettyClusterIoServerComponent {
+    val bootstrap = mock[ServerBootstrap]
+    val channelGroup = mock[ChannelGroup]
+    val clusterIoServer = new NettyClusterIoServer(bootstrap, channelGroup)
+  }
 
   "NettyClusterIoServer" should {
-    "bind should fail if the node's url is in the incorrect format" in {
+    "bind should fail if the node's url is in the incorrect format" in new NettyClusterIoServerSetup {
       clusterIoServer.bind(Node(1, "", false), true) must throwA[InvalidNodeException]
       clusterIoServer.bind(Node(1, "localhost", false), true) must throwA[InvalidNodeException]
       clusterIoServer.bind(Node(1, "localhost:foo", false), true) must throwA[InvalidNodeException]
     }
 
-    "binds to the specified port" in {
+    "binds to the specified port" in new NettyClusterIoServerSetup {
       val address = new InetSocketAddress(31313)
       val channel = mock[Channel]
       bootstrap.bind(address) returns channel
@@ -47,7 +52,7 @@ class NettyClusterIoServerComponentSpec extends SpecificationWithJUnit with Mock
       there was one(bootstrap).bind(address)
     }
 
-    "shutdown should shutdown opened sockets" in {
+    "shutdown should shutdown opened sockets" in new NettyClusterIoServerSetup {
       val channel = mock[Channel]
       val socketFuture = mock[ChannelFuture]
       val groupFuture = mock[ChannelGroupFuture]
