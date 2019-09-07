@@ -19,9 +19,12 @@ import com.linkedin.norbert.protos.NorbertExampleProtos
 import com.linkedin.norbert.network.Serializer
 
 trait SampleMessage {
+
   object Ping {
+
     implicit case object PingSerializer extends Serializer[Ping, Ping] {
       def requestName = "ping"
+
       def responseName = "pong"
 
       def requestToBytes(message: Ping) =
@@ -37,8 +40,10 @@ trait SampleMessage {
       def responseFromBytes(bytes: Array[Byte]) =
         requestFromBytes(bytes)
     }
+
   }
 
   case class Ping(timestamp: Long = System.currentTimeMillis)
+
   val request = new Ping
 }

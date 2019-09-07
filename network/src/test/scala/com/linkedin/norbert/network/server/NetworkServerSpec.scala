@@ -17,28 +17,31 @@ package com.linkedin.norbert
 package network
 package server
 
-import org.specs.SpecificationWithJUnit
-import org.specs.mock.Mockito
-import cluster._
-import network.common.SampleMessage
-import scala.collection.mutable.MutableList
+import com.linkedin.norbert.cluster._
+import com.linkedin.norbert.network.common.SampleMessage
+import org.specs2.mock.Mockito
+import org.specs2.mutable.SpecificationWithJUnit
+import org.specs2.specification.Scope
 
 class NetworkServerSpec extends SpecificationWithJUnit with Mockito with SampleMessage {
-  val networkServer = new NetworkServer with ClusterClientComponent with ClusterIoServerComponent with MessageHandlerRegistryComponent
+
+  trait NetworkServerSetup extends Scope {
+    val networkServer = new NetworkServer with ClusterClientComponent with ClusterIoServerComponent with MessageHandlerRegistryComponent
       with MessageExecutorComponent {
-    val clusterIoServer = mock[ClusterIoServer]
-    val clusterClient = mock[ClusterClient]
-    val messageHandlerRegistry = mock[MessageHandlerRegistry]
-    val messageExecutor = mock[MessageExecutor]
+      val clusterIoServer = mock[ClusterIoServer]
+      val clusterClient = mock[ClusterClient]
+      val messageHandlerRegistry = mock[MessageHandlerRegistry]
+      val messageExecutor = mock[MessageExecutor]
+    }
+
+    val node = Node(1, "", false)
+    val listenerKey: ClusterListenerKey = ClusterListenerKey(1)
+    networkServer.clusterClient.nodeWithId(1) returns Some(node)
+    networkServer.clusterClient.addListener(any[ClusterListener]) returns listenerKey
   }
 
-  val node = Node(1, "", false)
-  val listenerKey: ClusterListenerKey = ClusterListenerKey(1)
-  networkServer.clusterClient.nodeWithId(1) returns Some(node)
-  networkServer.clusterClient.addListener(any[ClusterListener]) returns listenerKey
-
   "NetworkServer" should {
-    "throw a NetworkShutdownException if the network has been shutdown" in {
+    "throw a NetworkShutdownException if the network has been shutdown" in new NetworkServerSetup {
       networkServer.shutdown
       networkServer.bind(1) must throwA[NetworkShutdownException]
       networkServer.bind(1, false) must throwA[NetworkShutdownException]
@@ -47,19 +50,19 @@ class NetworkServerSpec extends SpecificationWithJUnit with Mockito with SampleM
       networkServer.myNode must throwA[NetworkShutdownException]
     }
 
-    "throw a NetworkServerNotBound exception if bind has not be called" in {
+    "throw a NetworkServerNotBound exception if bind has not be called" in new NetworkServerSetup {
       networkServer.myNode must throwA[NetworkServerNotBoundException]
       networkServer.markUnavailable must throwA[NetworkServerNotBoundException]
       networkServer.markAvailable must throwA[NetworkServerNotBoundException]
     }
 
-    "register messages with the MessageHandlerRegistry" in {
+    "register messages with the MessageHandlerRegistry" in new NetworkServerSetup {
       doNothing.when(networkServer.messageHandlerRegistry).registerHandler((ping: Ping) => new Ping)
 
-      networkServer.registerHandler((ping : Ping) => new Ping)
+      networkServer.registerHandler((ping: Ping) => new Ping)
     }
 
-    "add filters with the MessageExcutor" in {
+    "add filters with the MessageExcutor" in new NetworkServerSetup {
       val filters = mock[List[Filter]]
       doNothing.when(networkServer.messageExecutor).addFilters(filters)
 
@@ -67,8 +70,8 @@ class NetworkServerSpec extends SpecificationWithJUnit with Mockito with SampleM
       there was one(networkServer.messageExecutor).addFilters(filters)
     }
 
-    "when bind is called" in {
-      "start the cluster client, await the completion and register as a listener" in {
+    "when bind is called" in new NetworkServerSetup {
+      "start the cluster client, await the completion and register as a listener" in new NetworkServerSetup {
         doNothing.when(networkServer.clusterClient).start
         doNothing.when(networkServer.clusterClient).awaitConnectionUninterruptibly
 
@@ -81,7 +84,7 @@ class NetworkServerSpec extends SpecificationWithJUnit with Mockito with SampleM
         }
       }
 
-      "bind to the socket" in {
+      "bind to the socket" in new NetworkServerSetup {
         doNothing.when(networkServer.clusterIoServer).bind(node, true)
 
         networkServer.bind(1)
@@ -89,13 +92,13 @@ class NetworkServerSpec extends SpecificationWithJUnit with Mockito with SampleM
         there was one(networkServer.clusterIoServer).bind(node, true)
       }
 
-      "throw an InvalidNodeException if the nodeId doesn't exist" in {
+      "throw an InvalidNodeException if the nodeId doesn't exist" in new NetworkServerSetup {
         networkServer.clusterClient.nodeWithId(1) returns None
 
         networkServer.bind(1) must throwA[InvalidNodeException]
       }
 
-      "if markAvailable is true, mark the node available when a Connection message is received" in {
+      "if markAvailable is true, mark the node available when a Connection message is received" in new NetworkServerSetup {
         var listener: ClusterListener = null
         networkServer.clusterClient.addListener(any[ClusterListener]) answers { l => listener = l.asInstanceOf[ClusterListener]; ClusterListenerKey(1) }
         doNothing.when(networkServer.clusterClient).markNodeAvailable(1)
@@ -107,7 +110,7 @@ class NetworkServerSpec extends SpecificationWithJUnit with Mockito with SampleM
         there was one(networkServer.clusterClient).markNodeAvailable(1, 0)
       }
 
-      "if markAvailable is false, not mark the node available when a Connection message is received" in {
+      "if markAvailable is false, not mark the node available when a Connection message is received" in new NetworkServerSetup {
         var listener: ClusterListener = null
         networkServer.clusterClient.addListener(any[ClusterListener]) answers { l => listener = l.asInstanceOf[ClusterListener]; ClusterListenerKey(1) }
         doNothing.when(networkServer.clusterClient).markNodeAvailable(1)
@@ -120,13 +123,13 @@ class NetworkServerSpec extends SpecificationWithJUnit with Mockito with SampleM
       }
     }
 
-    "return the node associated with the nodeId bound to for myNode" in {
+    "return the node associated with the nodeId bound to for myNode" in new NetworkServerSetup {
       networkServer.bind(1)
 
       networkServer.myNode must be_==(node)
     }
 
-    "mark the node available and ensure it stays available when Connected events are received for markAvailable" in {
+    "mark the node available and ensure it stays available when Connected events are received for markAvailable" in new NetworkServerSetup {
       var listener: ClusterListener = null
       networkServer.clusterClient.addListener(any[ClusterListener]) answers { l => listener = l.asInstanceOf[ClusterListener]; ClusterListenerKey(1) }
       doNothing.when(networkServer.clusterClient).markNodeAvailable(1)
@@ -144,7 +147,7 @@ class NetworkServerSpec extends SpecificationWithJUnit with Mockito with SampleM
       there were two(networkServer.clusterClient).markNodeAvailable(1, 0)
     }
 
-    "mark the node unavailable and ensure it is not marked available when Connected events are received for markUnavailable" in {
+    "mark the node unavailable and ensure it is not marked available when Connected events are received for markUnavailable" in new NetworkServerSetup {
       var listener: ClusterListener = null
       networkServer.clusterClient.addListener(any[ClusterListener]) answers { l => listener = l.asInstanceOf[ClusterListener]; ClusterListenerKey(1) }
       doNothing.when(networkServer.clusterClient).markNodeAvailable(1)
@@ -166,7 +169,7 @@ class NetworkServerSpec extends SpecificationWithJUnit with Mockito with SampleM
       }
     }
 
-    "shutdown the cluster io server, mark unavailable, and remove the cluster listener if shutdown is called" in {
+    "shutdown the cluster io server, mark unavailable, and remove the cluster listener if shutdown is called" in new NetworkServerSetup {
       doNothing.when(networkServer.clusterIoServer).shutdown
       doNothing.when(networkServer.clusterClient).markNodeUnavailable(1)
       doNothing.when(networkServer.clusterClient).removeListener(listenerKey)
@@ -181,7 +184,7 @@ class NetworkServerSpec extends SpecificationWithJUnit with Mockito with SampleM
       }
     }
 
-    "shutdown the cluster io server if a Shutdown event is received" in {
+    "shutdown the cluster io server if a Shutdown event is received" in new NetworkServerSetup {
       var listener: ClusterListener = null
       networkServer.clusterClient.addListener(any[ClusterListener]) answers { l => listener = l.asInstanceOf[ClusterListener]; ClusterListenerKey(1) }
       doNothing.when(networkServer.clusterIoServer).shutdown

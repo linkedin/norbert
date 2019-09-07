@@ -17,25 +17,22 @@ package com.linkedin.norbert
 package network
 package common
 
-import org.specs.SpecificationWithJUnit
 import com.linkedin.norbert.norbertutils.MockClock
+import org.specs2.mutable.SpecificationWithJUnit
 
 class CachedNetworkStatisticsSpec extends SpecificationWithJUnit {
-  val cachedNetworkStatistics = CachedNetworkStatistics[Int,Int](new MockClock, 100, 100)
+  val cachedNetworkStatistics = CachedNetworkStatistics[Int, Int](new MockClock, 100, 100)
 
   "CachedNetworkStatistics" should {
     "clear out maps properly" in {
-      cachedNetworkStatistics.beginRequest(1,1,0)
-      cachedNetworkStatistics.beginNetty(1,1,0)
-      cachedNetworkStatistics.beginRequest(1,2,0)
-      cachedNetworkStatistics.beginNetty(1,2,0)
+      cachedNetworkStatistics.beginRequest(1, 1, 0)
+      cachedNetworkStatistics.beginNetty(1, 1, 0)
+      cachedNetworkStatistics.beginRequest(1, 2, 0)
+      cachedNetworkStatistics.beginNetty(1, 2, 0)
       cachedNetworkStatistics.pendingTimings.get.get.get(1).get.length must be_==(2)
-      cachedNetworkStatistics.endRequest(1,1)
-      cachedNetworkStatistics.endRequest(1,2)
+      cachedNetworkStatistics.endRequest(1, 1)
+      cachedNetworkStatistics.endRequest(1, 2)
       cachedNetworkStatistics.pendingTimings.get.get.get(1).get.length must be_==(0)
     }
   }
-
-
-
 }

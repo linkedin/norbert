@@ -16,94 +16,103 @@
 package com.linkedin.norbert
 package cluster
 
-import common.{ClusterNotificationManagerComponent, ClusterManagerComponent}
 import java.util.concurrent.TimeUnit
-import org.specs.SpecificationWithJUnit
-import actors.Actor
-import Actor._
-import org.specs.util.WaitFor
-import org.specs.mock.Mockito
+
+import com.linkedin.norbert.cluster.common.{ClusterManagerComponent, ClusterNotificationManagerComponent}
+import com.linkedin.norbert.util.WaitFor
+import org.specs2.mock.Mockito
+import org.specs2.mutable.SpecificationWithJUnit
+import org.specs2.specification.{After, Scope}
+
+import scala.actors.Actor
+import scala.actors.Actor._
 
 class ClusterClientSpec extends SpecificationWithJUnit with Mockito with WaitFor {
 
-  val clusterListenerKey = ClusterListenerKey(10101L)
-  val currentNodes = Set(Node(1, "localhost:31313", true, Set(0, 1)),
-          Node(2, "localhost:31314", true, Set(0, 1)),
-          Node(3, "localhost:31315", true, Set(0, 1)))
-  var clusterActor: Actor = _
-  var getCurrentNodesCount = 0
-  var addListenerCount = 0
-  var currentListeners: List[Actor] = Nil
-  var removeListenerCount = 0
-  var cnmShutdownCount = 0
+  trait ClusterClientSetup extends Scope with After {
+    val clusterListenerKey = ClusterListenerKey(10101L)
+    val currentNodes = Set(Node(1, "localhost:31313", true, Set(0, 1)),
+      Node(2, "localhost:31314", true, Set(0, 1)),
+      Node(3, "localhost:31315", true, Set(0, 1)))
+    var clusterActor: Actor = _
+    var getCurrentNodesCount = 0
+    var addListenerCount = 0
+    var currentListeners: List[Actor] = Nil
+    var removeListenerCount = 0
+    var cnmShutdownCount = 0
 
-  var addNodeCount = 0
-  var nodeAdded: Node = _
-  var removeNodeCount = 0
-  var nodeRemovedId = 0
-  var markNodeAvailableCount = 0
-  var markNodeAvailableId = 0
-  var markNodeUnavailableCount = 0
-  var markNodeUnavailableId = 0
-  var zkmShutdownCount = 0
+    var addNodeCount = 0
+    var nodeAdded: Node = _
+    var removeNodeCount = 0
+    var nodeRemovedId = 0
+    var markNodeAvailableCount = 0
+    var markNodeAvailableId = 0
+    var markNodeUnavailableCount = 0
+    var markNodeUnavailableId = 0
+    var zkmShutdownCount = 0
 
-  val cluster = new ClusterClient with ClusterManagerComponent with ClusterNotificationManagerComponent {
-    def serviceName = "test"
+    val cluster = new ClusterClient with ClusterManagerComponent with ClusterNotificationManagerComponent {
+      def serviceName = "test"
 
-    val clusterNotificationManager = actor {
-      loop {
-        react {
-          case ClusterNotificationMessages.Connected(nodes) =>
-          case ClusterNotificationMessages.AddListener(a) =>
-            if (clusterActor == null) clusterActor = a
-            else {
-              addListenerCount += 1
-              currentListeners = a :: currentListeners
-            }
-            reply(ClusterNotificationMessages.AddedListener(clusterListenerKey))
+      val clusterNotificationManager = actor {
+        loop {
+          react {
+            case ClusterNotificationMessages.Connected(nodes) =>
+            case ClusterNotificationMessages.AddListener(a) =>
+              if (clusterActor == null) clusterActor = a
+              else {
+                addListenerCount += 1
+                currentListeners = a :: currentListeners
+              }
+              reply(ClusterNotificationMessages.AddedListener(clusterListenerKey))
 
-          case ClusterNotificationMessages.RemoveListener(key) => removeListenerCount += 1
+            case ClusterNotificationMessages.RemoveListener(key) => removeListenerCount += 1
 
-          case ClusterNotificationMessages.GetCurrentNodes =>
-            getCurrentNodesCount += 1
-            reply(ClusterNotificationMessages.CurrentNodes(currentNodes))
+            case ClusterNotificationMessages.GetCurrentNodes =>
+              getCurrentNodesCount += 1
+              reply(ClusterNotificationMessages.CurrentNodes(currentNodes))
 
-          case ClusterNotificationMessages.Shutdown => cnmShutdownCount += 1
+            case ClusterNotificationMessages.Shutdown => cnmShutdownCount += 1
 
-          case m => println("Got a message " + m)
+            case m => println("Got a message " + m)
+          }
+        }
+      }
+
+      val clusterManager = actor {
+        loop {
+          react {
+            case ClusterManagerMessages.AddNode(node) =>
+              addNodeCount += 1
+              nodeAdded = node
+              reply(ClusterManagerMessages.ClusterManagerResponse(None))
+
+            case ClusterManagerMessages.RemoveNode(id) =>
+              removeNodeCount += 1
+              nodeRemovedId = id
+              reply(ClusterManagerMessages.ClusterManagerResponse(None))
+
+            case ClusterManagerMessages.MarkNodeAvailable(id, initialCapability) =>
+              markNodeAvailableCount += 1
+              markNodeAvailableId = id
+              reply(ClusterManagerMessages.ClusterManagerResponse(None))
+
+            case ClusterManagerMessages.MarkNodeUnavailable(id) =>
+              markNodeUnavailableCount += 1
+              markNodeUnavailableId = id
+              reply(ClusterManagerMessages.ClusterManagerResponse(None))
+
+            case ClusterManagerMessages.Shutdown => zkmShutdownCount += 1
+          }
         }
       }
     }
+    cluster.start
 
-    val clusterManager = actor {
-      loop {
-        react {
-          case ClusterManagerMessages.AddNode(node) =>
-            addNodeCount += 1
-            nodeAdded = node
-            reply(ClusterManagerMessages.ClusterManagerResponse(None))
-
-          case ClusterManagerMessages.RemoveNode(id) =>
-            removeNodeCount += 1
-            nodeRemovedId = id
-            reply(ClusterManagerMessages.ClusterManagerResponse(None))
-
-          case ClusterManagerMessages.MarkNodeAvailable(id, initialCapability) =>
-            markNodeAvailableCount += 1
-            markNodeAvailableId = id
-            reply(ClusterManagerMessages.ClusterManagerResponse(None))
-
-          case ClusterManagerMessages.MarkNodeUnavailable(id) =>
-            markNodeUnavailableCount += 1
-            markNodeUnavailableId = id
-            reply(ClusterManagerMessages.ClusterManagerResponse(None))
-
-          case ClusterManagerMessages.Shutdown => zkmShutdownCount += 1
-        }
-      }
+    def after = {
+      actors.Scheduler.shutdown
     }
   }
-  cluster.start
 
   "ClusterClient" should {
     "when starting start the cluster notification and ZooKeeper manager actors" in {
@@ -133,7 +142,7 @@ class ClusterClientSpec extends SpecificationWithJUnit with Mockito with WaitFor
       zkmStarted must beTrue
     }
 
-    "start" in {
+    "start" in new ClusterClientSetup {
       "disconnected" in {
         cluster.isConnected must beFalse
       }
@@ -146,6 +155,7 @@ class ClusterClientSpec extends SpecificationWithJUnit with Mockito with WaitFor
     "throw ClusterNotStartedException if the cluster wasn't started when the method was called" in {
       val c = new ClusterClient with ClusterManagerComponent with ClusterNotificationManagerComponent {
         def serviceName = null
+
         val clusterNotificationManager = null
         val clusterManager = null
       }
@@ -165,7 +175,7 @@ class ClusterClientSpec extends SpecificationWithJUnit with Mockito with WaitFor
       c.isShutdown must throwA[ClusterNotStartedException]
     }
 
-    "throw ClusterShutdownException if shut down for nodes, nodeWith*, *Listener, await*" in {
+    "throw ClusterShutdownException if shut down for nodes, nodeWith*, *Listener, await*" in new ClusterClientSetup {
       cluster.shutdown
 
       cluster.start must throwA[ClusterShutdownException]
@@ -178,7 +188,7 @@ class ClusterClientSpec extends SpecificationWithJUnit with Mockito with WaitFor
       cluster.awaitConnectionUninterruptibly must throwA[ClusterShutdownException]
     }
 
-    "throw ClusterDisconnectedException if disconnected for addNode, removeNode, markNodeAvailable" in {
+    "throw ClusterDisconnectedException if disconnected for addNode, removeNode, markNodeAvailable" in new ClusterClientSetup {
       cluster.nodes must throwA[ClusterDisconnectedException]
       cluster.nodeWithId(1) must throwA[ClusterDisconnectedException]
       cluster.addNode(1, "localhost:31313", Set(0, 1)) must throwA[ClusterDisconnectedException]
@@ -187,31 +197,31 @@ class ClusterClientSpec extends SpecificationWithJUnit with Mockito with WaitFor
       cluster.markNodeUnavailable(1) must throwA[ClusterDisconnectedException]
     }
 
-    "handle a connected event" in {
+    "handle a connected event" in new ClusterClientSetup {
       clusterActor ! ClusterEvents.Connected(Set())
 
       cluster.isConnected must eventually(beTrue)
     }
 
-    "handle a disconnected event" in {
+    "handle a disconnected event" in new ClusterClientSetup {
       clusterActor ! ClusterEvents.Connected(Set())
       cluster.isConnected must eventually(beTrue)
       clusterActor ! ClusterEvents.Disconnected
       cluster.isConnected must eventually(beFalse)
     }
 
-    "addNode should add a node to ZooKeeperManager" in {
+    "addNode should add a node to ZooKeeperManager" in new ClusterClientSetup {
       clusterActor ! ClusterEvents.Connected(Set())
       waitFor(10.ms)
 
-      cluster.addNode(1, "localhost:31313", Set(1, 2)) must notBeNull
+      cluster.addNode(1, "localhost:31313", Set(1, 2)) must_!= beNull
       addNodeCount must be_==(1)
       nodeAdded.id must be_==(1)
       nodeAdded.url must be_==("localhost:31313")
       nodeAdded.available must be_==(false)
     }
 
-    "removeNode should remove a node from ZooKeeperManager" in {
+    "removeNode should remove a node from ZooKeeperManager" in new ClusterClientSetup {
       clusterActor ! ClusterEvents.Connected(Set())
       waitFor(10.ms)
 
@@ -220,7 +230,7 @@ class ClusterClientSpec extends SpecificationWithJUnit with Mockito with WaitFor
       nodeRemovedId must be_==(1)
     }
 
-    "markNodeAvailable should mark a node available in ZooKeeperManager" in {
+    "markNodeAvailable should mark a node available in ZooKeeperManager" in new ClusterClientSetup {
       clusterActor ! ClusterEvents.Connected(Set())
       waitFor(10.ms)
 
@@ -229,7 +239,7 @@ class ClusterClientSpec extends SpecificationWithJUnit with Mockito with WaitFor
       markNodeAvailableId must be_==(11)
     }
 
-    "markNodeUnavailable should mark a node unavailable in ZooKeeperMonitor" in {
+    "markNodeUnavailable should mark a node unavailable in ZooKeeperMonitor" in new ClusterClientSetup {
       clusterActor ! ClusterEvents.Connected(Set())
       waitFor(10.ms)
 
@@ -238,48 +248,49 @@ class ClusterClientSpec extends SpecificationWithJUnit with Mockito with WaitFor
       markNodeUnavailableId must be_==(111)
     }
 
-    "nodes should ask the ClusterNotificationManager for the current node list" in {
+    "nodes should ask the ClusterNotificationManager for the current node list" in new ClusterClientSetup {
       clusterActor ! ClusterEvents.Connected(Set())
       waitFor(10.ms)
 
       val nodes = cluster.nodes
       nodes.size must be_==(3)
-      nodes must containAll(currentNodes)
+      nodes must containAnyOf(currentNodes.toSeq)
       getCurrentNodesCount must be_==(1)
     }
 
     "when handling nodeWithId" in {
-      "return the node that matches the specified id" in {
+      "return the node that matches the specified id" in new ClusterClientSetup {
         clusterActor ! ClusterEvents.Connected(currentNodes)
         waitFor(10.ms)
         cluster.nodeWithId(2) must beSome[Node].which(currentNodes must contain(_))
       }
 
-      "return None if no matching id" in {
+      "return None if no matching id" in new ClusterClientSetup {
         clusterActor ! ClusterEvents.Connected(currentNodes)
         waitFor(10.ms)
         cluster.nodeWithId(4) must beNone
       }
     }
 
-    "send an AddListener message to ClusterNotificationManager for addListener" in {
+    "send an AddListener message to ClusterNotificationManager for addListener" in new ClusterClientSetup {
       val listener = new ClusterListener {
         var callCount = 0
+
         def handleClusterEvent(event: ClusterEvent): Unit = callCount += 1
       }
 
-      cluster.addListener(listener) must notBeNull
+      cluster.addListener(listener) must_!= beNull
       addListenerCount must be_==(1)
       currentListeners.head ! ClusterEvents.Disconnected
       listener.callCount must eventually(be_==(1))
     }
 
-    "send a RemoveListener message to ClusterNotificationManager for removeListener" in {
+    "send a RemoveListener message to ClusterNotificationManager for removeListener" in new ClusterClientSetup {
       cluster.removeListener(ClusterListenerKey(1L))
       removeListenerCount must eventually(be_==(1))
     }
 
-    "shutdown ClusterNotificationManager and ZooKeeperManager when shut down" in {
+    "shutdown ClusterNotificationManager and ZooKeeperManager when shut down" in new ClusterClientSetup {
       cluster.shutdown
 
       cnmShutdownCount must eventually(be_==(1))
@@ -288,24 +299,21 @@ class ClusterClientSpec extends SpecificationWithJUnit with Mockito with WaitFor
       cluster.isShutdown must beTrue
     }
 
-    "handle a listener throwing an exception" in {
+    "handle a listener throwing an exception" in new ClusterClientSetup {
       val listener = new ClusterListener {
         var callCount = 0
+
         def handleClusterEvent(event: ClusterEvent) = {
           callCount += 1
           throw new Exception
         }
       }
 
-      cluster.addListener(listener) must notBeNull
+      cluster.addListener(listener) must_!= beNull
       addListenerCount must be_==(1)
       currentListeners.head ! ClusterEvents.NodesChanged(Set())
       currentListeners.head ! ClusterEvents.NodesChanged(Set())
       listener.callCount must eventually(be_==(2))
-    }
-
-    doAfterSpec {
-      actors.Scheduler.shutdown
     }
   }
 }

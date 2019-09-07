@@ -17,11 +17,12 @@ package com.linkedin.norbert
 package network
 package common
 
-import org.specs.SpecificationWithJUnit
-import org.specs.mock.Mockito
-import java.util.concurrent.{TimeoutException, ExecutionException, TimeUnit, Executor, LinkedBlockingQueue, Executors}
-import scala.Right
 import java.util.Random
+import java.util.concurrent._
+
+import org.specs2.mock.Mockito
+import org.specs2.mutable.SpecificationWithJUnit
+import org.specs2.specification.Scope
 
 class CurrentThreadExecutor extends Executor {
     def execute(r:Runnable) = {
@@ -39,20 +40,23 @@ class NorbertFutureSpec extends SpecificationWithJUnit with Mockito with SampleM
       queue.offer(ResponseExceptionWrapper(new ExecutionException(t), null, true))
     }
   }
-  //val future = new FutureAdapter[Ping]
-  val future = new FutureAdapterListener[Ping]
-  val queue = new LinkedBlockingQueue[ResponseExceptionWrapper]()
-  future.addListener(new Task(queue))
+
+  trait NorbertFutureSetup extends Scope {
+    //val future = new FutureAdapter[Ping]
+    val future = new FutureAdapterListener[Ping]
+    val queue = new LinkedBlockingQueue[ResponseExceptionWrapper]()
+    future.addListener(new Task(queue))
+  }
 
   "NorbertFuture" should {
-    "not be done when created" in {
+    "not be done when created" in new NorbertFutureSetup {
       future.isDone must beFalse
     }
 
-    "be done when value is set" in {
+    "be done when value is set" in new NorbertFutureSetup {
       future.apply(Right(new Ping))
       future.isDone must beTrue
-      queue.size must be(1)
+      queue.size mustEqual (1)
     }
 
     "be done when value is set" in {
@@ -62,29 +66,29 @@ class NorbertFutureSpec extends SpecificationWithJUnit with Mockito with SampleM
       val msg = new Ping
       future.apply(Right(msg))
       future.isDone must beTrue
-      queue.size must be(0)
+      queue.size mustEqual (0)
       future.addListener(new Task(queue))
-      queue.size must be(1)
+      queue.size mustEqual (1)
       queue.poll mustEqual ResponseExceptionWrapper(null, msg, false)
     }
 
-    "return the value that is set" in {
+    "return the value that is set" in new NorbertFutureSetup {
       val message = new Ping
       future.apply(Right(request))
       future.get must be(request)
       future.get(1, TimeUnit.MILLISECONDS) must be(request)
     }
 
-    "throw a TimeoutException if no response is available" in {
+    "throw a TimeoutException if no response is available" in new NorbertFutureSetup {
       future.get(1, TimeUnit.MILLISECONDS) must throwA[TimeoutException]
     }
 
-    "throw an ExecutionExcetion for an error" in {
+    "throw an ExecutionExcetion for an error" in new NorbertFutureSetup {
       val ex = new Exception
       future.apply(Left(ex))
       future.get must throwA[ExecutionException]
       future.get(1, TimeUnit.MILLISECONDS) must throwA[ExecutionException]
-      queue.size must be(1)
+      queue.size mustEqual (1)
       val response: ResponseExceptionWrapper = queue.poll
       response.isException mustEqual true
     }
@@ -95,21 +99,21 @@ class NorbertFutureSpec extends SpecificationWithJUnit with Mockito with SampleM
       val queue = new LinkedBlockingQueue[ResponseExceptionWrapper]()
 
       future.addListener(new Task(queue))
-      queue.size must be(0)
+      queue.size mustEqual (0)
       val msg = new Ping
       future.apply(Right(msg))
       future.isDone must beTrue
-      queue.size must be(1)
+      queue.size mustEqual (1)
       queue.poll mustEqual ResponseExceptionWrapper(null, msg, false)
     }
 
-    "concurrent norbert thread and calling thread should be able to handle the response" in {
+    "concurrent norbert thread and calling thread should be able to handle the response" in new NorbertFutureSetup {
       //multiple runs with different thread execution orders hopefully
       for (i <- 0 to 15) {
         val future = new FutureAdapterListener[Ping]
         val queue = new LinkedBlockingQueue[ResponseExceptionWrapper]()
         val msg = new Ping
-        queue.size must be(0)
+        queue.size mustEqual (0)
 
         val randomGen = new Random(12345)
         val thread1 = new Thread(new Runnable{

@@ -2,15 +2,16 @@ package com.linkedin.norbert
 package network
 package common
 
-import com.linkedin.norbert.cluster.Node
 import java.util.concurrent.atomic.AtomicLong
-import com.linkedin.norbert.norbertutils.Clock
-import scala.math._
-import com.linkedin.norbert.jmx.JMX.MBean
-import collection.mutable.ConcurrentMap
 import java.util.{Map => JMap}
-import collection.JavaConversions._
-import jmx.JMX
+
+import com.linkedin.norbert.cluster.Node
+import com.linkedin.norbert.jmx.JMX
+import com.linkedin.norbert.jmx.JMX.MBean
+import com.linkedin.norbert.norbertutils.Clock
+
+import scala.collection.concurrent.{Map => ConcurrentMap}
+import scala.math._
 
 /**
  * Copyright 2009-2010 LinkedIn, Inc
@@ -96,6 +97,7 @@ trait BackoffStrategy extends CanServeRequestStrategy {
 
 class SimpleBackoffStrategy(clock: Clock, enableReroutingStrategies: Boolean = true, minBackoffTime: Long = 100L, maxBackoffTime: Long = 3200L) extends BackoffStrategy {
   import norbertutils._
+
   import collection.JavaConversions._
 
   private[common] val jBackoff = new java.util.concurrent.ConcurrentHashMap[Node, SimpleBackoff]

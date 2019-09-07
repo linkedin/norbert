@@ -17,28 +17,30 @@ package com.linkedin.norbert
 package network
 package client
 
-import loadbalancer.{LoadBalancerFactory, LoadBalancer, LoadBalancerFactoryComponent}
-import network.common.{Endpoint, ClusterIoClientComponent, BaseNetworkClientSpecification}
-import cluster._
-import cluster.ClusterListenerKey._
-import network.NoNodesAvailableException
+import com.linkedin.norbert.cluster._
+import com.linkedin.norbert.network.client.loadbalancer.{LoadBalancer, LoadBalancerFactory, LoadBalancerFactoryComponent}
+import com.linkedin.norbert.network.common.{BaseNetworkClientSpecification, ClusterIoClientComponent}
+import org.specs2.mock.Mockito
+import org.specs2.mutable.SpecificationWithJUnit
 
-class NetworkClientSpec extends BaseNetworkClientSpecification {
-  val networkClient = new NetworkClient with ClusterClientComponent with ClusterIoClientComponent with LoadBalancerFactoryComponent {
-    val lb = mock[LoadBalancer]
-    val loadBalancerFactory = mock[LoadBalancerFactory]
-    val clusterIoClient = mock[ClusterIoClient]
-//    val messageRegistry = mock[MessageRegistry]
-    val clusterClient = NetworkClientSpec.this.clusterClient
+class NetworkClientSpec extends SpecificationWithJUnit with Mockito {
 
+  trait NetworkClientSetup extends BaseNetworkClientSpecification {
+    val networkClient = new NetworkClient with ClusterClientComponent with ClusterIoClientComponent with LoadBalancerFactoryComponent {
+      val lb = mock[LoadBalancer]
+      val loadBalancerFactory = mock[LoadBalancerFactory]
+      val clusterIoClient = mock[ClusterIoClient]
+      val clusterClient = NetworkClientSetup.this.clusterClient
+    }
   }
 
-//  networkClient.messageRegistry.contains(any[Message]) returns true
-
+  //  networkClient.messageRegistry.contains(any[Message]) returns true
   "NetworkClient" should {
-    "provide common functionality" in { sharedFunctionality }
+    "provide common functionality" in new NetworkClientSetup {
+      sharedFunctionality
+    }
 
-    "throw ClusterDisconnectedException if the cluster is disconnected when a method is called" in {
+    "throw ClusterDisconnectedException if the cluster is disconnected when a method is called" in new NetworkClientSetup {
       networkClient.start
 
       networkClient.broadcastMessage(request) must throwA[ClusterDisconnectedException]
@@ -47,13 +49,13 @@ class NetworkClientSpec extends BaseNetworkClientSpecification {
       networkClient.sendMessage(request) must throwA[ClusterDisconnectedException]
     }
 
-    "continue to operating with the last known router configuration if the cluster is disconnected" in {
+    "continue to operating with the last known router configuration if the cluster is disconnected" in new NetworkClientSetup {
       clusterClient.addListener(any[ClusterListener]) returns ClusterListenerKey(1)
       clusterClient.nodes returns nodeSet
 
     }
 
-    "throw ClusterShutdownException if the cluster is shut down when a method is called" in {
+    "throw ClusterShutdownException if the cluster is shut down when a method is called" in new NetworkClientSetup {
       networkClient.shutdown
 
       networkClient.broadcastMessage(request) must throwA[NetworkShutdownException]
@@ -62,22 +64,22 @@ class NetworkClientSpec extends BaseNetworkClientSpecification {
       networkClient.sendMessage(request) must throwA[NetworkShutdownException]
     }
 
-    "send the provided message to the node specified by the load balancer for sendMessage" in {
+    "send the provided message to the node specified by the load balancer for sendMessage" in new NetworkClientSetup {
       clusterClient.nodes returns nodeSet
       clusterClient.isConnected returns true
       networkClient.clusterIoClient.nodesChanged(nodeSet) returns endpoints
       networkClient.loadBalancerFactory.newLoadBalancer(endpoints) returns networkClient.lb
       networkClient.lb.nextNode(None, None) returns Some(nodes(1))
-//      doNothing.when(clusterIoClient).sendMessage(node, message, null)
+      //      doNothing.when(clusterIoClient).sendMessage(node, message, null)
 
       networkClient.start
-      networkClient.sendRequest(request) must notBeNull
+      networkClient.sendRequest(request) must_!= beNull
 
       there was one(networkClient.lb).nextNode(None, None)
-//      clusterIoClient.sendMessage(node, message, null) was called
+      //      clusterIoClient.sendMessage(node, message, null) was called
     }
 
-    "send the provided message to the node specified by the load balancer for sendRequest with the requested capability " in {
+    "send the provided message to the node specified by the load balancer for sendRequest with the requested capability " in new NetworkClientSetup {
       clusterClient.nodes returns nodeSet
       clusterClient.isConnected returns true
       networkClient.clusterIoClient.nodesChanged(nodeSet) returns endpoints
@@ -85,13 +87,13 @@ class NetworkClientSpec extends BaseNetworkClientSpecification {
       networkClient.lb.nextNode(Some(0x1), Some(2L)) returns Some(nodes(1))
 
       networkClient.start
-      networkClient.sendRequest(request, Some(1L), Some(2L)) must notBeNull
+      networkClient.sendRequest(request, Some(1L), Some(2L)) must_!= beNull
 
       there was one(networkClient.lb).nextNode(Some(0x1), Some(2L))
       there was no(networkClient.lb).nextNode(None, None)
     }
 
-    "send the provided message to the node specified by the load balancer for sendMessage with the requested capability " in {
+    "send the provided message to the node specified by the load balancer for sendMessage with the requested capability " in new NetworkClientSetup {
       clusterClient.nodes returns nodeSet
       clusterClient.isConnected returns true
       networkClient.clusterIoClient.nodesChanged(nodeSet) returns endpoints
@@ -99,13 +101,13 @@ class NetworkClientSpec extends BaseNetworkClientSpecification {
       networkClient.lb.nextNode(Some(0x1), Some(2L)) returns Some(nodes(1))
 
       networkClient.start
-      networkClient.sendMessage(request, Some(1L), Some(2L)) must notBeNull
+      networkClient.sendMessage(request, Some(1L), Some(2L)) must_!= beNull
 
       there was one(networkClient.lb).nextNode(Some(0x1), Some(2L))
       there was no(networkClient.lb).nextNode(None, None)
     }
 
-    "retryCallback should propagate server exception to underlying when" in {
+    "retryCallback should propagate server exception to underlying when" in new NetworkClientSetup {
 
       val MAX_RETRY = 3
       var either: Either[Throwable, Ping] = null
@@ -113,7 +115,7 @@ class NetworkClientSpec extends BaseNetworkClientSpecification {
 
       "exception does not provide RequestAccess" in {
         networkClient.retryCallback[Ping, Ping](callback, 0, None, None)(Left(new Exception))
-        either must notBeNull
+        either must_!= beNull
         either.isLeft must beTrue
       }
 
@@ -123,9 +125,9 @@ class NetworkClientSpec extends BaseNetworkClientSpecification {
           def request = req
         }
         networkClient.retryCallback[Ping, Ping](callback, MAX_RETRY, None, None)(Left(ra))
-        either must notBeNull
+        either must_!= beNull
         either.isLeft must beTrue
-        either.left.get mustEq ra
+        either.left.get mustEqual ra
       }
 
       "cannot locate next available node" in {
@@ -137,7 +139,7 @@ class NetworkClientSpec extends BaseNetworkClientSpecification {
         networkClient.start
 
         networkClient.retryCallback[Ping, Ping](callback, MAX_RETRY, None, None)(Left(new RemoteException("FooClass", "ServerError")))
-        either must notBeNull
+        either must_!= beNull
         either.isLeft must beTrue
         either.left.get must haveClass[RemoteException]
       }
@@ -157,9 +159,9 @@ class NetworkClientSpec extends BaseNetworkClientSpecification {
         }
 
         networkClient.retryCallback[Ping, Ping](callback, MAX_RETRY, None, None)(Left(ra))
-        either must notBeNull
+        either must_!= beNull
         either.isLeft must beTrue
-        either.left.get mustEq ra
+        either.left.get mustEqual ra
       }
 
       "sendMessage: MAX_RETRY reached" in {
@@ -167,22 +169,28 @@ class NetworkClientSpec extends BaseNetworkClientSpecification {
         val callback = (e: Either[Throwable, Ping]) => either = e
         val networkClient2 = new NetworkClient with ClusterClientComponent with ClusterIoClientComponent with LoadBalancerFactoryComponent {
           val lb = new LoadBalancer {
-            val iter = NetworkClientSpec.this.nodes.iterator
+            val iter = nodes.iterator
+
             def nextNode(capability: Option[Long], permanentCapability: Option[Long]) = Some(iter.next)
           }
           val loadBalancerFactory = mock[LoadBalancerFactory]
           val clusterIoClient = new ClusterIoClient {
             var invocationCount: Int = 0
+
             def sendMessage[RequestMsg, ResponseMsg](node: Node, requestCtx: Request[RequestMsg, ResponseMsg]) {
               invocationCount += 1
               requestCtx.onFailure(new Exception with RequestAccess[Request[RequestMsg, ResponseMsg]] {
                 def request = requestCtx
               })
             }
-            def nodesChanged(nodes: Set[Node]) = {NetworkClientSpec.this.endpoints}
+
+            def nodesChanged(nodes: Set[Node]) = {
+              endpoints
+            }
+
             def shutdown {}
           }
-          val clusterClient = NetworkClientSpec.this.clusterClient
+          override val clusterClient: ClusterClient = this.clusterClient
         }
         networkClient2.clusterClient.nodes returns nodeSet
         networkClient2.clusterClient.isConnected returns true
@@ -190,12 +198,12 @@ class NetworkClientSpec extends BaseNetworkClientSpecification {
         networkClient2.start
         networkClient2.sendRequest(request, callback, MAX_RETRY)
         networkClient2.clusterIoClient.invocationCount mustEqual MAX_RETRY
-        either mustNotBe null
+        either must_!= null
         either.isLeft must beTrue
       }
     }
 
-    "throw InvalidClusterException if there is no load balancer instance when sendRequest is called" in {
+    "throw InvalidClusterException if there is no load balancer instance when sendRequest is called" in new NetworkClientSetup {
       clusterClient.nodes returns nodeSet
       clusterClient.isConnected returns true
       networkClient.clusterIoClient.nodesChanged(nodeSet) returns endpoints
@@ -208,7 +216,7 @@ class NetworkClientSpec extends BaseNetworkClientSpecification {
       //      clusterIoClient.sendMessage(node, message, null) wasnt called
     }
 
-    "throw InvalidClusterException if there is no load balancer instance when sendMessage is called" in {
+    "throw InvalidClusterException if there is no load balancer instance when sendMessage is called" in new NetworkClientSetup {
       clusterClient.nodes returns nodeSet
       clusterClient.isConnected returns true
       networkClient.clusterIoClient.nodesChanged(nodeSet) returns endpoints
@@ -221,7 +229,7 @@ class NetworkClientSpec extends BaseNetworkClientSpecification {
       //      clusterIoClient.sendMessage(node, message, null) wasnt called
     }
 
-    "throw NoSuchNodeException if load balancer returns None when sendRequest is called" in {
+    "throw NoSuchNodeException if load balancer returns None when sendRequest is called" in new NetworkClientSetup {
       clusterClient.nodes returns nodeSet
       clusterClient.isConnected returns true
       networkClient.clusterIoClient.nodesChanged(nodeSet) returns endpoints
@@ -236,7 +244,7 @@ class NetworkClientSpec extends BaseNetworkClientSpecification {
       //      clusterIoClient.sendMessage(node, message, null) wasnt called
     }
 
-    "throw NoSuchNodeException if load balancer returns None when sendMessage is called" in {
+    "throw NoSuchNodeException if load balancer returns None when sendMessage is called" in new NetworkClientSetup {
       clusterClient.nodes returns nodeSet
       clusterClient.isConnected returns true
       networkClient.clusterIoClient.nodesChanged(nodeSet) returns endpoints
@@ -250,6 +258,5 @@ class NetworkClientSpec extends BaseNetworkClientSpecification {
       there was one(networkClient.lb).nextNode(None, None)
       //      clusterIoClient.sendMessage(node, message, null) wasnt called
     }
-
   }
 }

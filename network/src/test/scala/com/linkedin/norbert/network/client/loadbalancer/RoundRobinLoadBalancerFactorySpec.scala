@@ -18,7 +18,7 @@ package network
 package client
 package loadbalancer
 
-import org.specs.SpecificationWithJUnit
+import org.specs2.mutable.SpecificationWithJUnit
 import cluster.Node
 import common.Endpoint
 
@@ -41,12 +41,16 @@ class RoundRobinLoadBalancerFactorySpec extends SpecificationWithJUnit {
 
       for (i <- 0 until 100) {
         val node = lb.nextNode
-        node must beSome[Node].which { nodes must contain(_) }
+        node must beSome[Node].which {
+          nodes must contain(_)
+        }
       }
+
+      success
     }
 
     "Not route to offline endpoints" in {
-      val nodes = for(i <- 0 until 3) yield Node(i, "localhost:3131" + i, true)
+      val nodes = for (i <- 0 until 3) yield Node(i, "localhost:3131" + i, true)
 
       var availabilityMap = nodes.map(n => (n, true)).toMap
 
@@ -60,7 +64,7 @@ class RoundRobinLoadBalancerFactorySpec extends SpecificationWithJUnit {
 
       var lb = lbf.newLoadBalancer(endpoints)
 
-      for(i <- 0 until 9) {
+      for (i <- 0 until 9) {
         val node = lb.nextNode.get
         val nodeId = i % 3
         node must be_==(Node(nodeId, "localhost:3131" + nodeId, true))
@@ -69,42 +73,46 @@ class RoundRobinLoadBalancerFactorySpec extends SpecificationWithJUnit {
       availabilityMap += Node(0, "localhost:31310", true) -> false
 
       lb = lbf.newLoadBalancer(endpoints)
-      for(i <- 0 until 9) {
+      for (i <- 0 until 9) {
         val node = lb.nextNode.get
         val nodeId = i % 2 + 1
         node must be_==(Node(nodeId, "localhost:3131" + nodeId, true))
       }
+      success
     }
 
     "Not route to node cannot fulfill capability" in {
-      val nodes = for (i <- 0 until 4) yield Node(i, "localhost:3131" + i,  true, Set.empty[Int], Some(i), Some(i))
+      val nodes = for (i <- 0 until 4) yield Node(i, "localhost:3131" + i, true, Set.empty[Int], Some(i), Some(i))
 
       val endpoints = nodes.map(n => new Endpoint {
         def node = n
+
         def canServeRequests = true
       }).toSet
 
       val loadBalancerFactory = new RoundRobinLoadBalancerFactory
       val lb = loadBalancerFactory.newLoadBalancer(endpoints)
 
-      for(i <- 0 until 8) {
+      for (i <- 0 until 8) {
         val node = lb.nextNode.get
         val nodeId = i % 4
         node must be_==(Node(nodeId, "localhost:3131" + nodeId, true))
       }
 
-      for(i <- 0 until 8) {
+      for (i <- 0 until 8) {
         val node = lb.nextNode(Some(1), Some(1)).get
         val nodeId = ((i % 2) << 1) | 1
         node must be_==(Node(nodeId, "localhost:3131" + nodeId, true))
       }
+      success
     }
 
     "give None node on uncapable servers" in {
-      val nodes = for (i <- 0 until 4) yield Node(i, "localhost:3131" + i,  true, Set.empty[Int], Some(i))
+      val nodes = for (i <- 0 until 4) yield Node(i, "localhost:3131" + i, true, Set.empty[Int], Some(i))
 
       val endpoints = nodes.map(n => new Endpoint {
         def node = n
+
         def canServeRequests = true
       }).toSet
 
@@ -112,7 +120,7 @@ class RoundRobinLoadBalancerFactorySpec extends SpecificationWithJUnit {
       val lb = loadBalancerFactory.newLoadBalancer(endpoints)
 
       val node = lb.nextNode(Some(0xFF))
-      node must be (None)
+      node must be(None)
     }
   }
 }

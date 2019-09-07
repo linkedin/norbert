@@ -16,16 +16,20 @@
 package com.linkedin.norbert
 package logging
 
-import org.specs.SpecificationWithJUnit
 import org.apache.log4j
-import log4j.Level._
-import org.specs.mock.Mockito
+import org.apache.log4j.Level._
+import org.specs2.mock.Mockito
+import org.specs2.mutable.SpecificationWithJUnit
+import org.specs2.specification.Scope
 
 class LoggerSpec extends SpecificationWithJUnit with Mockito {
-  "Logger" should {
-    "log the message if debug enabled for debug" in {
-      val wrapped = mock[log4j.Logger]
 
+  trait LoggerSetup extends Scope {
+    val wrapped = mock[log4j.Logger]
+  }
+
+  "Logger" should {
+    "log the message if debug enabled for debug" in new LoggerSetup {
       wrapped.isEnabledFor(DEBUG) returns true
       doNothing.when(wrapped).log(classOf[Logger].getName, DEBUG, "the message: 1", null)
 
@@ -38,8 +42,7 @@ class LoggerSpec extends SpecificationWithJUnit with Mockito {
       }
     }
 
-    "log the message and exception if debug enabled for debug" in {
-      val wrapped = mock[log4j.Logger]
+    "log the message and exception if debug enabled for debug" in new LoggerSetup {
       val ex = new Exception
 
       wrapped.isEnabledFor(DEBUG) returns true
@@ -54,9 +57,7 @@ class LoggerSpec extends SpecificationWithJUnit with Mockito {
       }
     }
 
-    "not log the message if debug is not enabled for debug" in {
-      val wrapped = mock[log4j.Logger]
-
+    "not log the message if debug is not enabled for debug" in new LoggerSetup {
       wrapped.isEnabledFor(DEBUG) returns false
 
       val log = new Logger(wrapped)
@@ -66,9 +67,7 @@ class LoggerSpec extends SpecificationWithJUnit with Mockito {
       there was no(wrapped).log(classOf[Logger].getName, DEBUG, "the message: 1", null)
     }
 
-    "log the message if info enabled for info" in {
-      val wrapped = mock[log4j.Logger]
-
+    "log the message if info enabled for info" in new LoggerSetup {
       wrapped.isEnabledFor(INFO) returns true
       doNothing.when(wrapped).log(classOf[Logger].getName, INFO, "the message: 1", null)
 
@@ -81,8 +80,7 @@ class LoggerSpec extends SpecificationWithJUnit with Mockito {
       }
     }
 
-    "log the message and exception if info enabled for info" in {
-      val wrapped = mock[log4j.Logger]
+    "log the message and exception if info enabled for info" in new LoggerSetup {
       val ex = new Exception
 
       wrapped.isEnabledFor(INFO) returns true
@@ -97,9 +95,7 @@ class LoggerSpec extends SpecificationWithJUnit with Mockito {
       }
     }
 
-    "not log the message if info is not enabled for info" in {
-      val wrapped = mock[log4j.Logger]
-
+    "not log the message if info is not enabled for info" in new LoggerSetup {
       wrapped.isEnabledFor(INFO) returns false
 
       val log = new Logger(wrapped)
@@ -109,9 +105,7 @@ class LoggerSpec extends SpecificationWithJUnit with Mockito {
       there was no(wrapped).log(classOf[Logger].getName, INFO, "the message: 1", null)
     }
 
-    "log the message if warn enabled for warn" in {
-      val wrapped = mock[log4j.Logger]
-
+    "log the message if warn enabled for warn" in new LoggerSetup {
       wrapped.isEnabledFor(WARN) returns true
       doNothing.when(wrapped).log(classOf[Logger].getName, WARN, "the message: 1", null)
 
@@ -124,8 +118,7 @@ class LoggerSpec extends SpecificationWithJUnit with Mockito {
       }
     }
 
-    "log the message and exception if warn enabled for warn" in {
-      val wrapped = mock[log4j.Logger]
+    "log the message and exception if warn enabled for warn" in new LoggerSetup {
       val ex = new Exception
 
       wrapped.isEnabledFor(WARN) returns true
@@ -140,9 +133,7 @@ class LoggerSpec extends SpecificationWithJUnit with Mockito {
       }
     }
 
-    "not log the message if warn is not enabled for warn" in {
-      val wrapped = mock[log4j.Logger]
-
+    "not log the message if warn is not enabled for warn" in new LoggerSetup {
       wrapped.isEnabledFor(WARN) returns false
 
       val log = new Logger(wrapped)
@@ -152,9 +143,7 @@ class LoggerSpec extends SpecificationWithJUnit with Mockito {
       there was no(wrapped).log(classOf[Logger].getName, WARN, "the message: 1", null)
     }
 
-    "log the message if error enabled for error" in {
-      val wrapped = mock[log4j.Logger]
-
+    "log the message if error enabled for error" in new LoggerSetup {
       wrapped.isEnabledFor(ERROR) returns true
       doNothing.when(wrapped).log(classOf[Logger].getName, ERROR, "the message: 1", null)
 
@@ -167,8 +156,7 @@ class LoggerSpec extends SpecificationWithJUnit with Mockito {
       }
     }
 
-    "log the message and exception if error enabled for error" in {
-      val wrapped = mock[log4j.Logger]
+    "log the message and exception if error enabled for error" in new LoggerSetup {
       val ex = new Exception
 
       wrapped.isEnabledFor(ERROR) returns true
@@ -183,9 +171,7 @@ class LoggerSpec extends SpecificationWithJUnit with Mockito {
       }
     }
 
-    "not log the message if error is not enabled for error" in {
-      val wrapped = mock[log4j.Logger]
-
+    "not log the message if error is not enabled for error" in new LoggerSetup {
       wrapped.isEnabledFor(ERROR) returns false
 
       val log = new Logger(wrapped)
@@ -195,9 +181,7 @@ class LoggerSpec extends SpecificationWithJUnit with Mockito {
       there was no(wrapped).log(classOf[Logger].getName, ERROR, "the message: 1", null)
     }
 
-    "log the message if fatal enabled for fatal" in {
-      val wrapped = mock[log4j.Logger]
-
+    "log the message if fatal enabled for fatal" in new LoggerSetup {
       wrapped.isEnabledFor(FATAL) returns true
       doNothing.when(wrapped).log(classOf[Logger].getName, FATAL, "the message: 1", null)
 
@@ -210,8 +194,7 @@ class LoggerSpec extends SpecificationWithJUnit with Mockito {
       }
     }
 
-    "log the message and exception if fatal enabled for fatal" in {
-      val wrapped = mock[log4j.Logger]
+    "log the message and exception if fatal enabled for fatal" in new LoggerSetup {
       val ex = new Exception
 
       wrapped.isEnabledFor(FATAL) returns true
@@ -226,9 +209,7 @@ class LoggerSpec extends SpecificationWithJUnit with Mockito {
       }
     }
 
-    "not log the message if fatal is not enabled for fatal" in {
-      val wrapped = mock[log4j.Logger]
-
+    "not log the message if fatal is not enabled for fatal" in new LoggerSetup {
       wrapped.isEnabledFor(FATAL) returns false
 
       val log = new Logger(wrapped)

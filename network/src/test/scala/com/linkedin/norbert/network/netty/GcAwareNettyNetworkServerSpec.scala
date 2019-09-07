@@ -19,64 +19,79 @@ package netty
 
 import java.util.concurrent._
 
-import com.linkedin.norbert.network.garbagecollection.GcParamWrapper
-import org.specs.util.WaitFor
 import com.linkedin.norbert.cluster._
 import com.linkedin.norbert.network.common.SampleMessage
-import org.specs.SpecificationWithJUnit
-import org.specs.mock.Mockito
+import com.linkedin.norbert.network.garbagecollection.GcParamWrapper
+import com.linkedin.norbert.util.WaitFor
+import org.specs2.mock.Mockito
+import org.specs2.mutable.SpecificationWithJUnit
+import org.specs2.specification.Scope
 
 /**
- * @author: sishah
- * @date: 07/08/15
- * @version: 1.0
- */
+  * @author: sishah
+  * @date: 07/08/15
+  * @version: 1.0
+  */
 class GcAwareNettyNetworkServerSpec extends SpecificationWithJUnit with Mockito with SampleMessage with WaitFor {
 
-  // After registering a node, I expect the first GC event in the recurring schedule to occur in some time 't'.
-  // Since I won't always get exactly 't' milliseconds, this allows for slack in the expected and observed delay
-  // before the first event
-  val slackTimeInMillis: Int = 20
+  trait NetworkServerSetup extends Scope {
+    // After registering a node, I expect the first GC event in the recurring schedule to occur in some time 't'.
+    // Since I won't always get exactly 't' milliseconds, this allows for slack in the expected and observed delay
+    // before the first event
+    val slackTimeInMillis: Int = 20
 
-  val cycleTime = 6000
-  val slotTime = 2000
-  val slaTime = 1000
+    val cycleTime = 6000
+    val slotTime = 2000
+    val slaTime = 1000
 
-  val goodGcParams = new GcParamWrapper(slaTime, cycleTime, slotTime)
+    val goodGcParams = new GcParamWrapper(slaTime, cycleTime, slotTime)
 
-  val networkConfig = spy(new NetworkServerConfig)
-  networkConfig.clusterClient = mock[ClusterClient]
-  networkConfig.clusterClient.clientName returns Some("Test")
-  networkConfig.clusterClient.serviceName returns "Test"
-  networkConfig.gcParams = goodGcParams
-  networkConfig.requestTimeoutMillis = 2000L
-  networkConfig.requestThreadCorePoolSize = 1
-  networkConfig.requestThreadMaxPoolSize = 1
-  networkConfig.requestThreadKeepAliveTimeSecs = 2
+    val networkConfig = spy(new NetworkServerConfig)
+    networkConfig.clusterClient = mock[ClusterClient]
+    networkConfig.clusterClient.clientName returns Some("Test")
+    networkConfig.clusterClient.serviceName returns "Test"
+    networkConfig.gcParams = goodGcParams
+    networkConfig.requestTimeoutMillis = 2000L
+    networkConfig.requestThreadCorePoolSize = 1
+    networkConfig.requestThreadMaxPoolSize = 1
+    networkConfig.requestThreadKeepAliveTimeSecs = 2
 
-  val networkServer = spy(new NettyNetworkServer(networkConfig))
+    val networkServer = spy(new NettyNetworkServer(networkConfig))
 
-  val node0 = Node(0, "", false, Set.empty, None, None, Some(0))
-  val node1 = Node(1, "", false, Set.empty, None, None, Some(1))
-  val node2 = Node(2, "", false, Set.empty, None, None, Some(0))
+    val node0 = Node(0, "", false, Set.empty, None, None, Some(0))
+    val node1 = Node(1, "", false, Set.empty, None, None, Some(1))
+    val node2 = Node(2, "", false, Set.empty, None, None, Some(0))
 
-  val listenerKey: ClusterListenerKey = ClusterListenerKey(1)
+    val listenerKey: ClusterListenerKey = ClusterListenerKey(1)
 
-  networkServer.clusterClient.nodeWithId(1) returns Some(node0)
-  networkServer.clusterClient.addListener(any[ClusterListener]) returns listenerKey
+    networkServer.clusterClient.nodeWithId(1) returns Some(node0)
+    networkServer.clusterClient.addListener(any[ClusterListener]) returns listenerKey
 
-  "NetworkServer" should {
-    doAfter {
-      networkServer.shutdown
+
+    def waitTillStartOfNewCycle: Unit = {
+      println("Waiting till start of new cycle")
+      while (System.currentTimeMillis() % cycleTime != 0) {}
     }
 
-    "have a valid GC Thread " in {
+    def verifyDelay(obsDelay: Long, expDelay: Long): Boolean = {
+      expDelay - obsDelay <= slackTimeInMillis
+    }
+  }
+
+  trait AfterSpecSetup extends NetworkServerSetup {
+    def after = {
+      networkServer.shutdown
+    }
+  }
+
+  "NetworkServer" should {
+    "have a valid GC Thread " in new NetworkServerSetup {
 
       networkServer.gcThread must be_!=(None)
 
     }
 
-    "schedule a new recurring GC event" in {
+    "schedule a new recurring GC event" in new NetworkServerSetup {
 
       waitTillStartOfNewCycle
 
@@ -88,8 +103,8 @@ class GcAwareNettyNetworkServerSpec extends SpecificationWithJUnit with Mockito 
       networkServer.currOffset must be_==(0)
 
     }
-    
-    "adapt the GC event to the binding of a new node" in {
+
+    "adapt the GC event to the binding of a new node" in new NetworkServerSetup {
 
       networkServer.schedulePeriodicGc(node0)
 
@@ -105,7 +120,7 @@ class GcAwareNettyNetworkServerSpec extends SpecificationWithJUnit with Mockito 
 
     }
 
-    "Not cancel the initial GC event if the offset of the new node is the same" in {
+    "Not cancel the initial GC event if the offset of the new node is the same" in new AfterSpecSetup {
 
       networkServer.schedulePeriodicGc(node0)
 
@@ -117,18 +132,6 @@ class GcAwareNettyNetworkServerSpec extends SpecificationWithJUnit with Mockito 
       networkServer.gcFuture must eventually(be_!=(None))
       networkServer.currOffset must be_==(0)
       there was no(networkServer.gcFuture.get).cancel(true)
-
     }
-
   }
-
-  def waitTillStartOfNewCycle: Unit = {
-    println("Waiting till start of new cycle")
-    while (System.currentTimeMillis() % cycleTime != 0) {}
-  }
-
-  def verifyDelay(obsDelay:Long, expDelay:Long): Boolean = {
-    expDelay-obsDelay <= slackTimeInMillis
-  }
-
 }
