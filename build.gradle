@@ -19,7 +19,13 @@ File getEnvironmentScript()
 apply from: environmentScript
 
 def getScalaSuffix(scalaVersion) {
-  return scalaVersion.startsWith('2.10') ? '_2.10' : "_$scalaVersion"
+  if (scalaVersion.startsWith('2.10')) {
+    return '_2.10'
+  }
+  if (scalaVersion.startsWith('2.11')) {
+    return '_2.11'
+  }
+  return "_$scalaVersion"
 }
 
 subprojects {
