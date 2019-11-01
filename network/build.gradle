@@ -1,5 +1,6 @@
 apply plugin: 'java'
 apply plugin: 'scala'
+apply plugin: 'osgi'
 
 dependencies {
   compile project(":cluster$scalaSuffix")
@@ -15,3 +16,20 @@ dependencies {
   testCompile externalDependency.junit
 }
 
+ext.osgi_local_imports = [
+  'com.linkedin.norbert',
+  'com.linkedin.norbert.cluster',
+  'com.linkedin.norbert.jmx',
+  'com.linkedin.norbert.logging',
+  'com.linkedin.norbert.norbertutils',
+  'com.linkedin.norbert.protos']
+
+jar{
+  manifest {
+    name = 'Norbert Network'
+    symbolicName = 'com.linkedin.norbert.network'
+    instruction 'Bundle-Description', 'Norbert Network'
+    instruction 'Bundle-Vendor', 'LinkedIn'
+    instruction 'Import-Package', createOsgiVersionedPackageList(osgi_local_imports) + ',*'
+  }
+}

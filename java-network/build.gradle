@@ -1,5 +1,6 @@
 apply plugin: 'java'
 apply plugin: 'scala'
+apply plugin: 'osgi'
 
 dependencies {
   compile project(":network$scalaSuffix")
@@ -8,3 +9,30 @@ dependencies {
   compile externalDependency.scalaLibrary
 }
 
+ext.osgi_local_imports = [
+  'com.linkedin.norbert.cluster',
+  'com.linkedin.norbert.javacompat',
+  'com.linkedin.norbert.javacompat.cluster',
+  'com.linkedin.norbert.network',
+  'com.linkedin.norbert.network.client',
+  'com.linkedin.norbert.network.client.loadbalancer',
+  'com.linkedin.norbert.network.common',
+  'com.linkedin.norbert.network.netty',
+  'com.linkedin.norbert.network.partitioned',
+  'com.linkedin.norbert.network.partitioned.loadbalancer',
+  'com.linkedin.norbert.network.server']
+
+jar{
+  manifest {
+    name = 'Norbert Java Network'
+    symbolicName = 'com.linkedin.norbert.java-network'
+    instruction 'Bundle-Description', 'Norbert Java Network'
+    instruction 'Bundle-Vendor', 'LinkedIn'
+    /* We must not export com.linkedin.norbert as it collides with cluster bundle.
+     * However, using '!com.linkedin.norbert,*' did for some reason remove the version
+     * information, making importing of the package impossible.
+     */
+    instruction 'Export-Package', 'com.linkedin.norbert.javacompat.network;version="'+version+'"'
+    instruction 'Import-Package', createOsgiVersionedPackageList(osgi_local_imports) + ',*'
+  }
+}

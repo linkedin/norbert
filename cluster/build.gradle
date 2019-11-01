@@ -1,5 +1,6 @@
 apply plugin: 'java'
 apply plugin: 'scala'
+apply plugin: 'osgi'
 
 dependencies {
   compile externalDependency.scalaLibrary
@@ -14,3 +15,11 @@ dependencies {
   testCompile externalDependency.junit
 }
 
+jar{
+  manifest {
+    name = 'Norbert Cluster'
+    symbolicName = 'com.linkedin.norbert.cluster'
+    instruction 'Bundle-Description', 'Norbert Cluster'
+    instruction 'Bundle-Vendor', 'LinkedIn'
+  }
+}

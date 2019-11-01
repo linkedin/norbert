@@ -27,8 +27,22 @@ def getScalaSuffix(scalaVersion) {
   return "_$suffix"
 }
 
-subprojects {
+/* Helper to build OSGI package lists with explicit version spec.
+ * By default the osgi plugin adds version range such as (0.6.91,1.0]
+ * for import-package. To avoid missmatch we want exact version.
+ * Downside: Manual package lists in gradle...
+ * Alternative is to use -consumer-policy directive to force ==, but
+ * that applies to external imports too which is undesired.
+ */
+def createOsgiVersionedPackageList(pkgs) {
+  def out = []
+  for(String pkg: pkgs){
+    out.add(pkg + ';version="'+version+'"')
+  }
+  return out.join(',')
+}
 
+subprojects {
   // the cross built scala modules share the same source directories so we need to make their output directories unique
   buildDir = "${rootProject.buildDir}/$name"
 
